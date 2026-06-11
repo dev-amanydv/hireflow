@@ -11,6 +11,14 @@ const formSchema = z.object({
     linkedin: z.url()
 })
 
+app.get('/api/v1/health', (req: Request, res: Response) => {
+    res.status(200).json({
+        success: true,
+        message: "Server health's good",
+        data: null
+    })
+})
+
 app.post('/api/v1/pre-interview', async (req: Request, res: Response) => {
     const result = formSchema.safeParse(req.body.form);
     if (!result.success){
@@ -27,6 +35,7 @@ app.post('/api/v1/pre-interview', async (req: Request, res: Response) => {
         data: null
     })
 })
+
 
 app.listen(8000, () => {
     console.log(`Server is running at http://localhost:8000`)
