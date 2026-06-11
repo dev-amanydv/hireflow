@@ -22,7 +22,6 @@ export default function Form (){
 
     async function onSubmit (){
         const result = FormSchema.safeParse(form)
-        console.log(result)
         if (!result.success){
             if (result.error.message.includes('linkedin') && result.error.message.includes("github")){
                 toast.error('Invalid Link', {
@@ -53,7 +52,10 @@ export default function Form (){
         const res = await axios.post(`${BACKEND_URL}/pre-interview`, {
             form
         })
-        toast('Scraped')
+        console.log(res)
+        if (!res.data.status){
+            toast.error(res.data.message)
+        }
         
     }
 

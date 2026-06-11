@@ -1,3 +1,3 @@
 
 
-export const BACKEND_URL = process.env.BACKEND_URL ?? 'http://localhost:8000/api/v1'
+export const BACKEND_URL = import.meta.env.BACKEND_API_URL ?? 'http://localhost:8000/api/v1'
