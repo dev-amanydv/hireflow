@@ -11,3 +11,52 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum Provider {
+  GOOGLE
+  LOCAL
+}
+
+enum InterviewStatus {
+  SCHEDULED
+  ONGOING
+  COMPLETED
+}
+
+enum MessageRole {
+  User
+  Assistant
+}
+
+model User {
+  id        String          @id @default(uuid())
+  email     String          @unique
+  provider  Provider        @default(LOCAL)
+  password  String?
+  Resume    String?
+}
+
+model Interview {
+  id        String          @id @default(uuid())
+  jobRole   String
+  status    InterviewStatus @default(SCHEDULED)
+  resultId  String          @unique
+  result    Result          @relation(fields: [resultId], references: [id])
+  messages  Message[]
+  githubMetadata  Json
+}
+
+model Message {
+  id          Int             @id @default(autoincrement())
+  content     String          
+  role        MessageRole     @default(User) 
+  interviewId String
+  interview   Interview       @relation(fields: [interviewId], references: [id])
+}
+
+model Result {
+  id        String          @id @default(uuid())
+  score     Float
+  interview Interview?
+}
+

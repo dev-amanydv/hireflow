@@ -6,19 +6,25 @@ services:
       dockerfile: apps/frontend/Dockerfile
     expose:
       - "5173"
+    restart: unless-stopped
   backend:
+    restart: unless-stopped
     build: 
       context: .
       dockerfile: apps/backend/Dockerfile
     expose:
       - "8000"
     healthcheck:
-      test: ["executable", "arg"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/v1/health || exit 1"] #TODO: install curl in backend
       interval: 1m30s
       timeout: 30s
       retries: 5
       start_period: 30s
+    depends_on:
+      db:
+        condition: service_healthy
   nginx:
+    restart: unless-stopped
     image: nginx:alpine
     ports:
       - "80:80"
@@ -26,16 +32,30 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       backend:
-        condition: service-healthy
+        condition: service_healthy
       frontend:
+        condition: service_started
         
 
   db:
-    image: postgres:18-apline
+    restart: unless-stopped
+    image: postgres:18-alpine
     environment:
       - POSTGRES_USER=amanydv
       - POSTGRES_PASSWORD=amanydv
+      - POSTGRES_DB=interview-mercor
     ports: 
-      - 5849: 5849
-    name: "interview-mercor"
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U amanydv -d interview-mercor"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  pgdata:
+
     
