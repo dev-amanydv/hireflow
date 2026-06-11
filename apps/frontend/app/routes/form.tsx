@@ -1,18 +1,61 @@
 import { useState } from "react";
+import { toast } from "sonner";
+import z from "zod";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
+import axios from 'axios';
+import { BACKEND_URL } from "~/lib/config";
 
-interface form {
-    github: string,
-    linkedin: string
-}
+const FormSchema = z.object({
+    github: z.url().optional(),
+    linkedin: z.url().optional()
+})
+
+type FormSchemaType = z.infer<typeof FormSchema>;
 
 export default function Form (){
 
-    const [form, setForm] = useState<form>({
+    const [form, setForm] = useState<FormSchemaType>({
         github: "",
         linkedin: ""
     })
+
+    async function onSubmit (){
+        const result = FormSchema.safeParse(form)
+        console.log(result)
+        if (!result.success){
+            if (result.error.message.includes('linkedin') && result.error.message.includes("github")){
+                toast.error('Invalid Link', {
+                 className: "",
+                 description: "Please enter valid GitHub & LinkedIn url",
+                 duration: 3000
+             })
+             return
+            }
+            if (result.error.message.includes('github')){
+                toast.error('Invalid GitHub Link', {
+                 className: "",
+                 description: "Please enter valid GitHub link",
+                 duration: 3000
+             })
+             return
+            }
+            if (result.error.message.includes('linkedin')){
+                toast.error('Invalid LinkedIn Link', {
+                 className: "",
+                 description: "Please enter valid LinkedIn link",
+                 duration: 3000
+             })
+             return
+            }
+        }
+        
+        const res = await axios.post(`${BACKEND_URL}/pre-interview`, {
+            form
+        })
+        toast('Scraped')
+        
+    }
 
     return <div className="container h-screen mx-auto flex justify-center items-center">
             <div className="flex flex-col gap-5">
@@ -22,7 +65,7 @@ export default function Form (){
                 <div className="justify-center flex flex-col gap-2">
                     <Input onChange={(e) => setForm((prevData) => ({...prevData, github: e.target.value}))} value={form.github} placeholder="GitHub Link" className="min-w-md" />
                     <Input onChange={(e) => setForm((prevData) => ({...prevData, linkedin: e.target.value}))} value={form.linkedin} placeholder="LinkedIn Link" className="min-w-md" />
-                    <Button className="w-fit self-center">Send</Button>
+                    <Button className="w-fit self-center" onClick={onSubmit}>Send</Button>
                 </div>
             </div>
 
