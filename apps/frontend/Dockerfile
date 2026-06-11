@@ -1,22 +1,37 @@
-FROM node:20-alpine AS development-dependencies-env
-COPY . /app
-WORKDIR /app
-RUN npm ci
+# syntax=docker/dockerfile:1
 
-FROM node:20-alpine AS production-dependencies-env
-COPY ./package.json package-lock.json /app/
+# --- Stage 1: full deps (for the build) ---
+FROM oven/bun:1.3.14-alpine AS deps
 WORKDIR /app
-RUN npm ci --omit=dev
+COPY package.json bun.lock ./
+COPY apps/frontend/package.json ./apps/frontend/package.json
+RUN bun install --frozen-lockfile
 
-FROM node:20-alpine AS build-env
-COPY . /app/
-COPY --from=development-dependencies-env /app/node_modules /app/node_modules
+# --- Stage 2: build the SSR bundle ---
+FROM oven/bun:1.3.14-alpine AS build
 WORKDIR /app
-RUN npm run build
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/frontend/node_modules ./apps/frontend/node_modules
+COPY package.json bun.lock ./
+COPY apps/frontend ./apps/frontend
+WORKDIR /app/apps/frontend
+RUN bun run build
 
-FROM node:20-alpine
-COPY ./package.json package-lock.json /app/
-COPY --from=production-dependencies-env /app/node_modules /app/node_modules
-COPY --from=build-env /app/build /app/build
+# --- Stage 3: production-only deps (slimmer runtime) ---
+FROM oven/bun:1.3.14-alpine AS prod-deps
 WORKDIR /app
-CMD ["npm", "run", "start"]
+COPY package.json bun.lock ./
+COPY apps/frontend/package.json ./apps/frontend/package.json
+RUN bun install --frozen-lockfile --production
+
+# --- Stage 4: runtime ---
+FROM oven/bun:1.3.14-alpine AS runtime
+WORKDIR /app/apps/frontend
+ENV NODE_ENV=production
+ENV PORT=5173                               # match nginx upstream frontend:5173
+COPY --from=prod-deps /app/node_modules /app/node_modules
+COPY --from=build /app/apps/frontend/build ./build
+COPY apps/frontend/package.json ./package.json
+USER bun
+EXPOSE 5173
+CMD ["bun", "run", "start"]                 # react-router-serve build/server/index.js
