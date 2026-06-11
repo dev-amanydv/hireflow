@@ -1,0 +1,41 @@
+name: interview-mercor
+services:
+  frontend:
+    build: 
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+    expose:
+      - "5173"
+  backend:
+    build: 
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["executable", "arg"]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      backend:
+        condition: service-healthy
+      frontend:
+        
+
+  db:
+    image: postgres:18-apline
+    environment:
+      - POSTGRES_USER=amanydv
+      - POSTGRES_PASSWORD=amanydv
+    ports: 
+      - 5849: 5849
+    name: "interview-mercor"
+    

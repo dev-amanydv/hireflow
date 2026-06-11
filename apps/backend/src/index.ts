@@ -23,7 +23,7 @@ app.post('/api/v1/pre-interview', async (req: Request, res: Response) => {
 
     res.status(200).json({
         success: true,
-        message: 'Success',
+        message: 'Interview created successfully',
         data: null
     })
 })
