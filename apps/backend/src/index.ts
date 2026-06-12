@@ -1,6 +1,8 @@
 import express, { type Request, type Response } from 'express'
 import z, { success } from 'zod';
 import cors from 'cors';
+import { getGithubUsername } from './utils/utils';
+import { githubScraper } from './scrapers/github';
 
 const app = express();
 
@@ -8,7 +10,7 @@ app.use(express.json());
 app.use(cors())
 const formSchema = z.object({
     github: z.url(),
-    linkedin: z.url()
+    linkedin: z.string().optional()
 })
 
 app.get('/api/v1/health', (req: Request, res: Response) => {
@@ -28,6 +30,18 @@ app.post('/api/v1/pre-interview', async (req: Request, res: Response) => {
             data: null
         })
     };
+
+    const githubLink = result.data.github;
+    const githubUsername = getGithubUsername(githubLink);
+    if (!githubUsername){
+        return res.status(411).json({
+            success: false,
+            message: "Invalid username",
+            data: null
+        })
+    }
+
+    const scrapedData = await githubScraper(githubUsername);
 
     res.status(200).json({
         success: true,
