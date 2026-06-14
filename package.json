@@ -1,5 +1,5 @@
 {
-  "name": "interview-mercor",
+  "name": "quick-hire",
   "private": true,
   "scripts": {
     "build": "turbo run build",

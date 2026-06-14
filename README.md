@@ -1,4 +1,4 @@
-# AI Interviewer
+# Quick Hire
 
 An AI-driven interview platform. Candidates upload a resume and pick a target role
 (e.g. *Backend Engineer*); the platform scrapes their public proof-of-work, runs a

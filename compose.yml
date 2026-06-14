@@ -1,4 +1,4 @@
-name: interview-mercor
+name: quick-hire
 services:
   frontend:
     build: 
@@ -43,13 +43,13 @@ services:
     environment:
       - POSTGRES_USER=amanydv
       - POSTGRES_PASSWORD=amanydv
-      - POSTGRES_DB=interview-mercor
+      - POSTGRES_DB=quickhire
     ports: 
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U amanydv -d interview-mercor"]
+      test: ["CMD-SHELL", "pg_isready -U amanydv -d quickhire"]
       interval: 10s
       timeout: 5s
       retries: 5

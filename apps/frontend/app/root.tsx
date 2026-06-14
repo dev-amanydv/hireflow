@@ -9,6 +9,7 @@ import {
 import { Toaster } from "sonner"
 import type { Route } from "./+types/root";
 import "./app.css";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -34,7 +35,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <Toaster position="top-center" />
+        <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
         {children}
+        </GoogleOAuthProvider>
         <ScrollRestoration />
         <Scripts />
       </body>

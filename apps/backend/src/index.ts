@@ -5,6 +5,7 @@ import { getGithubUsername, JWT_SECRET } from './utils/utils';
 import { githubScraper } from './scrapers/github';
 import { prisma } from '../prisma/db';
 import jwt from "jsonwebtoken";
+import { ta } from 'zod/locales';
 
 const app = express();
 
@@ -26,6 +27,10 @@ const signinSchema = z.object({
     password: z.string().min(4)
 })
 
+const googleSchema = z.object({
+    email: z.string()
+})
+
 app.get('/api/v1/health', (req: Request, res: Response) => {
     res.status(200).json({
         success: true,
@@ -34,8 +39,21 @@ app.get('/api/v1/health', (req: Request, res: Response) => {
     })
 })
 
+app.post('/api/v1/auth/google', async (req: Request, res: Response) => {
+    const { success, data } = googleSchema.safeParse(req.body);
+
+    if (!success){
+        return res.status(401).json({
+            success: true,
+            message: 'Email is required'
+        })
+    }
+    const 
+})
+
 app.post('/api/v1/auth/signup', async (req: Request, res: Response) => {
-    const { success, data } = signupSchema.safeParse(req.body);
+    try {
+        const { success, data } = signupSchema.safeParse(req.body);
     if (!success) {
         return res.status(401).json({
             success: false,
@@ -66,12 +84,12 @@ app.post('/api/v1/auth/signup', async (req: Request, res: Response) => {
     const refreshToken = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
         audience: 'User',
         expiresIn: 7 * 24 * 60 * 60 * 1000,
-        issuer: "interview-mercor"
+        issuer: "quick-hire"
     })
     const accessToken = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
         audience: 'User',
         expiresIn: 2 * 60 * 60 * 1000,
-        issuer: "interview-mercor"
+        issuer: "quick-hire"
     })
 
     await prisma.user.update({
@@ -83,13 +101,109 @@ app.post('/api/v1/auth/signup', async (req: Request, res: Response) => {
         }
     });
 
-    res.cookie()
+    res.cookie('ref_token', refreshToken, {
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none'
+    })
+    res.cookie('access_token', accessToken, {
+        maxAge: 2 * 60 * 60 * 1000,
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none'
+    })
 
     res.status(201).json({
         success: true,
         message: 'Account created successfully',
         data: null
     })
+    } catch (error) {
+        console.log('Error in signup controller: ', error)
+    }
+})
+
+app.post('/api/v1/auth/signin', async (req: Request, res: Response) => {
+    try {
+        const { success, data } = signinSchema.safeParse(req.body);
+    if (!success) {
+        return res.status(401).json({
+            success: false,
+            message: "email and password are required",
+            data: null
+        })
+    };
+
+    const user = await prisma.user.findUnique({
+        where: {
+            email: data.email,
+        }
+    });
+    if (!user) {
+        return res.status(401).json({
+            success: false,
+            message: "Invalid email or password",
+            data: null
+        })
+    }
+    if (user?.provider === 'GOOGLE') {
+        return res.status(401).json({
+            success: false,
+            message: 'Account created using google',
+            data: null
+        })
+    }
+
+    if (user?.password != data.password) {
+        return res.status(401).json({
+            success: false,
+            message: "Invalid email or password",
+            data: null
+        })
+    };
+
+    const refreshToken = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
+        audience: 'User',
+        expiresIn: 7 * 24 * 60 * 60 * 1000,
+        issuer: "quick-hire"
+    })
+    const accessToken = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
+        audience: 'User',
+        expiresIn: 2 * 60 * 60 * 1000,
+        issuer: "quick-hire"
+    })
+
+    await prisma.user.update({
+        where: {
+            id: user.id
+        },
+        data: {
+            refreshToken
+        }
+    });
+
+    res.cookie('ref_token', refreshToken, {
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none'
+    })
+    res.cookie('access_token', accessToken, {
+        maxAge: 2 * 60 * 60 * 1000,
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none'
+    })
+
+    res.status(201).json({
+        success: true,
+        message: 'Account logged in successfully',
+        data: null
+    })
+    } catch (error) {
+        console.log('Error in signin controller: ', error)
+    }
 })
 
 app.post('/api/v1/pre-interview', async (req: Request, res: Response) => {
