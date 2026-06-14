@@ -1,36 +1,40 @@
 import axios from 'axios'
 import { PlaywrightCrawler, Dataset } from 'crawlee';
 
+interface RepoMetadata {
+    title: string,
+    url: string,
+    repoDescription: string,
+    repoReadme: string
+}
+const repositories: RepoMetadata[] = [];
+
 const crawler = new PlaywrightCrawler({
     async requestHandler({ request, page, enqueueLinks, log }) {
         console.log('request: ', request)
 
         const title = await page.title();
         log.info(`Title of ${request.loadedUrl} is ${title}`);
-
-        await Dataset.pushData({ title, url: request.loadedUrl });
+        if (request.label == "REPOSITORY"){
+            const repoReadme = await page.locator('article.markdown-body').innerText();
+            const repoDescription = await page.evaluate(() => {
+                const about = [...document.querySelectorAll('h2')].find((el) => el?.textContent?.trim() === "About");
+                return about?.nextElementSibling?.textContent?.trim()
+            }) || ""
+            repositories.push({ title, url: request.loadedUrl, repoDescription, repoReadme });
+        }
+        
         await enqueueLinks({
-            selector: 'li[itemprop="owns"] h3 a'
+            selector: 'li[itemprop="owns"] h3 a',
+            label: "REPOSITORY"
         });
     },
     headless: false,
-    maxRequestsPerCrawl: 15
+    maxRequestsPerCrawl: 5
 })
 
-await crawler.run(['https://github.com/dev-amanydv?tab=repositories']);
-
-interface UserRepos {
-    description: string,
-    name: string,
-    full_name: string
-}
 
 export async function githubScraper(username: string) {
-    const res = await axios.get(`https://api.github.com/users/${username}/repos`)
-    console.log(res.data)
-    return res.data.map((x: UserRepos) => ({
-        description: x.description,
-        name: x.name,
-        fullName: x.full_name
-    }))
+    await crawler.run([`https://github.com/${username}?tab=repositories`]);
+    return repositories
 }

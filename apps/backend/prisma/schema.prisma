@@ -6,6 +6,7 @@
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
+  runtime = "bun"
 }
 
 datasource db {
@@ -34,16 +35,20 @@ model User {
   provider  Provider        @default(LOCAL)
   password  String?
   Resume    String?
+  interview Interview[]
+  refreshToken String?
 }
 
 model Interview {
   id        String          @id @default(uuid())
   jobRole   String
   status    InterviewStatus @default(SCHEDULED)
-  resultId  String          @unique
-  result    Result          @relation(fields: [resultId], references: [id])
+  resultId  String?          @unique
+  result    Result?          @relation(fields: [resultId], references: [id])
   messages  Message[]
   githubMetadata  Json
+  userId    String  
+  user      User            @relation(fields: [userId], references: [id])
 }
 
 model Message {

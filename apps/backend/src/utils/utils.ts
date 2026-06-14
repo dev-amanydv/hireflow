@@ -1,4 +1,5 @@
 
+export const JWT_SECRET = 'amanydv07'
 
 
 export function getGithubUsername(urlString: string) {
