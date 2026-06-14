@@ -8,7 +8,7 @@ import { BACKEND_URL } from "~/lib/config";
 
 const FormSchema = z.object({
     github: z.url().optional(),
-    linkedin: z.url().optional()
+    linkedin: z.string().optional()
 })
 
 type FormSchemaType = z.infer<typeof FormSchema>;
@@ -56,7 +56,6 @@ export default function Form (){
         if (!res.data.status){
             toast.error(res.data.message)
         }
-        
     }
 
     return <div className="container h-screen mx-auto flex justify-center items-center">
