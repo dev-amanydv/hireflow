@@ -10,6 +10,7 @@ import { Toaster } from "sonner"
 import type { Route } from "./+types/root";
 import "./app.css";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import { TooltipProvider } from "./components/ui/tooltip";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -24,19 +25,36 @@ export const links: Route.LinksFunction = () => [
   },
 ];
 
+const themeScript = `(function () {
+  try {
+    var stored = localStorage.getItem("theme");
+    var mq = window.matchMedia("(prefers-color-scheme: dark)");
+    var apply = function (isDark) {
+      document.documentElement.classList.toggle("dark", isDark);
+    };
+    apply(stored ? stored === "dark" : mq.matches);
+    mq.addEventListener("change", function (e) {
+      if (!localStorage.getItem("theme")) apply(e.matches);
+    });
+  } catch (e) {}
+})();`;
+
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body>
         <Toaster className="z-50" position="top-center" />
         <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+        <TooltipProvider>
         {children}
+        </TooltipProvider>
         </GoogleOAuthProvider>
         <ScrollRestoration />
         <Scripts />
