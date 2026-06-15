@@ -5,12 +5,11 @@ import { getGithubUsername, JWT_SECRET } from './utils/utils';
 import { githubScraper } from './scrapers/github';
 import { prisma } from '../prisma/db';
 import jwt from "jsonwebtoken";
-import { ta } from 'zod/locales';
 
 const app = express();
 
 app.use(express.json());
-app.use(cors())
+app.use(cors({ origin: "http://localhost:5173",credentials: true }))
 
 const formSchema = z.object({
     github: z.url(),

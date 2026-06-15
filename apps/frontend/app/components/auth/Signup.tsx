@@ -47,6 +47,8 @@ export default function SignupPage({ setPopup }: {
             const res = await axios.post(`${BACKEND_URL}/auth/signup`, {
             email: form.email,
             password: form.password
+        }, {
+            withCredentials: true
         });
 
         if (!res.data.success) {
