@@ -1,18 +1,20 @@
-import { useState } from "react";
-import { toast } from "sonner";
-import z from "zod";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import axios from 'axios';
-import { BACKEND_URL } from "~/lib/config";
+import { useLoaderData } from "react-router";
+import type { Route } from "./+types/dashboard";
+import { requireAuth, userContext } from "~/lib/auth.server";
 
+export const middleware: Route.MiddlewareFunction[] = [requireAuth];
 
+export async function loader({ context }: Route.LoaderArgs) {
+  const user = context.get(userContext);
+  return { user };
+}
 
-export default function Dashboard (){
+export default function Dashboard() {
+  const { user } = useLoaderData<typeof loader>();
 
-   
-
-    return <div className="container h-screen mx-auto flex justify-center items-center">
-            Dashboard
-        </div>
+  return (
+    <div className="container h-screen mx-auto flex justify-center items-center">
+      Dashboard — {user?.email}
+    </div>
+  );
 }
