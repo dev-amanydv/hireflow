@@ -34,7 +34,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
-        <Toaster position="top-center" />
+        <Toaster className="z-50" position="top-center" />
         <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
         {children}
         </GoogleOAuthProvider>

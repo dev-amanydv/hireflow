@@ -48,7 +48,7 @@ app.post('/api/v1/auth/google', async (req: Request, res: Response) => {
             message: 'Email is required'
         })
     }
-    const 
+    
 })
 
 app.post('/api/v1/auth/signup', async (req: Request, res: Response) => {
@@ -117,7 +117,10 @@ app.post('/api/v1/auth/signup', async (req: Request, res: Response) => {
     res.status(201).json({
         success: true,
         message: 'Account created successfully',
-        data: null
+        data: {
+            id: user.id,
+            email: user.email
+        }
     })
     } catch (error) {
         console.log('Error in signup controller: ', error)
@@ -199,7 +202,10 @@ app.post('/api/v1/auth/signin', async (req: Request, res: Response) => {
     res.status(201).json({
         success: true,
         message: 'Account logged in successfully',
-        data: null
+        data: {
+            id: user.id,
+            email: user.email
+        }
     })
     } catch (error) {
         console.log('Error in signin controller: ', error)
