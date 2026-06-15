@@ -2,12 +2,13 @@ import { GoogleLogin } from "@react-oauth/google";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { CiLock, CiMail } from "react-icons/ci";
-import { Link } from "react-router";
+import { Link, replace, useNavigate } from "react-router";
 import { useState, type Dispatch, type SetStateAction } from "react";
 import z from "zod";
 import { toast } from "sonner";
 import axios from "axios";
 import { BACKEND_URL } from "~/lib/config";
+import { useAuth } from "~/store/store";
 
 const signupSchema = z.object({
     email: z.email(),
@@ -29,6 +30,8 @@ export default function SignupPage({ setPopup }: {
         password: ''
     });
     const [fieldErrors, setFieldErrors] = useState<FieldError>();
+    const addUser = useAuth((state) => state.addUser);
+    const navigate = useNavigate();
 
     async function onSubmit() {
         const result = signupSchema.safeParse(form);
@@ -42,13 +45,11 @@ export default function SignupPage({ setPopup }: {
             password: form.password
         });
 
-        console.log(res)
         if (!res.data.success) {
-            console.log(
-                'failed'
-            )
             toast.error(res.data.message)
         };
+        addUser({userId: res.data.data.id, email: res.data.data.email});
+        navigate('/dashboard', { replace: true })
     }
 
     return (
