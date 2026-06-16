@@ -24,7 +24,7 @@ const data = {
   navMain: [
     {
       title: "Dashboard",
-      url: "#",
+      url: "?tab=dashboard",
       icon: (
         <LayoutDashboardIcon
         />
