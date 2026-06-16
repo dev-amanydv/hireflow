@@ -5,7 +5,7 @@ import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
 
 export function RadioGroupChoiceCard() {
     return (
-        <RadioGroup defaultValue="mixed" className="w-full">
+        <RadioGroup name="interviewType" defaultValue="mixed" className="w-full">
             <div className="md:flex gap-4 w-full ">
                 <FieldLabel className="w-full max-w-xs" htmlFor="mixed-type">
                     <Field orientation="horizontal">

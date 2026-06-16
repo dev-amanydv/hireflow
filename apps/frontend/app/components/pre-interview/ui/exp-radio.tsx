@@ -32,7 +32,8 @@ const EXPERIENCE_LEVELS = [
 export function ExpRadioChoiceCard() {
     return (
         <RadioGroup
-            defaultValue="mid"
+            name="experience"
+            defaultValue="beginner"
             className="flex flex-wrap gap-x-10 gap-y-4"
         >
             {EXPERIENCE_LEVELS.map(({ value, title, description }) => (

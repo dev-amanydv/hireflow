@@ -64,7 +64,7 @@ const roles = [
 
 export function SelectRole() {
   return (
-    <Combobox items={roles}>
+    <Combobox name="role" items={roles}>
       <ComboboxInput placeholder="Select a role" />
       <ComboboxContent>
         <ComboboxEmpty>No roles found.</ComboboxEmpty>
