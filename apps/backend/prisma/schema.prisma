@@ -29,6 +29,21 @@ enum MessageRole {
   Assistant
 }
 
+enum InterviewType {
+  mixed
+  behavioural
+  technical
+  systemDesign
+}
+
+enum Experience {
+  beginner
+  junior
+  mid
+  senior
+  staff
+}
+
 model User {
   id        String          @id @default(uuid())
   email     String          @unique
@@ -42,7 +57,9 @@ model User {
 model Interview {
   id        String          @id @default(uuid())
   jobRole   String
+  type      InterviewType   @default(mixed)
   status    InterviewStatus @default(SCHEDULED)
+  experience  Experience    @default(beginner)
   resultId  String?          @unique
   result    Result?          @relation(fields: [resultId], references: [id])
   messages  Message[]

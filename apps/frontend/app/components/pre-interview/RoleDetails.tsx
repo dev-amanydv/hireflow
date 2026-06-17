@@ -1,24 +1,41 @@
+import z from "zod";
 import { Button } from "../ui/button";
-import { Checkbox } from "../ui/checkbox";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldLegend, FieldSeparator, FieldSet } from "../ui/field";
-import { Input } from "../ui/input";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { Textarea } from "../ui/textarea";
 import { ExpRadioChoiceCard } from "./ui/exp-radio";
 import { RadioGroupChoiceCard } from "./ui/radio-group";
 import { SelectRole } from "./ui/select-role";
+import { useState } from "react";
+import { toast } from "sonner";
 
+const roleDetailsSchema = z.object({
+  jobRole: z.string(),
+  type: z.literal(['mixed', 'behavioural', 'technical', 'systemDesign']),
+  experience: z.literal(['beginner', 'junior', 'mid', 'senior', 'staff'])
+})
+
+type RoleDetailsType = z.infer<typeof roleDetailsSchema>;
 
 export default function RoleDetails() {
-    const onSubmit: React.FormEventHandler<HTMLFormElement> = (event) => {
-        event.preventDefault();
-        const formData = new FormData(event.currentTarget);
-        const data = Object.fromEntries(formData);
-        console.log(data);
-    };
+  const [roleDetails, setRoleDetails] = useState<RoleDetailsType>({
+    jobRole: "",
+    type: "mixed",
+    experience: "beginner"
+  })
 
-    return (
-        <div className="w-full px-4">
+  const onSubmit: React.FormEventHandler<HTMLFormElement> = (event) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const rawData = Object.fromEntries(formData);
+    const { success, data } = roleDetailsSchema.safeParse(rawData);
+    if (!success) {
+      toast.error('Select an valid role');
+      return;
+    }
+    setRoleDetails(data);
+  };
+
+  return (
+    <div className="w-full px-4">
       <form onSubmit={onSubmit}>
         <FieldGroup>
           <FieldSet>
@@ -53,11 +70,11 @@ export default function RoleDetails() {
           </FieldSet>
           <Field className="" orientation="horizontal">
             <div className="flex w-full justify-end">
-                <Button className="px-6 py-5" type="submit">Next</Button>
+              <Button className="px-6 py-5" type="submit">Next</Button>
             </div>
           </Field>
         </FieldGroup>
       </form>
     </div>
-    )
+  )
 }
