@@ -7,20 +7,23 @@ import { SelectRole } from "./ui/select-role";
 import { useState } from "react";
 import { toast } from "sonner";
 
+interface RoleDetails {
+  jobRole: string
+  type: 'mixed' | 'behavioural' | 'technical' | 'systemDesign'
+  experience: 'beginner' | 'junior' | 'mid' | 'senior' | 'staff'
+}
+
 const roleDetailsSchema = z.object({
   jobRole: z.string(),
   type: z.literal(['mixed', 'behavioural', 'technical', 'systemDesign']),
   experience: z.literal(['beginner', 'junior', 'mid', 'senior', 'staff'])
-})
+});
 
-type RoleDetailsType = z.infer<typeof roleDetailsSchema>;
 
-export default function RoleDetails() {
-  const [roleDetails, setRoleDetails] = useState<RoleDetailsType>({
-    jobRole: "",
-    type: "mixed",
-    experience: "beginner"
-  })
+export default function RoleDetails({ setRoleDetails }: {
+  setRoleDetails: (value: RoleDetails) => void
+}) {
+
 
   const onSubmit: React.FormEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault();
