@@ -57,6 +57,10 @@ model User {
 model Interview {
   id        String          @id @default(uuid())
   jobRole   String
+  resume    String?
+  question  Int?            @default(5)
+  duration  Int?            @default(15)
+  summary   String?
   type      InterviewType   @default(mixed)
   status    InterviewStatus @default(SCHEDULED)
   experience  Experience    @default(beginner)

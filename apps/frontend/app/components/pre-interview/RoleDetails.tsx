@@ -81,9 +81,9 @@ export default function RoleDetails({
   };
 
   return (
-    <form onSubmit={onSubmit} className="mx-auto w-full max-w-2xl px-4">
+    <form onSubmit={onSubmit}>
       <div className="mb-8">
-        <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
+        <span className=" text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
           Step 01 — Role
         </span>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-[27px]">
@@ -125,14 +125,14 @@ export default function RoleDetails({
                   type="button"
                   onClick={() => set({ experience: l.value })}
                   className={cn(
-                    "flex flex-col gap-1 rounded-xl border px-4 py-3.5 text-left transition-all",
+                    "flex flex-col gap-1 rounded-xl box-border border px-4 py-2.5 text-left transition-all",
                     on
-                      ? "border-foreground bg-card shadow-[0_1px_0_var(--foreground),0_8px_24px_-16px_rgba(0,0,0,0.4)]"
-                      : "border-border bg-muted/40 hover:border-foreground/30"
+                      ? "border-foreground bg-card border"
+                      : "border-border/30 border bg-muted/40 hover:border-foreground/30"
                   )}
                 >
                   <span className="text-[15px] font-semibold tracking-tight">{l.label}</span>
-                  <span className="font-mono text-xs text-muted-foreground">{l.note}</span>
+                  <span className="text-xs text-muted-foreground">{l.note}</span>
                 </button>
               );
             })}
@@ -178,7 +178,6 @@ export default function RoleDetails({
         </Field>
       </div>
 
-      {/* Footer */}
       <div className="mt-8 flex justify-end border-t pt-6">
         <Button type="submit" size="lg" className="gap-2 px-6">
           Continue
