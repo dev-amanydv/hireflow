@@ -276,7 +276,6 @@ export function InputFile({
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Dropzone */}
       <div
         role="button"
         tabIndex={0}
@@ -313,20 +312,19 @@ export function InputFile({
           </p>
           <p className="text-xs text-muted-foreground">{hint}</p>
         </div>
-        <input
-          ref={inputRef}
-          type="file"
-          accept={accept}
-          multiple={multiple}
-          className="hidden"
-          onChange={(e) => {
-            addFiles(e.target.files);
-            e.target.value = "";
-          }}
-        />
+          <input
+            ref={inputRef}
+            type="file"
+            accept={accept}
+            multiple={multiple}
+            className="hidden"
+            onChange={(e) => {
+              addFiles(e.target.files);
+              e.target.value = "";
+            }}
+          />
       </div>
 
-      {/* File list */}
       {items.length > 0 && (
         <div className="flex flex-col gap-3">
           {items.map((item) => (
