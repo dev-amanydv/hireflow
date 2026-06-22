@@ -11,6 +11,7 @@ const formSchema = z.object({
 export const handlePreInterview = async (req: Request, res: Response) => {
     try {
         const resume = req.file;
+        console.log(resume);
         if (!resume) 
         res.status(200).json({
         success: true,

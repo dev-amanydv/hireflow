@@ -1,11 +1,11 @@
 import express from "express";
 import { handleGoogle, handleSignin, handleSignup } from "../controllers/auth.controller";
-import { authMiddleware } from "../middlewares/auth.middleware";
+import { AsyncHandler } from "../utils/asyncHandler";
 
 const router = express.Router();
 
-router.post('/signup', handleSignup);
-router.post('/signin', handleSignin);
-router.post('/google', handleGoogle);
+router.post('/signup', AsyncHandler(handleSignup));
+router.post('/signin', AsyncHandler(handleSignin));
+router.post('/google', AsyncHandler(handleGoogle));
 
 export default router;

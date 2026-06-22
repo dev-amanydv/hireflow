@@ -3,6 +3,8 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import authRoutes from './routes/auth.route';
 import interviewRoutes from './routes/interview.routes';
+import { errorHandler } from './middlewares/error.middleware';
+import { NotFound } from './utils/NotFound';
 
 const app = express();
 
@@ -19,7 +21,10 @@ app.get('/api/v1/health', (req: Request, res: Response) => {
 })
 
 app.use('/api/v1/auth', authRoutes);
-app.post('/api/v1/pre-interview', interviewRoutes);
+app.use('/api/v1/interview', interviewRoutes);
+
+app.use(NotFound);
+app.use(errorHandler)
 
 app.listen(8000, () => {
     console.log(`Server is running at http://localhost:8000`)
