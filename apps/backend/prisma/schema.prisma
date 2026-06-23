@@ -67,7 +67,7 @@ model Interview {
   resultId  String?          @unique
   result    Result?          @relation(fields: [resultId], references: [id])
   messages  Message[]
-  githubMetadata  Json
+  githubMetadata  Json?
   userId    String  
   user      User            @relation(fields: [userId], references: [id])
 }

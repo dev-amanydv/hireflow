@@ -30,9 +30,11 @@ function Field({ label, icon, children }: { label: string; icon?: React.ReactNod
 export default function InterviewDetails({
   setSessionDetails,
   setStep,
+  interviewId
 }: {
   setSessionDetails: (value: SessionDetails) => void;
   setStep: (value: number) => void;
+  interviewId: string
 }) {
   const [data, setData] = useState<SessionDetails>({
     resume: {
@@ -44,7 +46,7 @@ export default function InterviewDetails({
     questions: 5,
     duration: 15
   });
-
+  console.log(interviewId)
   const onContinue = () => {
     setSessionDetails(data);
     setStep(3);

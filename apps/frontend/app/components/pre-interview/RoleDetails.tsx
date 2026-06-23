@@ -4,6 +4,9 @@ import z from "zod";
 import { toast } from "sonner";
 import { cn } from "~/lib/utils";
 import { Button } from "../ui/button";
+import axios from "axios";
+import { BACKEND_URL } from "~/lib/config";
+import { FiLoader } from "react-icons/fi";
 
 interface RoleDetails {
   jobRole: string;
@@ -56,26 +59,50 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 export default function RoleDetails({
   setRoleDetails,
-  setStep
+  setStep,
+  setInterviewId
 }: {
   setRoleDetails: (value: RoleDetails) => void,
-  setStep: (value: number) => void
+  setStep: (value: number) => void,
+  setInterviewId: (value: string) => void
 }) {
   const [data, setData] = useState<RoleDetails>({
     jobRole: ROLES[0],
     type: "mixed",
     experience: "mid",
   });
+  const [loading, setLoading] = useState(false)
 
-  const onSubmit: React.FormEventHandler<HTMLFormElement> = (event) => {
+  const onSubmit: React.FormEventHandler<HTMLFormElement> = async (event) => {
     event.preventDefault();
+
     const { success, data: parsed } = roleDetailsSchema.safeParse(data);
     if (!success) {
       toast.error("Select a valid role");
       return;
     }
     setRoleDetails(parsed);
-    setStep(2)
+    try {
+      setLoading(true);
+      const res = await axios.post(`${BACKEND_URL}/interview/pre/role`, {
+        role: data.jobRole,
+        type: data.type,
+        experience: data.experience
+      }, {
+        withCredentials: true
+      });
+      if (!res.data.success){
+        toast.error(`${res.data.message === 'RoleDetailsRequired' ? 'Role details are required' : 'Internal Server Error'}`)
+      }
+      setInterviewId(res.data.data.interview.id)
+      toast.success('Role details saved!');
+      setStep(2)
+    } catch (error) {
+      console.error('Error: ', error);
+      setStep(1)
+    } finally {
+      setLoading(false)
+    }
   };
 
   return (
@@ -177,9 +204,9 @@ export default function RoleDetails({
       </div>
 
       <div className="mt-8 flex justify-end border-t pt-6">
-        <Button type="submit" size="lg" className="gap-2 px-6">
-          Continue
-          <ArrowRight className="size-4" />
+        <Button type="submit" size="lg" className="gap-2 w-30 px-6">
+          {loading ? <FiLoader className="size-4 animate-spin"/> : <div className="flex gap-2 items-center">Continue
+          <ArrowRight className="size-4" /></div>}
         </Button>
       </div>
     </form>
