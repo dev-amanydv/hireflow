@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useRef, useState, type ChangeEvent } from "react";
+import axios from "axios";
 import {
   CheckCircle2,
   RotateCw,
@@ -7,6 +8,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { cn } from "~/lib/utils";
+import { BACKEND_URL } from "~/lib/config";
 
 export type UploadStatus = "uploading" | "complete" | "failed";
 
@@ -18,6 +20,7 @@ export interface UploadItem {
   progress: number;
   status: UploadStatus;
   error?: string;
+  retryable?: boolean;
 }
 
 export interface CompletedFile {
@@ -27,7 +30,7 @@ export interface CompletedFile {
 }
 
 const DEFAULT_ACCEPT = ".pdf,.doc,.docx";
-const DEFAULT_MAX_MB = 10;
+const DEFAULT_MAX_MB = 5;
 
 const BADGE_COLORS: Record<string, string> = {
   pdf: "bg-red-500",
@@ -140,14 +143,16 @@ function FileRow({
           </div>
 
           {failed ? (
-            <button
-              type="button"
-              onClick={() => onRetry(item.id)}
-              className="mt-2.5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-destructive hover:underline"
-            >
-              <RotateCw className="size-3.5" />
-              Try again
-            </button>
+            item.retryable && (
+              <button
+                type="button"
+                onClick={() => onRetry(item.id)}
+                className="mt-2.5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-destructive hover:underline"
+              >
+                <RotateCw className="size-3.5" />
+                Try again
+              </button>
+            )
           ) : (
             <div className="mt-2.5 flex items-center gap-3">
               <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
@@ -171,105 +176,110 @@ function FileRow({
 }
 
 export function InputFile({
+  interviewId,
   accept = DEFAULT_ACCEPT,
   maxSizeMB = DEFAULT_MAX_MB,
   multiple = false,
   hint = "PDF, DOC or DOCX (max. 10MB)",
   onComplete,
 }: {
+  interviewId: string;
   accept?: string;
   maxSizeMB?: number;
   multiple?: boolean;
   hint?: string;
   onComplete?: (file: CompletedFile) => void;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const timers = useRef<Record<string, ReturnType<typeof setInterval>>>({});
-  const [items, setItems] = useState<UploadItem[]>([]);
   const [dragging, setDragging] = useState(false);
+  const [file, setFile] = useState<UploadItem | null>(null);
 
-  useEffect(() => {
-    return () => {
-      Object.values(timers.current).forEach(clearInterval);
-    };
-  }, []);
+  const inputRef = useRef<HTMLInputElement>(null);
+  // The raw File is kept out of render state so we can re-send it on retry.
+  const rawFile = useRef<File | null>(null);
 
-  const stopTimer = (id: string) => {
-    const t = timers.current[id];
-    if (t) {
-      clearInterval(t);
-      delete timers.current[id];
+  function validateFile(file: File) {
+    const validSize = file.size < maxSizeMB * 1024 * 1024;
+    if (!validSize) return "tooBig";
+    const format = file.name.split(".").pop()?.toLowerCase() || "pdf";
+    const valid = accept.split(",").map((ext) => ext.trim().toLowerCase()).includes("." + format);
+    if (!valid) return "invalidFormat";
+    return "valid";
+  }
+
+  const uploadResume = async (id: string, selectedFile: File) => {
+    const form = new FormData();
+    form.append("resume", selectedFile);
+    form.append("interviewId", interviewId);
+
+    try {
+      await axios.post(`${BACKEND_URL}/interview/pre/resume`, form, {
+        withCredentials: true,
+        onUploadProgress: (e) => {
+          const pct = e.total ? Math.round((e.loaded / e.total) * 100) : 0;
+          setFile((prev) =>
+            prev && prev.id === id && prev.status === "uploading"
+              ? { ...prev, progress: Math.min(pct, 99) }
+              : prev
+          );
+        },
+      });
+      setFile((prev) =>
+        prev && prev.id === id ? { ...prev, progress: 100, status: "complete" } : prev
+      );
+      onComplete?.({ name: selectedFile.name, size: formatSize(selectedFile.size), ext: extOf(selectedFile.name) });
+    } catch {
+      setFile((prev) =>
+        prev && prev.id === id
+          ? { ...prev, status: "failed", error: "Upload failed", retryable: true }
+          : prev
+      );
     }
   };
 
-  const runUpload = useCallback(
-    (id: string) => {
-      stopTimer(id);
-      timers.current[id] = setInterval(() => {
-        setItems((prev) =>
-          prev.map((it) => {
-            if (it.id !== id || it.status !== "uploading") return it;
-            const next = Math.min(it.progress + Math.random() * 16 + 8, 100);
-            if (next >= 100) {
-              stopTimer(id);
-              onComplete?.({ name: it.name, size: formatSize(it.size), ext: it.ext });
-              return { ...it, progress: 100, status: "complete" };
-            }
-            return { ...it, progress: next };
-          })
-        );
-      }, 280);
-    },
-    [onComplete]
-  );
+  const addFile = (selectedFile: File | undefined) => {
+    if (!selectedFile) return;
+    const val = validateFile(selectedFile);
+    const failed = val !== "valid";
+    const id = crypto.randomUUID();
+    setFile({
+      id,
+      name: selectedFile.name,
+      size: selectedFile.size,
+      ext: extOf(selectedFile.name),
+      progress: 0,
+      status: failed ? "failed" : "uploading",
+      error:
+        val === "tooBig"
+          ? `Too large (max ${maxSizeMB}MB)`
+          : val === "invalidFormat"
+            ? "Unsupported type"
+            : undefined,
+      retryable: false,
+    });
 
-  const addFiles = useCallback(
-    (fileList: FileList | null) => {
-      if (!fileList || fileList.length === 0) return;
-      const incoming = multiple ? Array.from(fileList) : [fileList[0]];
-      const accepted = accept.split(",").map((a) => a.trim().toLowerCase());
-
-      const newItems: UploadItem[] = incoming.map((file) => {
-        const ext = extOf(file.name);
-        const tooBig = file.size > maxSizeMB * 1024 * 1024;
-        const wrongType =
-          accepted.length > 0 && !accepted.includes(`.${ext}`) && !accepted.includes("*");
-        const failed = tooBig || wrongType;
-        return {
-          id: `${file.name}-${file.size}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-          name: file.name,
-          size: file.size,
-          ext,
-          progress: failed ? 100 : 0,
-          status: failed ? "failed" : "uploading",
-          error: tooBig
-            ? `Too large (max ${maxSizeMB}MB)`
-            : wrongType
-              ? "Unsupported type"
-              : undefined,
-        };
-      });
-
-      setItems((prev) => (multiple ? [...prev, ...newItems] : newItems));
-      newItems.forEach((it) => {
-        if (it.status === "uploading") runUpload(it.id);
-      });
-    },
-    [accept, maxSizeMB, multiple, runUpload]
-  );
-
-  const handleRemove = (id: string) => {
-    stopTimer(id);
-    setItems((prev) => prev.filter((it) => it.id !== id));
+    if (!failed) {
+      rawFile.current = selectedFile;
+      uploadResume(id, selectedFile);
+    } else {
+      rawFile.current = null;
+    }
   };
 
-  const handleRetry = (id: string) => {
-    setItems((prev) =>
-      prev.map((it) =>
-        it.id === id ? { ...it, status: "uploading", progress: 0, error: undefined } : it
-      )
-    );
-    runUpload(id);
+  const handleRemove = () => {
+    rawFile.current = null;
+    setFile(null);
+  };
+
+  const handleRetry = () => {
+    const selectedFile = rawFile.current;
+    if (!selectedFile || !file) return;
+    setFile({ ...file, status: "uploading", progress: 0, error: undefined });
+    uploadResume(file.id, selectedFile);
+  };
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    addFile(e.target.files?.[0]);
+    e.target.value = "";
   };
 
   const openPicker = () => inputRef.current?.click();
@@ -279,22 +289,16 @@ export function InputFile({
       <div
         role="button"
         tabIndex={0}
-        onClick={openPicker}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            openPicker();
-          }
-        }}
         onDragOver={(e) => {
           e.preventDefault();
           setDragging(true);
         }}
+        onClick={() => openPicker()}
         onDragLeave={() => setDragging(false)}
         onDrop={(e) => {
           e.preventDefault();
           setDragging(false);
-          addFiles(e.dataTransfer.files);
+          addFile(e.dataTransfer.files?.[0]);
         }}
         className={cn(
           "flex cursor-pointer flex-col items-center gap-3 rounded-2xl border border-dashed px-6 py-8 text-center transition-colors outline-none",
@@ -313,23 +317,18 @@ export function InputFile({
           <p className="text-xs text-muted-foreground">{hint}</p>
         </div>
           <input
-            ref={inputRef}
             type="file"
+            ref={inputRef}
+            onChange={(e) => handleFileChange(e)}
             accept={accept}
             multiple={multiple}
             className="hidden"
-            onChange={(e) => {
-              addFiles(e.target.files);
-              e.target.value = "";
-            }}
           />
       </div>
 
-      {items.length > 0 && (
+      {file && (
         <div className="flex flex-col gap-3">
-          {items.map((item) => (
-            <FileRow key={item.id} item={item} onRemove={handleRemove} onRetry={handleRetry} />
-          ))}
+            <FileRow key={file.id} item={file} onRemove={handleRemove} onRetry={handleRetry} />
         </div>
       )}
     </div>

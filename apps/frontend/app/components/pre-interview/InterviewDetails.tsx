@@ -85,6 +85,7 @@ export default function InterviewDetails({
             </div>
           </div> : (
             <InputFile
+              interviewId={interviewId}
               onComplete={(file) =>
                 setData((d) => ({
                   ...d,

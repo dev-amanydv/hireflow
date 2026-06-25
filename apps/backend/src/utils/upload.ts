@@ -8,13 +8,12 @@ import type { Readable } from "stream";
 
 const R2_ENDPOINT = process.env.R2_ENDPOINT
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME
-const R2_SECRET_ACCESS_KEY = process.env.R2_ACCESS_KEY_ID
-const R2_ACCESS_KEY_ID = process.env.R2_SECRET_ACESS_KEY
+const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID
+const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY
 
 if (!R2_ENDPOINT || !R2_BUCKET_NAME || !R2_SECRET_ACCESS_KEY || !R2_ACCESS_KEY_ID) {
     throw new Error("Invalid R2 Credentials")
-};
-
+}
 const s3 = new S3Client({
     region: "auto",
     endpoint: R2_ENDPOINT,
@@ -24,18 +23,17 @@ const s3 = new S3Client({
     },
 });
 
-async function uploadToBucket(key: string, body?: Buffer | Blob | string | Uint8Array | Readable | ReadableStream) {
-    if (!key) return;
+async function uploadToBucket(key: string, body?: Buffer | Blob | string | Uint8Array | Readable | ReadableStream, contentLength?: number) {
+    if (!key) return { success: false, message: 'missing key', data: null };
     try {
         const res = await s3.send(
             new PutObjectCommand({
                 Bucket: R2_BUCKET_NAME,
                 Key: key,
                 Body: body ?? "Hello R2!",
+                ContentLength: contentLength,
             }),
         );
-        console.log(res);
-        console.log("Uploaded myfile.txt");
         return {
             success: true,
             message: 'uploaded successfully',
@@ -45,7 +43,7 @@ async function uploadToBucket(key: string, body?: Buffer | Blob | string | Uint8
         console.log('Error in uploading: ', error);
         return {
             success: false,
-            message: 'error in downloading',
+            message: error instanceof Error ? error.message : 'error in uploading',
             data: error
         }
     }

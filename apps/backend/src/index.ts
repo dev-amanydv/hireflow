@@ -5,6 +5,8 @@ import authRoutes from './routes/auth.route';
 import interviewRoutes from './routes/interview.routes';
 import { errorHandler } from './middlewares/error.middleware';
 import { NotFound } from './utils/NotFound';
+import './workers/worker';
+import 'dotenv/config';
 
 const app = express();
 

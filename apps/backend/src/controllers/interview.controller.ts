@@ -13,6 +13,7 @@ const roleDetailsSchema = z.object({
 
 export const handleRoleDetails = async (req: Request, res: Response, next: NextFunction) => {
     const userId = req.userId;
+    console.log('hit')
     if (!userId) throw new AppError(404, 'Unauthorised');
     const { success, data } = roleDetailsSchema.safeParse(req.body);
     if (!success) throw new AppError(401, 'RoleDetailsRequired');
@@ -46,7 +47,7 @@ export const handleResume = async (req: Request, res: Response) => {
         console.log(resumeFile);
         if (!resumeFile) throw new AppError(404, "ResumeRequired");
 
-        const ext = path.extname(resumeFile.filename);
+        const ext = path.extname(resumeFile.originalname);
         const uniqueName = `${userId}-resume-${interviewId}${ext}`;
         const s3Key = `users/${userId}/${interviewId}/resume/${uniqueName}`;
 
@@ -64,7 +65,8 @@ export const handleResume = async (req: Request, res: Response) => {
         const enqueueResumeUpload = await resumeQueue.add(`${userId}-${interviewId}`, {
             resumeId: resume.id,
             filePath: resumeFile.path,
-            s3Key: s3Key
+            s3Key: s3Key,
+            size: resumeFile.size
         });
 
         res.status(200).json({

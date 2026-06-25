@@ -1,5 +1,5 @@
 import multer from 'multer';
 
 export const uploadMiddleware = multer({dest: './uploads/', limits: {
-    fileSize: 1000000
+    fileSize: 5242880
 }}).single('resume')
