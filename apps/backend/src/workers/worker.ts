@@ -4,7 +4,7 @@ import { prisma } from "../../prisma/db";
 import { uploadToBucket } from "../utils/upload";
 import fs from 'fs';
 
-const connection = new IORedis({ maxRetriesPerRequest: null });
+export const connection = new IORedis(process.env.REDIS_URL!,{ maxRetriesPerRequest: null });
 
 const worker = new Worker('resume-upload', async job => {
     const { resumeId, s3Key, filePath, size } = job.data;
@@ -16,12 +16,15 @@ const worker = new Worker('resume-upload', async job => {
 
     const body = await fs.promises.readFile(filePath);
     const upload = await uploadToBucket(s3Key, body, size);
+    const isLastAttempt = job.attemptsMade >= (job.opts.attempts ?? 1);
 
     if (!upload?.success) {
-        await prisma.resume.update({
+        if (isLastAttempt){
+            await prisma.resume.update({
             where: { id: resumeId },
             data: { status: 'FAILED', error: String(upload?.message ?? 'upload failed') }
         });
+        }
         throw new Error(`Upload failed for ${s3Key}`);
     }
 
@@ -45,6 +48,9 @@ worker.on('completed', async job => {
     console.log(`${job.id} has completed!`);
 })
 
-worker.on('failed', (job, err) => {
+worker.on('failed',async (job, err) => {
+    if (job && job?.attemptsMade >= (job?.opts.attempts ?? 1)){
+        await fs.promises.unlink(job.data.filePath).catch(() => {})
+    }
     console.log(`${job?.id} has failed with ${err.message}!`);
 })
