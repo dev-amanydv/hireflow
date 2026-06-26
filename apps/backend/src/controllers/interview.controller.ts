@@ -2,7 +2,7 @@ import z from "zod";
 import type { NextFunction, Request, Response } from "express";
 import { AppError } from "../utils/AppError";
 import { prisma } from "../../prisma/db";
-import { resumeUploadQueue } from "../queues/queue";
+import { enqueueResumeParse, resumeUploadQueue } from "../queues/queue";
 import path from 'path';
 
 const roleDetailsSchema = z.object({
@@ -61,7 +61,12 @@ export const handleResume = async (req: Request, res: Response) => {
             }
         })
         if (!resume) throw new AppError(501, 'InternalServerError');
-
+        
+        await enqueueResumeParse({
+            resumeId: resume.id,
+            filePath: resumeFile.path,
+            interviewId: interviewId
+        })
         await resumeUploadQueue.add(`${userId}-${interviewId}`, {
             resumeId: resume.id,
             filePath: resumeFile.path,

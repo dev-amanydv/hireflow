@@ -3,9 +3,28 @@ import IORedis from 'ioredis';
 import { prisma } from "../../prisma/db";
 import { uploadToBucket } from "../utils/upload";
 import fs from 'fs';
+import type { JobMeta } from "../queues/queue";
+import { parseResume } from "../utils/parse";
 
-export const connection = new IORedis(process.env.REDIS_URL!,{ maxRetriesPerRequest: null });
+export const connection = new IORedis(process.env.REDIS_URL!, { maxRetriesPerRequest: null });
 
+function startResumeParserWorker() {
+    return new Worker(
+        'resume-parse',
+        async (job) => {
+            const { meta } = job.data as { meta: JobMeta }
+
+            if (job.name === 'parse-pdf'){
+                const result = parseResume(meta);
+                
+
+            }
+            if (job.name === 'assemble-profile'){
+
+            }
+        }
+    )
+}
 const worker = new Worker('resume-upload', async job => {
     const { resumeId, s3Key, filePath, size } = job.data;
 
@@ -19,11 +38,11 @@ const worker = new Worker('resume-upload', async job => {
     const isLastAttempt = job.attemptsMade >= (job.opts.attempts ?? 1);
 
     if (!upload?.success) {
-        if (isLastAttempt){
+        if (isLastAttempt) {
             await prisma.resume.update({
-            where: { id: resumeId },
-            data: { status: 'FAILED', error: String(upload?.message ?? 'upload failed') }
-        });
+                where: { id: resumeId },
+                data: { status: 'FAILED', error: String(upload?.message ?? 'upload failed') }
+            });
         }
         throw new Error(`Upload failed for ${s3Key}`);
     }
@@ -48,9 +67,9 @@ worker.on('completed', async job => {
     console.log(`${job.id} has completed!`);
 })
 
-worker.on('failed',async (job, err) => {
-    if (job && job?.attemptsMade >= (job?.opts.attempts ?? 1)){
-        await fs.promises.unlink(job.data.filePath).catch(() => {})
+worker.on('failed', async (job, err) => {
+    if (job && job?.attemptsMade >= (job?.opts.attempts ?? 1)) {
+        await fs.promises.unlink(job.data.filePath).catch(() => { })
     }
     console.log(`${job?.id} has failed with ${err.message}!`);
 })

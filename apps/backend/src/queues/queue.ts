@@ -1,7 +1,7 @@
 import { FlowProducer, Queue, type FlowJob, type JobsOptions } from "bullmq";
 import { connection } from "../workers/worker";
 
-interface JobMeta {
+export interface JobMeta {
     resumeId: string,
     filePath: string,
     interviewId: string
@@ -95,5 +95,4 @@ export function buildSourceFetchFlow (input: {
         data: { meta },
         children
     })
-
 }
