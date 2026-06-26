@@ -27,10 +27,12 @@ enum InterviewStatus {
 enum UploadStatus {
   UPLOADED_LOCAL
   PARSING
+  PARSED
   FETCHING
-  PROCESSING
+  READY_FOR_SUMMARY
+  SUMMARIZING
+  READY
   FAILED
-  COMPLETED
 }
 
 enum MessageRole {
