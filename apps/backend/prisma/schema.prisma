@@ -28,6 +28,7 @@ enum UploadStatus {
   UPLOADED_LOCAL
   PARSING
   PARSED
+  UPLOADING
   COMPLETE
   FAILED
 }
@@ -91,6 +92,7 @@ model Resume {
   size        Float
   ext         String
   status      UploadStatus    @default(UPLOADED_LOCAL)
+  parsed      Json?            
   error       String?
   url         String?
   interviewId String          @unique

@@ -58,21 +58,23 @@ export function enqueueResumeParse(meta: JobMeta){
 
 export function buildSourceFetchFlow (input: {
     meta: JobMeta,
-    githubUrl: string | null,
+    githubUrls: string[],
     siteUrls: string[]
 }){
-    const { meta, githubUrl, siteUrls } = input;
+    const { meta, githubUrls, siteUrls } = input;
 
     const children: FlowJob[] = [];
 
-    if (githubUrl){
+    for (const url of githubUrls){
         children.push({
             name: 'fetch-github',
             queueName: 'source-fetch',
             data: {
-                meta, url: githubUrl
+                meta, url
             },
-            opts: {...fetchChildOpts, jobId: id('fetch-github', meta)}
+            opts: {
+                ...fetchChildOpts, jobId: id('fetch-github', meta, encodeURIComponent(url))
+            }
         })
     };
 

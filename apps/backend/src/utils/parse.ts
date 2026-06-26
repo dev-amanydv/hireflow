@@ -1,7 +1,7 @@
 import { getDocument, GlobalWorkerOptions, type PDFDocumentProxy, type PDFPageProxy } from "pdfjs-dist";
 import type { JobMeta } from "../queues/queue";
 
-interface ResumeLinks {
+type ResumeLinks = {
     githubUrl: string[],
     websites: string[]
 }

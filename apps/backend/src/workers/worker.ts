@@ -3,8 +3,9 @@ import IORedis from 'ioredis';
 import { prisma } from "../../prisma/db";
 import { uploadToBucket } from "../utils/upload";
 import fs from 'fs';
-import type { JobMeta } from "../queues/queue";
+import { buildSourceFetchFlow, type JobMeta } from "../queues/queue";
 import { parseResume } from "../utils/parse";
+import { fetchGithub } from "../utils/FetchGithub";
 
 export const connection = new IORedis(process.env.REDIS_URL!, { maxRetriesPerRequest: null });
 
@@ -15,8 +16,22 @@ function startResumeParserWorker() {
             const { meta } = job.data as { meta: JobMeta }
 
             if (job.name === 'parse-pdf'){
-                const result = parseResume(meta);
-                
+                const result = await parseResume(meta);
+                await prisma.resume.update({
+                    where: {
+                        id: meta.resumeId
+                    },
+                    data: {
+                        parsed: result
+                    }
+                });
+
+                await buildSourceFetchFlow({
+                    meta,
+                    githubUrls: result.classifiedLinks.githubUrl,
+                    siteUrls: result.classifiedLinks.websites
+                });
+                return;
 
             }
             if (job.name === 'assemble-profile'){
@@ -25,12 +40,25 @@ function startResumeParserWorker() {
         }
     )
 }
+
+function startSourceFetchWorker(){
+    return new Worker('source-fetch', async (job) => {
+        const { meta, url } = job.data;
+        if (job.name === 'fetch-github') return fetchGithub(url);
+        return fetchSite(url);
+    }, {
+        concurrency: 3,
+        connection: connection,
+        limiter: { max: 10, duration: 1_000 }
+    })
+}
+
 const worker = new Worker('resume-upload', async job => {
     const { resumeId, s3Key, filePath, size } = job.data;
 
     await prisma.resume.update({
         where: { id: resumeId },
-        data: { status: 'PROCESSING' }
+        data: { status: 'UPLOADING' }
     });
 
     const body = await fs.promises.readFile(filePath);
@@ -49,7 +77,7 @@ const worker = new Worker('resume-upload', async job => {
 
     await prisma.resume.update({
         where: { id: resumeId },
-        data: { status: 'COMPLETED', url: s3Key }
+        data: { status: 'COMPLETE', url: s3Key }
     });
 }, { connection });
 

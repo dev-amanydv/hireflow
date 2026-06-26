@@ -35,6 +35,7 @@
     "jsonwebtoken": "^9.0.3",
     "jwt": "^0.2.0",
     "multer": "^2.2.0",
+    "octokit": "^5.0.5",
     "pdfjs-dist": "^6.0.227",
     "playwright": "^1.60.0",
     "zod": "^4.4.3"
