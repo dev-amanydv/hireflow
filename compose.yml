@@ -54,8 +54,19 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+  
+  redis:
+    image: redis:7-alpine
+    container_name: quick-hire-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
 
 volumes:
   pgdata:
+  redis-data:
 
     

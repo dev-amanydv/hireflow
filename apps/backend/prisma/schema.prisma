@@ -24,6 +24,17 @@ enum InterviewStatus {
   COMPLETED
 }
 
+enum UploadStatus {
+  UPLOADED_LOCAL
+  PARSING
+  PARSED
+  FETCHING
+  READY_FOR_SUMMARY
+  SUMMARIZING
+  READY
+  FAILED
+}
+
 enum MessageRole {
   User
   Assistant
@@ -46,26 +57,49 @@ enum Experience {
 
 model User {
   id        String          @id @default(uuid())
+  username  String?
   email     String          @unique
   provider  Provider        @default(LOCAL)
   password  String?
   Resume    String?
   interview Interview[]
   refreshToken String?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @default(now())
 }
 
 model Interview {
   id        String          @id @default(uuid())
   jobRole   String
+  resume    Resume?
+  question  Int?            @default(5)
+  duration  Int?            @default(15)
+  summary   String?
   type      InterviewType   @default(mixed)
   status    InterviewStatus @default(SCHEDULED)
   experience  Experience    @default(beginner)
   resultId  String?          @unique
   result    Result?          @relation(fields: [resultId], references: [id])
   messages  Message[]
-  githubMetadata  Json
+  githubMetadata  Json?
   userId    String  
   user      User            @relation(fields: [userId], references: [id])
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @default(now())
+}
+
+model Resume {
+  id          String          @id @default(uuid())
+  name        String
+  size        Float
+  ext         String
+  status      UploadStatus    @default(UPLOADED_LOCAL)
+  error       String?
+  url         String?
+  interviewId String          @unique
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @default(now())
+  interview   Interview       @relation(fields: [interviewId], references: [id])
 }
 
 model Message {
@@ -74,11 +108,15 @@ model Message {
   role        MessageRole     @default(User) 
   interviewId String
   interview   Interview       @relation(fields: [interviewId], references: [id])
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @default(now())
 }
 
 model Result {
   id        String          @id @default(uuid())
   score     Float
   interview Interview?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @default(now())
 }
 
