@@ -16,7 +16,7 @@ export default function PreInterview() {
         type: "mixed",
         experience: "mid",
     });
-    const [sessionDetails, setSessionDetails] = useState<SessionDetails>(MOCK_SESSION);
+    const [sessionDetails, setSessionDetails] = useState<SessionDetails | null>(null);
     const [interviewId, setInterviewId] = useState('');
 
     return (
@@ -35,7 +35,7 @@ export default function PreInterview() {
 
             {step === 1 && <RoleDetails setInterviewId={setInterviewId} setStep={setStep} setRoleDetails={setRoleDetails} />}
             {step === 2 && <InterviewDetails interviewId={interviewId} setStep={setStep} setSessionDetails={setSessionDetails} />}
-            {step === 3 && (
+            {step === 3 && sessionDetails && (
                 <Preview
                     roleDetails={roleDetails}
                     sessionDetails={sessionDetails}

@@ -194,7 +194,6 @@ export function InputFile({
   const [file, setFile] = useState<UploadItem | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
-  // The raw File is kept out of render state so we can re-send it on retry.
   const rawFile = useRef<File | null>(null);
 
   function validateFile(file: File) {

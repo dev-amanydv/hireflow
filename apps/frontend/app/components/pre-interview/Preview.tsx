@@ -41,6 +41,7 @@ export default function Preview({
   setStep: (value: number) => void;
   onStart: () => void;
 }) {
+  
   const [candidate, setCandidate] = useState<CandidateProfile>(MOCK_CANDIDATE);
   const [editOpen, setEditOpen] = useState(false);
 
