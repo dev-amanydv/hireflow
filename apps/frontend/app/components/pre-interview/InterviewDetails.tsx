@@ -4,8 +4,6 @@ import { cn } from "~/lib/utils";
 import { Button } from "../ui/button";
 import { MOCK_SESSION, type SessionDetails } from "./types";
 import { InputFile } from "./ui/file-upload";
-import axios from "axios";
-import { BACKEND_URL } from "~/lib/config";
 
 const QUESTION_OPTIONS = [
   { value: 5, label: "Quick" },
@@ -30,13 +28,13 @@ function Field({ label, icon, children }: { label: string; icon?: React.ReactNod
 }
 
 export default function InterviewDetails({
-  setSessionDetails,
   setStep,
-  interviewId
+  interviewId,
+  onStart,
 }: {
-  setSessionDetails: (value: SessionDetails) => void;
   setStep: (value: number) => void;
-  interviewId: string
+  interviewId: string,
+  onStart: (value: SessionDetails) => void;
 }) {
   const [data, setData] = useState<SessionDetails>({
     resume: {
@@ -48,24 +46,9 @@ export default function InterviewDetails({
     questions: 5,
     duration: 15
   });
-  const [loading, setLoading] = useState(false);
 
-  console.log(interviewId)
-  const onContinue = async () => {
-    setSessionDetails(data);
-    try {
-      const res = await  axios.post(`${BACKEND_URL}/interview/pre/session`, {
-        interviewId,
-        questions: data.questions,
-        duration: data.duration,
-      }, {
-        withCredentials: true
-      })
-      console.log(res);
-    } catch (error) {
-      
-    }
-    setStep(3);
+  const onContinue = () => {
+    onStart(data);
   };
 
   return (

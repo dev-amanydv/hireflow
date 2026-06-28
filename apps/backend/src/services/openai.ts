@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import type { AssembledSources } from "../utils/AssembleProfile";
 import z from "zod";
 import { zodTextFormat } from "openai/helpers/zod.mjs";
+import { prisma } from "../../prisma/db";
 
 const baseUrl = process.env.AZURE_OPENAI_ENDPOINT;
 const apiKey = process.env.AZURE_SECRET_KEY;
@@ -246,9 +247,9 @@ export async function getResumeSummary(data: AssembledSources) {
         githubSources: ${data.githubSources},
         siteSources: ${data.siteSources}.
     `
-    
+
     try {
-        const res = await openai.responses.create({
+        const response = await openai.responses.create({
             model: model,
             input: [
                 {
@@ -262,8 +263,7 @@ export async function getResumeSummary(data: AssembledSources) {
                 format: zodTextFormat(summarySchema, 'userData')
             }
         });
-        console.log('res: ', res.output_text)
-        return res.output_text
+        return response.output_text ? JSON.parse(response.output_text) : null
     } catch (error) {
         console.log(error);
         return null

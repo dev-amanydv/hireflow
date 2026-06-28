@@ -77,25 +77,25 @@ export const handleResume = async (req: Request, res: Response) => {
         });
 
         res.status(200).json({
-        success: true,
-        message: 'Resume uploaded successfully',
-        data: {
-            resume
-        }
-    });
+            success: true,
+            message: 'Resume uploaded successfully',
+            data: {
+                resume
+            }
+        });
 
     } catch (error) {
         res.status(500).json({
-        success: false,
-        message: 'Internal server error',
-        data: null
-    })
+            success: false,
+            message: 'Internal server error',
+            data: null
+        })
     }
 }
 
 export const handlePreSession = async (req: Request, res: Response) => {
     const { success, data } = sessionDetailsSchema.safeParse(req.body);
-    if (!success) throw new AppError(401, 'Invalid count of questions & duation');
+    if (!success) throw new AppError(401, 'Invalid count of questions & duration');
 
     const userData = await prisma.resume.findUnique({
         where: {
@@ -105,10 +105,17 @@ export const handlePreSession = async (req: Request, res: Response) => {
             parsed: true
         }
     });
-    console.log('userdata: ', userData);
     const parsedData = userData?.parsed as unknown as AssembledSources
-    const summary = await getResumeSummary(parsedData).catch((err) => console.log(err));
+    const summary = await getResumeSummary(parsedData);
 
+    await prisma.interview.update({
+        where: {
+            id: data.interviewId
+        }, data: {
+            summary: JSON.stringify(summary)
+        }
+    });
+    
     res.status(201).json({
         success: true,
         message: 'Summary fetched successfully',
