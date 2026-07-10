@@ -29,12 +29,12 @@ function Field({ label, icon, children }: { label: string; icon?: React.ReactNod
 
 export default function InterviewDetails({
   setStep,
-  ensureInterview,
   onStart,
+  interviewId
 }: {
   setStep: (value: number) => void;
-  ensureInterview: () => Promise<string | null>,
   onStart: (value: SessionDetails) => void;
+  interviewId: string
 }) {
   const [data, setData] = useState<SessionDetails>({
     resume: {
@@ -82,7 +82,7 @@ export default function InterviewDetails({
             </div>
           </div> : (
             <InputFile
-              ensureInterview={ensureInterview}
+              interviewId={interviewId}
               onComplete={(file) =>
                 setData((d) => ({
                   ...d,

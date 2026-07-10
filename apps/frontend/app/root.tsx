@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import {
   isRouteErrorResponse,
   Links,
@@ -5,6 +6,7 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useLoaderData,
 } from "react-router";
 import { Toaster } from "sonner"
 import type { Route } from "./+types/root";
@@ -12,6 +14,12 @@ import "./app.css";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { TooltipProvider } from "./components/ui/tooltip";
 import AuthModals from "./components/auth/AuthModals";
+import { getUser } from "./lib/auth.server";
+import { useAuth } from "./store/store";
+
+export function loader({ request }: Route.LoaderArgs) {
+  return { user: getUser(request) };
+}
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -60,6 +68,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  const { user } = useLoaderData<typeof loader>();
+  const addUser = useAuth((s) => s.addUser);
+  const removeUser = useAuth((s) => s.removeUser);
+
+  useEffect(() => {
+    if (user) addUser(user);
+    else removeUser();
+  }, [user, addUser, removeUser]);
+
   return <Outlet />;
 }
 

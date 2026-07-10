@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import axios from "axios";
@@ -11,7 +11,6 @@ import {
     type SessionDetails,
 } from "./types";
 import { BACKEND_URL } from "~/lib/config";
-import { useAuth } from "~/store/store";
 
 const TOTAL_STEPS = 3;
 
@@ -36,26 +35,7 @@ export default function PreInterview() {
     const interviewIdRef = useRef(interviewId);
     interviewIdRef.current = interviewId;
 
-    const ensureInterview = useCallback(async (): Promise<string | null> => {
-        const { user, openAuthModal } = useAuth.getState();
-
-        if (!user) {
-            const ok = await new Promise<boolean>((resolve) => {
-                let settled = false;
-                const finish = (v: boolean) => {
-                    if (settled) return;
-                    settled = true;
-                    unsub();
-                    resolve(v);
-                };
-                openAuthModal({ mode: "signup", onSuccess: () => finish(true) });
-                const unsub = useAuth.subscribe((s) => {
-                    if (!s.authModal.open) queueMicrotask(() => finish(false));
-                });
-            });
-            if (!ok) return null;
-        }
-
+    const registerInterview = useCallback(async (): Promise<string | null> => {
         if (interviewIdRef.current) return interviewIdRef.current;
 
         try {
@@ -97,7 +77,7 @@ export default function PreInterview() {
             const res = await axios.post(
                 `${BACKEND_URL}/interview/pre/session`,
                 {
-                    interviewId: interviewIdRef.current,
+                    interviewId: interviewId,
                     questions: session.questions,
                     duration: session.duration,
                 },
@@ -113,7 +93,9 @@ export default function PreInterview() {
             setLoading(false);
         }
     };
-
+    useEffect(() => {
+        console.log('step updated to: ', step)
+    }, [step])
     return (
         <div className="mx-auto w-full max-w-2xl px-4">
             <div className="mb-8 flex items-center gap-3">
@@ -128,12 +110,13 @@ export default function PreInterview() {
                 </span>
             </div>
 
-            {step === 1 && <RoleDetails setStep={setStep} setRoleDetails={setRoleDetails} />}
+            {step === 1 && <RoleDetails setStep={setStep} registerInterview={registerInterview} setRoleDetails={setRoleDetails} />}
             {step === 2 && (
                 <InterviewDetails
-                    ensureInterview={ensureInterview}
                     setStep={setStep}
                     onStart={startProcessing}
+                    interviewId={interviewId}
+                    
                 />
             )}
             {step === 3 && sessionDetails && (

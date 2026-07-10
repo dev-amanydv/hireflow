@@ -60,12 +60,12 @@ export const handleSignup = async (req: Request, res: Response) => {
 
     const refreshToken = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
         audience: 'User',
-        expiresIn: 7 * 24 * 60 * 60 * 1000,
+        expiresIn: '7d',
         issuer: "quick-hire"
     })
     const accessToken = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
         audience: 'User',
-        expiresIn: 2 * 60 * 60 * 1000,
+        expiresIn: '2h',
         issuer: "quick-hire"
     })
 
@@ -146,12 +146,12 @@ export const handleSignin = async (req: Request, res: Response) => {
 
     const refreshToken = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
         audience: 'User',
-        expiresIn: 7 * 24 * 60 * 60 * 1000,
+        expiresIn: '7d',
         issuer: "quick-hire"
     })
     const accessToken = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
         audience: 'User',
-        expiresIn: 2 * 60 * 60 * 1000,
+        expiresIn: '2h',
         issuer: "quick-hire"
     })
 

@@ -11,10 +11,10 @@ import {
   User,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useNavigate } from "react-router";
 import EmptyState from "./EmptyState";
 import type { DashboardSection } from "./DashboardSidebar";
 import { useAuth } from "~/store/store";
+import { useStartInterview } from "~/lib/useStartInterview";
 
 function SectionHeader({
   eyebrow,
@@ -107,7 +107,7 @@ function GhostButton({
 }
 
 function Overview() {
-  const navigate = useNavigate();
+  const startInterview = useStartInterview();
   const user = useAuth((s) => s.user);
 
   return (
@@ -117,7 +117,7 @@ function Overview() {
         title={user ? `Welcome back` : "Welcome"}
         description="Your interview activity at a glance. Start a session to see your progress build up here."
         action={
-          <PrimaryButton onClick={() => navigate("/start")}>
+          <PrimaryButton onClick={startInterview}>
             <Sparkles className="size-4" />
             Start new interview
           </PrimaryButton>
@@ -150,7 +150,7 @@ function Overview() {
         title="No activity yet"
         description="Pick a role, upload your resume, and Sable builds a tailored interview from your real work — your history and scores show up here."
         action={
-          <GhostButton onClick={() => navigate("/start")}>
+          <GhostButton onClick={startInterview}>
             Start new interview
             <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
           </GhostButton>
@@ -161,7 +161,7 @@ function Overview() {
 }
 
 function Interviews() {
-  const navigate = useNavigate();
+  const startInterview = useStartInterview();
   return (
     <div className="flex flex-col gap-8">
       <SectionHeader
@@ -169,7 +169,7 @@ function Interviews() {
         title="Past interviews"
         description="Every completed session, its transcript, and its score — all in one place."
         action={
-          <PrimaryButton onClick={() => navigate("/start")}>
+          <PrimaryButton onClick={startInterview}>
             <Sparkles className="size-4" />
             Start new interview
           </PrimaryButton>
@@ -180,7 +180,7 @@ function Interviews() {
         title="No interviews yet"
         description="Once you complete an interview, it lands here with the full transcript and a detailed breakdown you can revisit anytime."
         action={
-          <GhostButton onClick={() => navigate("/start")}>
+          <GhostButton onClick={startInterview}>
             Start your first interview
             <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
           </GhostButton>
@@ -191,7 +191,7 @@ function Interviews() {
 }
 
 function Resume() {
-  const navigate = useNavigate();
+  const startInterview = useStartInterview();
   return (
     <div className="flex flex-col gap-8">
       <SectionHeader
@@ -199,7 +199,7 @@ function Resume() {
         title="Analyze resume"
         description="Upload your resume and Sable extracts your experience, projects, and GitHub work to tailor every question."
         action={
-          <PrimaryButton onClick={() => navigate("/start")}>
+          <PrimaryButton onClick={startInterview}>
             <Upload className="size-4" />
             Upload resume
           </PrimaryButton>
@@ -210,7 +210,7 @@ function Resume() {
         title="No resume analyzed"
         description="Add your resume to get a breakdown of highlighted skills, notable projects, and the topics your interview is likely to cover."
         action={
-          <GhostButton onClick={() => navigate("/start")}>
+          <GhostButton onClick={startInterview}>
             Upload a resume
             <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
           </GhostButton>

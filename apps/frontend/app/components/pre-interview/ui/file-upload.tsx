@@ -176,14 +176,14 @@ function FileRow({
 }
 
 export function InputFile({
-  ensureInterview,
+  interviewId,
   accept = DEFAULT_ACCEPT,
   maxSizeMB = DEFAULT_MAX_MB,
   multiple = false,
   hint = "PDF, DOC or DOCX (max. 10MB)",
   onComplete,
 }: {
-  ensureInterview: () => Promise<string | null>;
+  interviewId: string;
   accept?: string;
   maxSizeMB?: number;
   multiple?: boolean;
@@ -256,7 +256,6 @@ export function InputFile({
       return;
     }
 
-    const interviewId = await ensureInterview();
     if (!interviewId) return;
     interviewIdRef.current = interviewId;
 
@@ -277,11 +276,10 @@ export function InputFile({
     rawFile.current = null;
     setFile(null);
   };
-
+  
   const handleRetry = async () => {
     const selectedFile = rawFile.current;
     if (!selectedFile || !file) return;
-    const interviewId = interviewIdRef.current ?? (await ensureInterview());
     if (!interviewId) return;
     interviewIdRef.current = interviewId;
     setFile({ ...file, status: "uploading", progress: 0, error: undefined });

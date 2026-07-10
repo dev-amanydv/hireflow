@@ -17,7 +17,8 @@ export function startResumeParserWorker() {
         'resume-parse',
         async (job) => {
             const { meta } = job.data as { meta: JobMeta }
-
+            console.log("============RESUME_PARSE_STARTED============")
+            console.log('jobName: ', job.name,"\njobData: ", meta)
             if (job.name === 'parse-pdf') {
                 const { filePath } = job.data as { filePath: string };
                 await prisma.resume.update({
@@ -29,7 +30,7 @@ export function startResumeParserWorker() {
                     }
                 });
                 const result = await parseResume(filePath);
-
+                console.log('parseResume: ', result)
                 await prisma.resume.update({
                     where: {
                         id: meta.resumeId
@@ -38,7 +39,7 @@ export function startResumeParserWorker() {
                         parsed: result,
                     }
                 });
-
+                
                 await buildSourceFetchFlow({
                     meta,
                     text: result.text,
