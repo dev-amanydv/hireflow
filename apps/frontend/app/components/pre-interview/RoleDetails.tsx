@@ -4,6 +4,8 @@ import z from "zod";
 import { toast } from "sonner";
 import { cn } from "~/lib/utils";
 import { Button } from "../ui/button";
+import axios from "axios";
+import { BACKEND_URL } from "~/lib/config";
 
 interface RoleDetails {
   jobRole: string;
@@ -57,9 +59,11 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 export default function RoleDetails({
   setRoleDetails,
   setStep,
+  registerInterview,
 }: {
-  setRoleDetails: (value: RoleDetails) => void,
-  setStep: (value: number) => void,
+  setRoleDetails: (value: RoleDetails) => void;
+  setStep: (value: number) => void;
+  registerInterview: () => Promise<string | null>;
 }) {
   const [data, setData] = useState<RoleDetails>({
     jobRole: ROLES[0],
@@ -67,8 +71,7 @@ export default function RoleDetails({
     experience: "mid",
   });
 
-  
-  const onSubmit: React.FormEventHandler<HTMLFormElement> = (event) => {
+  const onSubmit: React.FormEventHandler<HTMLFormElement> = async (event) => {
     event.preventDefault();
 
     const { success, data: parsed } = roleDetailsSchema.safeParse(data);
@@ -77,7 +80,14 @@ export default function RoleDetails({
       return;
     }
     setRoleDetails(parsed);
-    setStep(2);
+    try {
+      const res = await registerInterview();
+      if (res !== null && res !== "") {
+        setStep(2);
+      }
+    } catch (error) {
+      console.error("Error registering interview: ", error);
+    }
   };
 
   return (
@@ -100,12 +110,12 @@ export default function RoleDetails({
                 <button
                   key={r}
                   type="button"
-                  onClick={() => setData((d) => ({...data, jobRole: r}))}
+                  onClick={() => setData((d) => ({ ...data, jobRole: r }))}
                   className={cn(
                     "rounded-full border px-3.5 py-2 text-sm font-medium transition-colors",
                     on
                       ? "border-foreground bg-foreground text-background"
-                      : "border-border bg-muted/40 text-foreground hover:border-foreground/30 hover:bg-muted"
+                      : "border-border bg-muted/40 text-foreground hover:border-foreground/30 hover:bg-muted",
                   )}
                 >
                   {r}
@@ -123,16 +133,22 @@ export default function RoleDetails({
                 <button
                   key={l.value}
                   type="button"
-                  onClick={() => setData((d) => ({ ...data, experience: l.value}))}
+                  onClick={() =>
+                    setData((d) => ({ ...data, experience: l.value }))
+                  }
                   className={cn(
                     "flex flex-col gap-1 rounded-xl box-border border px-4 py-2.5 text-left transition-all",
                     on
                       ? "border-foreground bg-card border"
-                      : "border-border/30 border bg-muted/40 hover:border-foreground/30"
+                      : "border-border/30 border bg-muted/40 hover:border-foreground/30",
                   )}
                 >
-                  <span className="text-[15px] font-semibold tracking-tight">{l.label}</span>
-                  <span className="text-xs text-muted-foreground">{l.note}</span>
+                  <span className="text-[15px] font-semibold tracking-tight">
+                    {l.label}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {l.note}
+                  </span>
                 </button>
               );
             })}
@@ -148,25 +164,31 @@ export default function RoleDetails({
                 <button
                   key={t.value}
                   type="button"
-                  onClick={() => setData((d) => ({ ...data, type: t.value}))}
+                  onClick={() => setData((d) => ({ ...data, type: t.value }))}
                   className={cn(
                     "flex items-center justify-between gap-3 rounded-xl border px-4 py-3.5 text-left transition-all",
                     on
                       ? "border-foreground bg-card shadow-[0_1px_0_var(--foreground),0_8px_24px_-16px_rgba(0,0,0,0.4)]"
-                      : "border-border bg-muted/40 hover:border-foreground/30"
+                      : "border-border bg-muted/40 hover:border-foreground/30",
                   )}
                 >
                   <span className="flex items-center gap-3">
                     <Icon className="size-5 shrink-0 text-muted-foreground" />
                     <span className="flex flex-col gap-0.5">
-                      <span className="text-[15px] font-semibold tracking-tight">{t.label}</span>
-                      <span className="text-[13px] text-muted-foreground">{t.note}</span>
+                      <span className="text-[15px] font-semibold tracking-tight">
+                        {t.label}
+                      </span>
+                      <span className="text-[13px] text-muted-foreground">
+                        {t.note}
+                      </span>
                     </span>
                   </span>
                   <span
                     className={cn(
                       "flex size-5.5 shrink-0 items-center justify-center rounded-full transition-colors",
-                      on ? "bg-primary text-primary-foreground" : "bg-transparent"
+                      on
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-transparent",
                     )}
                   >
                     {on && <Check className="size-3.5" strokeWidth={3} />}

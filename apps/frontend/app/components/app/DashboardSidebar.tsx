@@ -12,6 +12,7 @@ import type { LucideIcon } from "lucide-react";
 import { useNavigate } from "react-router";
 import { Brand } from "./Brand";
 import { useAuth } from "~/store/store";
+import { useStartInterview } from "~/lib/useStartInterview";
 import { cn } from "~/lib/utils";
 
 export type DashboardSection =
@@ -103,6 +104,7 @@ export default function DashboardSidebar({
   const navigate = useNavigate();
   const user = useAuth((s) => s.user);
   const removeUser = useAuth((s) => s.removeUser);
+  const startInterview = useStartInterview();
 
   return (
     <aside
@@ -118,7 +120,7 @@ export default function DashboardSidebar({
       <div className="px-3 pb-2 pt-1">
         <button
           type="button"
-          onClick={() => navigate("/start")}
+          onClick={startInterview}
           className="ln-lift flex w-full items-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-semibold text-black transition-colors hover:bg-white/90"
         >
           <Sparkles className="size-4" />
