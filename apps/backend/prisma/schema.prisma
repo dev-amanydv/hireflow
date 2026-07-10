@@ -72,6 +72,8 @@ model Interview {
   resume    Resume?
   question  Int?            @default(5)
   duration  Int?            @default(15)
+  startAt   DateTime?
+  endAt     DateTime?
   summary   String?
   type      InterviewType   @default(mixed)
   status    InterviewStatus @default(SCHEDULED)
