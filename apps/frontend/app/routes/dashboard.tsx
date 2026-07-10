@@ -1,50 +1,71 @@
-import { useSearchParams } from "react-router"
-import { AppSidebar } from "~/components/app-sidebar"
-import { ChartAreaInteractive } from "~/components/chart-area-interactive"
-import { DataTable } from "~/components/data-table"
-import { SectionCards } from "~/components/section-cards"
-import { SiteHeader } from "~/components/site-header"
-import { SidebarInset, SidebarProvider } from "~/components/ui/sidebar"
+import { Menu } from "lucide-react";
+import { useState } from "react";
+import type { Route } from "./+types/dashboard";
+import DashboardSidebar, {
+  type DashboardSection,
+} from "~/components/app/DashboardSidebar";
+import DashboardSections from "~/components/app/DashboardSections";
+import { Brand } from "~/components/app/Brand";
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetTrigger,
+} from "~/components/ui/sheet";
 
-import data from "./data.json"
-import PreInterview from "~/components/pre-interview/PreInterview"
+export function meta({}: Route.MetaArgs) {
+  return [{ title: "Dashboard — Sable" }];
+}
 
-export default function Page() {
-  const [searchParams] = useSearchParams()
-  const tab = searchParams.get("tab") ?? "dashboard"
+export default function Dashboard() {
+  const [section, setSection] = useState<DashboardSection>("overview");
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const select = (id: DashboardSection) => {
+    setSection(id);
+    setMobileOpen(false);
+  };
 
   return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
-          "--header-height": "calc(var(--spacing) * 12)",
-        } as React.CSSProperties
-      }
-    >
-      <AppSidebar variant="inset" />
-      <SidebarInset>
-        <SiteHeader />
-        <div className="flex flex-1 flex-col">
-          <div className="@container/main flex flex-1 flex-col gap-2">
-            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-              {tab === "interview" ? (
-                <div className="px-4 lg:px-6">
-                  <PreInterview />
-                </div>
-              ) : (
-                <>
-                  <SectionCards />
-                  <div className="px-4 lg:px-6">
-                    <ChartAreaInteractive />
-                  </div>
-                  <DataTable data={data} />
-                </>
-              )}
-            </div>
+    <div className="flex min-h-screen bg-background">
+      {/* Desktop sidebar */}
+      <DashboardSidebar
+        active={section}
+        onSelect={select}
+        className="sticky top-0 hidden h-screen lg:flex"
+      />
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Mobile top bar */}
+        <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur-md lg:hidden">
+          <Brand to="/" />
+          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+            <SheetTrigger asChild>
+              <button
+                type="button"
+                aria-label="Open menu"
+                className="rounded-md border border-border bg-secondary p-2 text-foreground transition-colors hover:bg-muted"
+              >
+                <Menu className="size-4" />
+              </button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-64 p-0 sm:max-w-64">
+              <SheetTitle className="sr-only">Navigation</SheetTitle>
+              <DashboardSidebar
+                active={section}
+                onSelect={select}
+                className="h-full w-full border-r-0"
+              />
+            </SheetContent>
+          </Sheet>
+        </header>
+
+        <main className="flex-1 px-5 py-10 sm:px-8 lg:px-12 lg:py-14">
+          <div className="mx-auto max-w-5xl">
+            <DashboardSections section={section} />
           </div>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
-  )
+        </main>
+      </div>
+    </div>
+  );
 }

@@ -4,6 +4,8 @@ import { AppError } from "../utils/AppError";
 import { prisma } from "../../prisma/db";
 import { resumeUploadQueue } from "../queues/queue";
 import path from 'path';
+import { getResumeSummary } from "../services/openai";
+import type { AssembledSources } from "../utils/AssembleProfile";
 
 const roleDetailsSchema = z.object({
     role: z.string().min(1),
@@ -11,9 +13,14 @@ const roleDetailsSchema = z.object({
     experience: z.literal(["beginner", "junior", "mid", "senior", "staff"])
 })
 
+const sessionDetailsSchema = z.object({
+    interviewId: z.string().min(1),
+    questions: z.int(),
+    duration: z.int()
+})
+
 export const handleRoleDetails = async (req: Request, res: Response, next: NextFunction) => {
     const userId = req.userId;
-    console.log('hit')
     if (!userId) throw new AppError(404, 'Unauthorised');
     const { success, data } = roleDetailsSchema.safeParse(req.body);
     if (!success) throw new AppError(401, 'RoleDetailsRequired');
@@ -70,22 +77,48 @@ export const handleResume = async (req: Request, res: Response) => {
         });
 
         res.status(200).json({
-        success: true,
-        message: 'Resume uploaded successfully',
-        data: {
-            resume
-        }
-    });
+            success: true,
+            message: 'Resume uploaded successfully',
+            data: {
+                resume
+            }
+        });
 
     } catch (error) {
         res.status(500).json({
-        success: false,
-        message: 'Internal server error',
-        data: null
-    })
+            success: false,
+            message: 'Internal server error',
+            data: null
+        })
     }
 }
 
 export const handlePreSession = async (req: Request, res: Response) => {
+    const { success, data } = sessionDetailsSchema.safeParse(req.body);
+    if (!success) throw new AppError(401, 'Invalid count of questions & duration');
+
+    const userData = await prisma.resume.findUnique({
+        where: {
+            interviewId: data.interviewId
+        },
+        select: {
+            parsed: true
+        }
+    });
+    const parsedData = userData?.parsed as unknown as AssembledSources
+    const summary = await getResumeSummary(parsedData);
+
+    await prisma.interview.update({
+        where: {
+            id: data.interviewId
+        }, data: {
+            summary: JSON.stringify(summary)
+        }
+    });
     
+    res.status(201).json({
+        success: true,
+        message: 'Summary fetched successfully',
+        data: summary
+    })
 }

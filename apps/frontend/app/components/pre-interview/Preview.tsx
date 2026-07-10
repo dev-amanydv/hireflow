@@ -1,12 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, Code2, FileText, Network, Pencil, Sparkles } from "lucide-react";
 import { Button } from "../ui/button";
 import EditProfile from "./EditProfile";
+import PreviewSkeleton from "./PreviewSkeleton";
 import {
   EXPERIENCE_LABELS,
   FOCUS_LABELS,
   MOCK_CANDIDATE,
+  summaryToCandidate,
   type CandidateProfile,
+  type ResumeSummary,
   type RoleDetails,
   type SessionDetails,
 } from "./types";
@@ -33,21 +36,36 @@ function SummaryRow({ label, value, border = true }: { label: string; value: str
 export default function Preview({
   roleDetails,
   sessionDetails,
+  summary,
   setStep,
   onStart,
+  loading,
+  error
 }: {
   roleDetails: RoleDetails;
   sessionDetails: SessionDetails;
+  summary: ResumeSummary | null;
   setStep: (value: number) => void;
   onStart: () => void;
+  loading: boolean;
+  error: boolean;
 }) {
-  const [candidate, setCandidate] = useState<CandidateProfile>(MOCK_CANDIDATE);
+
+  const [candidate, setCandidate] = useState<CandidateProfile>(() =>
+    summary ? summaryToCandidate(summary) : MOCK_CANDIDATE
+  );
   const [editOpen, setEditOpen] = useState(false);
 
-  const includedProjects = candidate.projects.filter((p) => p.included).length;
+  useEffect(() => {
+    if (summary) setCandidate(summaryToCandidate(summary));
+  }, [summary]);
 
-  return (
-    <div>
+  const includedProjects = candidate.projects.filter((p) => p.included).length;
+  const rolesCount = summary?.experience.length ?? 0;
+
+  return loading || error ? (
+    <PreviewSkeleton error={error} onBack={() => setStep(2)} />
+  ) : <div>
       <div className="mb-6">
         <span className="text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
           Step 03 — Review
@@ -96,18 +114,26 @@ export default function Preview({
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <span className="text-[15.5px] font-semibold">{candidate.fullName}</span>
-                <span className="text-[13px] text-muted-foreground">· {candidate.location}</span>
+                {candidate.location && (
+                  <span className="text-[13px] text-muted-foreground">· {candidate.location}</span>
+                )}
               </div>
-              <div className="mt-0.5 text-[13px] text-foreground/70">{candidate.headline}</div>
+              {candidate.headline && (
+                <div className="mt-0.5 text-[13px] text-foreground/70">{candidate.headline}</div>
+              )}
               <div className="mt-3 flex flex-wrap items-center gap-x-3.5 gap-y-2">
-                <span className="inline-flex items-center gap-1.5 text-[12.5px] text-foreground/80">
-                  <FaGithub className="size-3.5 text-muted-foreground" />
-                  {candidate.github}
-                </span>
-                <span className="inline-flex items-center gap-1.5 text-[12.5px] text-foreground/80">
-                  <FaLinkedinIn className="size-3.5 text-muted-foreground" />
-                  {candidate.linkedin}
-                </span>
+                {candidate.github && (
+                  <span className="inline-flex items-center gap-1.5 text-[12.5px] text-foreground/80">
+                    <FaGithub className="size-3.5 text-muted-foreground" />
+                    {candidate.github}
+                  </span>
+                )}
+                {candidate.linkedin && (
+                  <span className="inline-flex items-center gap-1.5 text-[12.5px] text-foreground/80">
+                    <FaLinkedinIn className="size-3.5 text-muted-foreground" />
+                    {candidate.linkedin}
+                  </span>
+                )}
               </div>
             </div>
             <Button
@@ -132,7 +158,7 @@ export default function Preview({
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1.5 text-xs text-foreground/80">
               <Network className="size-3 text-muted-foreground" />
-              2 roles
+              {rolesCount} {rolesCount === 1 ? "role" : "roles"}
             </span>
           </div>
         </div>
@@ -162,5 +188,4 @@ export default function Preview({
         onSave={setCandidate}
       />
     </div>
-  );
 }

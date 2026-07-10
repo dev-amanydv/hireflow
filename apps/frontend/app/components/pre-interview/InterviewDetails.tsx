@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { ArrowLeft, ArrowRight, Check, Clock, FileText, SlidersHorizontal } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { Button } from "../ui/button";
@@ -28,13 +28,13 @@ function Field({ label, icon, children }: { label: string; icon?: React.ReactNod
 }
 
 export default function InterviewDetails({
-  setSessionDetails,
   setStep,
-  interviewId
+  ensureInterview,
+  onStart,
 }: {
-  setSessionDetails: (value: SessionDetails) => void;
   setStep: (value: number) => void;
-  interviewId: string
+  ensureInterview: () => Promise<string | null>,
+  onStart: (value: SessionDetails) => void;
 }) {
   const [data, setData] = useState<SessionDetails>({
     resume: {
@@ -46,12 +46,9 @@ export default function InterviewDetails({
     questions: 5,
     duration: 15
   });
-  
 
-  console.log(interviewId)
   const onContinue = () => {
-    setSessionDetails(data);
-    setStep(3);
+    onStart(data);
   };
 
   return (
@@ -85,7 +82,7 @@ export default function InterviewDetails({
             </div>
           </div> : (
             <InputFile
-              interviewId={interviewId}
+              ensureInterview={ensureInterview}
               onComplete={(file) =>
                 setData((d) => ({
                   ...d,

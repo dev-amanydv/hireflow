@@ -73,7 +73,6 @@ export async function fetchGithub(url: string): Promise<GithubContent> {
                 name: details.repo,
                 readme: data as unknown as string
             }
-            console.log('kind: github', "ok ", true, url, username, 'repos', [{ name: details.repo, description: null, language: null, stars: 0, readme: data }])
             return { kind: 'github', ok: true, url, repos: [{ name: details.repo, description: "", language: "", stars: 0, readme: data as unknown as string }] }
         }
     } catch (error) {
@@ -100,7 +99,6 @@ export async function fetchGithub(url: string): Promise<GithubContent> {
             stars: r.stargazers_count ?? 0,
             readme: ""
         })) || [];
-        console.log('kind: github', "ok ", true, url, username, repos)
         return { kind: 'github', ok: true, url, repos }
     
 }

@@ -176,14 +176,14 @@ function FileRow({
 }
 
 export function InputFile({
-  interviewId,
+  ensureInterview,
   accept = DEFAULT_ACCEPT,
   maxSizeMB = DEFAULT_MAX_MB,
   multiple = false,
   hint = "PDF, DOC or DOCX (max. 10MB)",
   onComplete,
 }: {
-  interviewId: string;
+  ensureInterview: () => Promise<string | null>;
   accept?: string;
   maxSizeMB?: number;
   multiple?: boolean;
@@ -194,8 +194,8 @@ export function InputFile({
   const [file, setFile] = useState<UploadItem | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
-  // The raw File is kept out of render state so we can re-send it on retry.
   const rawFile = useRef<File | null>(null);
+  const interviewIdRef = useRef<string | null>(null);
 
   function validateFile(file: File) {
     const validSize = file.size < maxSizeMB * 1024 * 1024;
@@ -206,7 +206,7 @@ export function InputFile({
     return "valid";
   }
 
-  const uploadResume = async (id: string, selectedFile: File) => {
+  const uploadResume = async (id: string, selectedFile: File, interviewId: string) => {
     const form = new FormData();
     form.append("resume", selectedFile);
     form.append("interviewId", interviewId);
@@ -236,33 +236,41 @@ export function InputFile({
     }
   };
 
-  const addFile = (selectedFile: File | undefined) => {
+  const addFile = async (selectedFile: File | undefined) => {
     if (!selectedFile) return;
     const val = validateFile(selectedFile);
-    const failed = val !== "valid";
     const id = crypto.randomUUID();
+
+    if (val !== "valid") {
+      setFile({
+        id,
+        name: selectedFile.name,
+        size: selectedFile.size,
+        ext: extOf(selectedFile.name),
+        progress: 0,
+        status: "failed",
+        error: val === "tooBig" ? `Too large (max ${maxSizeMB}MB)` : "Unsupported type",
+        retryable: false,
+      });
+      rawFile.current = null;
+      return;
+    }
+
+    const interviewId = await ensureInterview();
+    if (!interviewId) return;
+    interviewIdRef.current = interviewId;
+
     setFile({
       id,
       name: selectedFile.name,
       size: selectedFile.size,
       ext: extOf(selectedFile.name),
       progress: 0,
-      status: failed ? "failed" : "uploading",
-      error:
-        val === "tooBig"
-          ? `Too large (max ${maxSizeMB}MB)`
-          : val === "invalidFormat"
-            ? "Unsupported type"
-            : undefined,
+      status: "uploading",
       retryable: false,
     });
-
-    if (!failed) {
-      rawFile.current = selectedFile;
-      uploadResume(id, selectedFile);
-    } else {
-      rawFile.current = null;
-    }
+    rawFile.current = selectedFile;
+    uploadResume(id, selectedFile, interviewId);
   };
 
   const handleRemove = () => {
@@ -270,11 +278,14 @@ export function InputFile({
     setFile(null);
   };
 
-  const handleRetry = () => {
+  const handleRetry = async () => {
     const selectedFile = rawFile.current;
     if (!selectedFile || !file) return;
+    const interviewId = interviewIdRef.current ?? (await ensureInterview());
+    if (!interviewId) return;
+    interviewIdRef.current = interviewId;
     setFile({ ...file, status: "uploading", progress: 0, error: undefined });
-    uploadResume(file.id, selectedFile);
+    uploadResume(file.id, selectedFile, interviewId);
   };
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {

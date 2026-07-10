@@ -4,7 +4,7 @@ import type { SiteContent } from "./FetchSite";
 
 type FetchResult = GithubContent | SiteContent;
 
-type AssembledSources = {
+export type AssembledSources = {
     rawResumeText: string,
     usedOcr: boolean,
     githubSources: GithubContent[],

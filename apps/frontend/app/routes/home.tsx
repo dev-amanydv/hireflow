@@ -1,36 +1,55 @@
-import SigninPage from "~/components/auth/Signin";
 import type { Route } from "./+types/home";
-import { useState } from "react";
-import SignupPage from "~/components/auth/Signup";
-import { Button } from "~/components/ui/button";
+import LandingNav from "~/components/marketing/LandingNav";
+import Hero from "~/components/marketing/Hero";
+import LogoMarquee from "~/components/marketing/LogoMarquee";
+import StatementBlock from "~/components/marketing/StatementBlock";
+import FeatureFigures from "~/components/marketing/FeatureFigures";
+import ProductSection from "~/components/marketing/ProductSection";
+import { ProfileMockup, ScorecardMockup } from "~/components/marketing/ProductMockups";
+import CTABanner from "~/components/marketing/CTABanner";
+import Footer from "~/components/marketing/Footer";
 
-export function meta({ }: Route.MetaArgs) {
+export function meta({}: Route.MetaArgs) {
   return [
-    { title: "New React Router App" },
-    { name: "description", content: "Welcome to React Router!" },
+    { title: "Sable — The AI interviewer, built for the AI era" },
+    {
+      name: "description",
+      content:
+        "Practice interviews that feel real. Sable reads your resume, GitHub, and code to run adaptive engineering interviews and score them instantly.",
+    },
   ];
 }
 
 export default function Home() {
-  const [popup, setPopup] = useState<"signin" | "signup" | "none">('signup');
-
   return (
-    <div className="min-h-screen w-screen  flex">
-      <div className="min-h-screen w-full bg-zinc-200 relative text-gray-800">
-        <div
-          className="absolute inset-0 z-0 pointer-events-none"
-          style={{
-            backgroundImage: `
-        repeating-linear-gradient(0deg, transparent, transparent 5px, rgba(75, 85, 99, 0.06) 5px, rgba(75, 85, 99, 0.06) 6px, transparent 6px, transparent 15px),
-        repeating-linear-gradient(90deg, transparent, transparent 5px, rgba(75, 85, 99, 0.06) 5px, rgba(75, 85, 99, 0.06) 6px, transparent 6px, transparent 15px),
-        repeating-linear-gradient(0deg, transparent, transparent 10px, rgba(107, 114, 128, 0.04) 10px, rgba(107, 114, 128, 0.04) 11px, transparent 11px, transparent 30px),
-        repeating-linear-gradient(90deg, transparent, transparent 10px, rgba(107, 114, 128, 0.04) 10px, rgba(107, 114, 128, 0.04) 11px, transparent 11px, transparent 30px)
-      `,
-          }}
-        />
-        {popup === 'signin' ? <SigninPage setPopup={setPopup} /> : popup === 'signup' ? <SignupPage setPopup={setPopup} /> : null}
-        <Button onClick={() => setPopup('signup')}>Get start</Button>
-      </div>
+    <div className="min-h-screen bg-background">
+      <LandingNav />
+      <main>
+        <Hero />
+        <LogoMarquee />
+        <StatementBlock />
+        <FeatureFigures />
+
+        <ProductSection
+          label="1.0  Intake"
+          title="Turn your resume into a tailored interview"
+          description="Upload once. Sable extracts your skills, projects, and experience into a candidate profile that shapes every question in the session."
+        >
+          <ProfileMockup />
+        </ProductSection>
+
+        <ProductSection
+          align="right"
+          label="2.0  Report"
+          title="Know exactly where you stand"
+          description="Every session ends with a clear score and breakdown — technical depth, communication, and problem-solving — so you know what to practice next."
+        >
+          <ScorecardMockup />
+        </ProductSection>
+
+        <CTABanner />
+      </main>
+      <Footer />
     </div>
   );
 }

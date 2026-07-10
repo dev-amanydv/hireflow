@@ -59,8 +59,6 @@ export function startResumeParserWorker() {
                 const childResults = Object.values(childResponse);
 
                 const profile = assembleProfile(text, meta, childResults);
-                console.log('==========PROFILE=================')
-                console.log(profile);
                 await prisma.resume.update({
                     where: {
                         id: meta.resumeId
