@@ -10,20 +10,19 @@ export function meta({}: Route.MetaArgs) {
 
 export default function Interview() {
   const { id } = useParams();
-  const [mediaDevices, setMediaDevices] = useState()
-
-  const videoRef = useRef(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const wsRef = useRef<WebSocket>(null)
 
   useEffect(() => {
     const getMediaDevices = async () => {
-      const constraints = {
+      const constraints: MediaStreamConstraints = {
         video: {
           width: 1280,
           height: 720,
         },
         audio: true,
       };
-      const openMediaDevices = async (constraints) => {
+      const openMediaDevices = async (constraints: MediaStreamConstraints) => {
         return await navigator.mediaDevices.getUserMedia(constraints);
       };
       try {
@@ -40,6 +39,27 @@ export default function Interview() {
       }
     }
     getMediaDevices()
+  }, [])
+
+  useEffect(() => {
+    const ws = new WebSocket("ws://localhost:8000")
+    wsRef.current = ws
+
+    ws.onopen = () => {
+      console.log('connected')
+      ws.send(JSON.stringify({ type: "hello" }))
+    }
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data)
+      console.log('received: ', data)
+    }
+    ws.onerror = (err) =>{
+      console.error("WebSocket error:", err)
+    }
+
+    return () => {
+      ws.close(1000, "component unmounted")
+    }
   }, [])
   return (
     <div className="min-h-screen bg-background">
