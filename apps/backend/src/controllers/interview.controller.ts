@@ -6,6 +6,7 @@ import { resumeUploadQueue } from "../queues/queue";
 import path from "path";
 import { getResumeSummary } from "../services/openai";
 import type { AssembledSources } from "../utils/AssembleProfile";
+import { AccessToken } from "livekit-server-sdk";
 
 const roleDetailsSchema = z.object({
   role: z.string().min(1),
@@ -140,17 +141,30 @@ export const generateLivekitToken = async (req: Request, res: Response) => {
 
   const roomName = `interview-${interviewId}`;
   const participantIdentity = `${userId}-${interviewId}`;
-  const participantName = `${user?.email.split("@")[0]}`;
+  const participantName = `${user?.email?.split("@")[0] ?? ""}`;
   const participantMetadata = JSON.stringify({
     userId: userId,
     interviewId: interviewId,
-    email: user?.email,
+    email: user?.email ?? "",
   });
   const participantsAttributes = {
     userId: userId,
     interviewId: interviewId,
-    email: user?.email,
+    email: user?.email ?? "",
   };
 
-  const token = new Access
+  const token = new AccessToken(
+    process.env.LIVEKIT_API_KEY,
+    process.env.LIVEKIT_API_SECRET,
+    {
+      identity: participantIdentity,
+      name: participantName,
+      metadata: participantMetadata,
+      attributes: participantsAttributes,
+      ttl: '10m'
+    },
+  );
+
+  token.addGrant({ roomJoin: true, room: roomName})
+  
 };
