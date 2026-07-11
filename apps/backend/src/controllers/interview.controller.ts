@@ -6,7 +6,13 @@ import { resumeUploadQueue } from "../queues/queue";
 import path from "path";
 import { getResumeSummary } from "../services/openai";
 import type { AssembledSources } from "../utils/AssembleProfile";
-import { AccessToken } from "livekit-server-sdk";
+import {
+  AccessToken,
+  RoomConfiguration,
+  RoomAgentDispatch,
+} from "livekit-server-sdk";
+
+const AGENT_NAME = "my-agent";
 
 const roleDetailsSchema = z.object({
   role: z.string().min(1),
@@ -132,39 +138,86 @@ export const handlePreSession = async (req: Request, res: Response) => {
 
 export const generateLivekitToken = async (req: Request, res: Response) => {
   const userId = req.userId;
-  const user = await prisma.user.findUnique({
-    where: {
-      id: userId,
-    },
-  });
+  if (!userId) throw new AppError(401, "Unauthorised");
+
   const interviewId = req.params.interviewId as string;
+  if (!interviewId) throw new AppError(400, "interviewId required");
+
+  const interview = await prisma.interview.findFirst({
+    where: { id: interviewId, userId },
+    select: { id: true },
+  });
+  if (!interview) throw new AppError(404, "Interview not found");
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
 
   const roomName = `interview-${interviewId}`;
   const participantIdentity = `${userId}-${interviewId}`;
-  const participantName = `${user?.email?.split("@")[0] ?? ""}`;
-  const participantMetadata = JSON.stringify({
-    userId: userId,
-    interviewId: interviewId,
-    email: user?.email ?? "",
-  });
-  const participantsAttributes = {
-    userId: userId,
-    interviewId: interviewId,
-    email: user?.email ?? "",
-  };
+  const participantName = user?.email?.split("@")[0] ?? "candidate";
+  const context = { userId, interviewId, email: user?.email ?? "" };
 
-  const token = new AccessToken(
+  const at = new AccessToken(
     process.env.LIVEKIT_API_KEY,
     process.env.LIVEKIT_API_SECRET,
     {
       identity: participantIdentity,
       name: participantName,
-      metadata: participantMetadata,
-      attributes: participantsAttributes,
-      ttl: '10m'
+      metadata: JSON.stringify(context),
+      attributes: { userId, interviewId, email: user?.email ?? "" },
+      ttl: "30m",
     },
   );
 
-  token.addGrant({ roomJoin: true, room: roomName})
-  
+  at.addGrant({ roomJoin: true, room: roomName, canPublish: true, canSubscribe: true });
+
+  at.roomConfig = new RoomConfiguration({
+    agents: [
+      new RoomAgentDispatch({
+        agentName: AGENT_NAME,
+        metadata: JSON.stringify(context),
+      }),
+    ],
+  });
+
+  const participantToken = await at.toJwt();
+
+  await prisma.interview.update({
+    where: { id: interviewId },
+    data: { status: "ONGOING", startAt: new Date() },
+  });
+
+  res.status(201).json({
+    server_url: process.env.LIVEKIT_URL,
+    participant_token: participantToken,
+  });
+};
+
+const messageSchema = z.object({
+  role: z.literal(["User", "Assistant"]),
+  content: z.string().min(1),
+});
+
+
+export const recordInterviewMessage = async (req: Request, res: Response) => {
+  const interviewId = req.params.interviewId as string;
+  const { success, data } = messageSchema.safeParse(req.body);
+  if (!success) throw new AppError(400, "Invalid message");
+
+  await prisma.message.create({
+    data: { interviewId, role: data.role, content: data.content },
+  });
+
+  res.status(201).json({ success: true, message: "Message recorded", data: null });
+};
+
+
+export const completeInterview = async (req: Request, res: Response) => {
+  const interviewId = req.params.interviewId as string;
+
+  await prisma.interview.update({
+    where: { id: interviewId },
+    data: { status: "COMPLETED", endAt: new Date() },
+  });
+
+  res.status(200).json({ success: true, message: "Interview completed", data: null });
 };

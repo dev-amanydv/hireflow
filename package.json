@@ -19,6 +19,7 @@
   "packageManager": "bun@1.3.14",
   "workspaces": [
     "apps/*",
+    "!apps/agent-starter-node",
     "packages/*"
   ],
   "dependencies": {
