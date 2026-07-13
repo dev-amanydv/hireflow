@@ -12,7 +12,17 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { NavLink, useNavigate } from "react-router";
 import { Brand } from "./Brand";
-import { ThemeToggle } from "./ThemeToggle";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "~/components/ui/alert-dialog";
 import { Button } from "~/components/ui/button";
 import { useAuth } from "~/store/store";
 import { useStartInterview } from "~/lib/useStartInterview";
@@ -110,9 +120,8 @@ export default function DashboardSidebar({
         className
       )}
     >
-      <div className="flex h-14 items-center justify-between px-5">
+      <div className="flex h-14 items-center px-5">
         <Brand to="/" />
-        <ThemeToggle className="-mr-2" />
       </div>
 
       <div className="px-3 pb-2 pt-1">
@@ -143,28 +152,37 @@ export default function DashboardSidebar({
 
       {user && (
         <div className="border-t border-border p-3">
-          <div className="flex items-center gap-2.5 rounded-md px-2 py-1.5">
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-foreground">
-              {user.email.slice(0, 1).toUpperCase()}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-foreground">
-                {user.email.split("@")[0]}
-              </p>
-              <p className="truncate text-xs text-ink-tertiary">{user.email}</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                removeUser();
-                navigate("/");
-              }}
-              aria-label="Sign out"
-              className="rounded-md p-1.5 text-ink-tertiary transition-colors hover:bg-muted hover:text-foreground"
-            >
-              <LogOut className="size-4" />
-            </button>
-          </div>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button
+                type="button"
+                className="group flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-ink-subtle transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <LogOut className="size-4 shrink-0 text-ink-tertiary transition-colors group-hover:text-foreground" />
+                Log out
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Log out?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  You&apos;ll be signed out of your account and returned to the
+                  home page.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    removeUser();
+                    navigate("/");
+                  }}
+                >
+                  Log out
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       )}
     </aside>
