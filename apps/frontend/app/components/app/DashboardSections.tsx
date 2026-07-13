@@ -5,17 +5,16 @@ import {
   BarChart3,
   Briefcase,
   ExternalLink,
-  FileText,
   Loader2,
   MapPin,
   MessagesSquare,
   Search,
   Settings,
   Sparkles,
-  Upload,
   User,
 } from "lucide-react";
 import EmptyState from "./EmptyState";
+import ResumeAnalyzer from "./resume-analyzer/ResumeAnalyzer";
 import type { DashboardSection } from "./DashboardSidebar";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
@@ -60,7 +59,6 @@ function StartInterviewHero() {
   const startInterview = useStartInterview();
   return (
     <div className="relative overflow-hidden rounded-2xl bg-primary p-6 text-primary-foreground sm:p-8">
-      {/* soft, non-glass highlight — a single radial, not a decorative blur */}
       <div
         aria-hidden
         className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full opacity-60"
@@ -177,33 +175,7 @@ function Interviews() {
 }
 
 function Resume() {
-  const startInterview = useStartInterview();
-  return (
-    <div className="flex flex-col gap-8">
-      <SectionHeader
-        eyebrow="Preparation"
-        title="Analyze resume"
-        description="Upload your resume and QuickHire extracts your experience, projects, and GitHub work to tailor every question."
-        action={
-          <Button onClick={startInterview}>
-            <Upload className="size-4" />
-            Upload resume
-          </Button>
-        }
-      />
-      <EmptyState
-        icon={FileText}
-        title="No resume analyzed"
-        description="Add your resume to get a breakdown of highlighted skills, notable projects, and the topics your interview is likely to cover."
-        action={
-          <Button variant="outline" onClick={startInterview}>
-            Upload a resume
-            <ArrowRight className="size-4" />
-          </Button>
-        }
-      />
-    </div>
-  );
+  return <ResumeAnalyzer />;
 }
 
 function Insights() {

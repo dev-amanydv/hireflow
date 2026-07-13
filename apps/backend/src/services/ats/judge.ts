@@ -52,8 +52,9 @@ function getModel() {
     azureOpenAIApiDeploymentName: process.env.OPENAI_TTT_MODEL,
     azureOpenAIEndpoint: process.env.AZURE_OPENAI_ENDPOINT,
     azureOpenAIApiVersion: process.env.AZURE_OPENAI_API_VERSION ?? "2024-12-01-preview",
-    reasoningEffort: "low",
     maxRetries: 2,
+    
+    modelKwargs: { reasoning_effort: "low" },
   });
 }
 
