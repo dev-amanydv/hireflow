@@ -38,13 +38,6 @@ enum MessageRole {
   Assistant
 }
 
-enum InterviewType {
-  mixed
-  behavioural
-  technical
-  systemDesign
-}
-
 enum Experience {
   beginner
   junior
@@ -70,12 +63,9 @@ model Interview {
   id        String          @id @default(uuid())
   jobRole   String
   resume    Resume?
-  question  Int?            @default(5)
-  duration  Int?            @default(15)
   startAt   DateTime?
   endAt     DateTime?
   summary   String?
-  type      InterviewType   @default(mixed)
   status    InterviewStatus @default(SCHEDULED)
   experience  Experience    @default(beginner)
   resultId  String?          @unique

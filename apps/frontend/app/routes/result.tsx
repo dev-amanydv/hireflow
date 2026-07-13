@@ -9,7 +9,8 @@ export function meta({}: Route.MetaArgs) {
 
 export default function Result() {
   return (
-    <div className="min-h-screen bg-background">
+    // Result stays dark-locked, independent of the app theme.
+    <div className="dark min-h-screen bg-background text-foreground">
       <TopNav />
       <main className="mx-auto flex max-w-3xl flex-col items-center px-5 py-24 text-center sm:px-8">
         <div className="flex size-14 items-center justify-center rounded-2xl border border-border bg-secondary">

@@ -11,6 +11,8 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { useNavigate } from "react-router";
 import { Brand } from "./Brand";
+import { ThemeToggle } from "./ThemeToggle";
+import { Button } from "~/components/ui/button";
 import { useAuth } from "~/store/store";
 import { useStartInterview } from "~/lib/useStartInterview";
 import { cn } from "~/lib/utils";
@@ -69,22 +71,16 @@ function NavButton({
       onClick={() => onSelect(item.id)}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "group relative flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors",
+        "group flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors",
         active
-          ? "bg-accent font-medium text-foreground"
+          ? "bg-primary/10 font-medium text-primary"
           : "text-ink-subtle hover:bg-muted hover:text-foreground"
       )}
     >
-      <span
-        className={cn(
-          "absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-primary transition-opacity",
-          active ? "opacity-100" : "opacity-0"
-        )}
-      />
       <Icon
         className={cn(
           "size-4 shrink-0 transition-colors",
-          active ? "text-foreground" : "text-ink-tertiary group-hover:text-foreground"
+          active ? "text-primary" : "text-ink-tertiary group-hover:text-foreground"
         )}
       />
       {item.label}
@@ -113,19 +109,16 @@ export default function DashboardSidebar({
         className
       )}
     >
-      <div className="flex h-14 items-center px-5">
+      <div className="flex h-14 items-center justify-between px-5">
         <Brand to="/" />
+        <ThemeToggle className="-mr-2" />
       </div>
 
       <div className="px-3 pb-2 pt-1">
-        <button
-          type="button"
-          onClick={startInterview}
-          className="ln-lift flex w-full items-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-semibold text-black transition-colors hover:bg-white/90"
-        >
+        <Button onClick={startInterview} className="w-full justify-center">
           <Sparkles className="size-4" />
           Start new interview
-        </button>
+        </Button>
       </div>
 
       <nav className="flex-1 overflow-hidden px-3 py-3">

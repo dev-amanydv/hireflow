@@ -1,21 +1,18 @@
 import { useState } from "react";
-import { ArrowRight, Check, Code2, Network, Shuffle, Users } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import z from "zod";
 import { toast } from "sonner";
 import { cn } from "~/lib/utils";
 import { Button } from "../ui/button";
-import axios from "axios";
 import { BACKEND_URL } from "~/lib/config";
 
 interface RoleDetails {
   jobRole: string;
-  type: "mixed" | "behavioural" | "technical" | "systemDesign";
   experience: "beginner" | "junior" | "mid" | "senior" | "staff";
 }
 
 const roleDetailsSchema = z.object({
   jobRole: z.string().min(1),
-  type: z.literal(["mixed", "behavioural", "technical", "systemDesign"]),
   experience: z.literal(["beginner", "junior", "mid", "senior", "staff"]),
 });
 
@@ -36,13 +33,6 @@ const LEVELS = [
   { value: "mid", label: "Mid", note: "2–5 yrs" },
   { value: "senior", label: "Senior", note: "5–9 yrs" },
   { value: "staff", label: "Staff", note: "10+ yrs" },
-] as const;
-
-const TYPES = [
-  { value: "mixed", label: "Mixed", note: "Behavioural + technical + design", icon: Shuffle },
-  { value: "behavioural", label: "Behavioural", note: "Past work, collaboration, judgment", icon: Users },
-  { value: "technical", label: "Technical", note: "Coding, fundamentals, problem-solving", icon: Code2 },
-  { value: "systemDesign", label: "System Design", note: "Architecture, scale, tradeoffs", icon: Network },
 ] as const;
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -67,7 +57,6 @@ export default function RoleDetails({
 }) {
   const [data, setData] = useState<RoleDetails>({
     jobRole: ROLES[0],
-    type: "mixed",
     experience: "mid",
   });
 
@@ -148,50 +137,6 @@ export default function RoleDetails({
                   </span>
                   <span className="text-xs text-muted-foreground">
                     {l.note}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </Field>
-
-        <Field label="Interview focus">
-          <div className="flex flex-col gap-2">
-            {TYPES.map((t) => {
-              const on = data.type === t.value;
-              const Icon = t.icon;
-              return (
-                <button
-                  key={t.value}
-                  type="button"
-                  onClick={() => setData((d) => ({ ...data, type: t.value }))}
-                  className={cn(
-                    "flex items-center justify-between gap-3 rounded-xl border px-4 py-3.5 text-left transition-all",
-                    on
-                      ? "border-foreground bg-card shadow-[0_1px_0_var(--foreground),0_8px_24px_-16px_rgba(0,0,0,0.4)]"
-                      : "border-border bg-muted/40 hover:border-foreground/30",
-                  )}
-                >
-                  <span className="flex items-center gap-3">
-                    <Icon className="size-5 shrink-0 text-muted-foreground" />
-                    <span className="flex flex-col gap-0.5">
-                      <span className="text-[15px] font-semibold tracking-tight">
-                        {t.label}
-                      </span>
-                      <span className="text-[13px] text-muted-foreground">
-                        {t.note}
-                      </span>
-                    </span>
-                  </span>
-                  <span
-                    className={cn(
-                      "flex size-5.5 shrink-0 items-center justify-center rounded-full transition-colors",
-                      on
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-transparent",
-                    )}
-                  >
-                    {on && <Check className="size-3.5" strokeWidth={3} />}
                   </span>
                 </button>
               );

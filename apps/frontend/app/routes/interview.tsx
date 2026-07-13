@@ -11,7 +11,7 @@ const InterviewRoom = lazy(() => import("~/components/app/InterviewRoom"));
 
 function Preparing() {
   return (
-    <div className="flex h-dvh w-full flex-col items-center justify-center gap-4 bg-background px-6 text-center">
+    <div className="dark flex h-dvh w-full flex-col items-center justify-center gap-4 bg-background px-6 text-center text-foreground">
       <Loader2 className="size-5 animate-spin text-ink-subtle" />
       <p className="text-sm text-ink-subtle">Preparing your room…</p>
     </div>
@@ -26,7 +26,8 @@ export default function Interview() {
   if (!mounted || !id) return <Preparing />;
 
   return (
-    <div className="h-dvh w-full overflow-hidden bg-background">
+    // Interview room stays dark-locked and immersive, independent of the app theme.
+    <div className="dark h-dvh w-full overflow-hidden bg-background text-foreground">
       <Suspense fallback={<Preparing />}>
         <InterviewRoom interviewId={id} />
       </Suspense>

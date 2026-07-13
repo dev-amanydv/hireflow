@@ -1,5 +1,5 @@
 import express from 'express';
-import { handlePreSession, handleResume, handleRoleDetails, generateLivekitToken, recordInterviewMessage, completeInterview } from '../controllers/interview.controller';
+import { handlePreSession, handleResume, handleResumeStatus, handleRoleDetails, generateLivekitToken, recordInterviewMessage, completeInterview, updateSummary } from '../controllers/interview.controller';
 import { uploadMiddleware } from '../middlewares/upload.middleware';
 import { AsyncHandler } from '../utils/asyncHandler';
 import { authMiddleware } from '../middlewares/auth.middleware';
@@ -9,7 +9,9 @@ const router = express.Router();
 
 router.post('/pre/role', authMiddleware, AsyncHandler(handleRoleDetails));
 router.post('/pre/resume', authMiddleware, uploadMiddleware, AsyncHandler(handleResume));
+router.get('/pre/:interviewId/resume-status', authMiddleware, AsyncHandler(handleResumeStatus));
 router.post('/pre/session', authMiddleware, AsyncHandler(handlePreSession));
+router.patch('/pre/:interviewId/summary', authMiddleware, AsyncHandler(updateSummary));
 router.post('/pre/:interviewId/get-token', authMiddleware, AsyncHandler(generateLivekitToken))
 
 router.post('/:interviewId/messages', internalAuth, AsyncHandler(recordInterviewMessage));

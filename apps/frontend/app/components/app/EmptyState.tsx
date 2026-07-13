@@ -17,11 +17,11 @@ export default function EmptyState({
   return (
     <div
       className={cn(
-        "ln-lift flex flex-col items-center justify-center gap-5 rounded-xl border border-border bg-card px-6 py-20 text-center",
+        "ln-lift flex flex-col items-center justify-center gap-5 rounded-2xl border border-border bg-card px-6 py-20 text-center",
         className
       )}
     >
-      <div className="flex size-14 items-center justify-center rounded-2xl border border-border bg-secondary">
+      <div className="flex size-14 items-center justify-center rounded-2xl border border-border bg-muted">
         <Icon className="size-6 text-ink-subtle" />
       </div>
       <div className="max-w-sm">

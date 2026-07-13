@@ -22,7 +22,8 @@ export function meta({}: Route.MetaArgs) {
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-background">
+    // Landing stays dark-locked (immersive marketing), independent of the app theme.
+    <div className="dark min-h-screen bg-background text-foreground">
       <LandingNav />
       <main>
         <Hero />
