@@ -48,7 +48,7 @@ const report = await analyzeResume({
 });
 
 console.log(JSON.stringify({
-  ms: Date.now() - t0,
+  seconds: Math.round((Date.now() - t0) / 1000),
   overallScore: report.overallScore,
   judge: report.engine.judge,
   keywordCoverage: report.keyword?.coverage,

@@ -53,9 +53,8 @@ function getModel() {
     azureOpenAIEndpoint: process.env.AZURE_OPENAI_ENDPOINT,
     azureOpenAIApiVersion: process.env.AZURE_OPENAI_API_VERSION ?? "2024-12-01-preview",
     maxRetries: 2,
-   
-    maxTokens: 16000,
-    modelKwargs: { reasoning_effort: "high" },
+    maxTokens: 12000,
+    modelKwargs: { reasoning_effort: "medium" },
   });
 }
 

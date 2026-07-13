@@ -25,8 +25,10 @@ import {
 
 type View = "list" | "upload" | "parsing" | "target" | "scoring" | "report";
 
-const POLL_MS = 2000;
-const POLL_MAX = 90; // ~3 min
+const POLL_MS = 3000;
+// The judge runs gpt-5-mini at medium reasoning effort (~1–2 min). Ceiling of
+// ~5 min leaves a comfortable buffer so the poll never abandons a live score.
+const POLL_MAX = 100;
 
 function Header({ title, description, action }: { title: string; description: string; action?: React.ReactNode }) {
   return (
@@ -210,7 +212,7 @@ export default function ResumeAnalyzer() {
           <p className="max-w-sm text-sm text-ink-subtle">
             {parsing
               ? "Extracting text, sections, and any linked GitHub work. This usually takes 10–30 seconds."
-              : "Running deterministic ATS checks and an AI content review, then combining them into your score."}
+              : "Running deterministic ATS checks plus an AI content review. This usually takes a minute or two — it keeps running even if you leave, and the result appears in your history."}
           </p>
         </div>
       </div>
