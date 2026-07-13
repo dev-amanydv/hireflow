@@ -46,6 +46,20 @@ enum Experience {
   staff
 }
 
+enum JobSource {
+  REMOTIVE
+  ARBEITNOW
+  ADZUNA
+}
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+  OTHER
+}
+
 model User {
   id        String          @id @default(uuid())
   username  String?
@@ -109,5 +123,32 @@ model Result {
   interview Interview?
   createdAt DateTime        @default(now())
   updatedAt DateTime        @default(now())
+}
+
+model Job {
+  id             String    @id @default(uuid())
+  source         JobSource
+  externalId     String
+  title          String
+  company        String
+  companyLogo    String?
+  location       String?
+  remote         Boolean   @default(false)
+  jobType        JobType   @default(OTHER)
+  category       String?
+  description    String
+  tags           String[]
+  salaryMin      Float?
+  salaryMax      Float?
+  salaryCurrency String?
+  url            String
+  postedAt       DateTime?
+  fetchedAt      DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([source, externalId])
+  @@index([postedAt])
+  @@index([remote])
 }
 

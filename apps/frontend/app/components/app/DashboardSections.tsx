@@ -1,8 +1,15 @@
+import { useEffect, useState } from "react";
+import axios from "axios";
 import {
   ArrowRight,
   BarChart3,
+  Briefcase,
+  ExternalLink,
   FileText,
+  Loader2,
+  MapPin,
   MessagesSquare,
+  Search,
   Settings,
   Sparkles,
   Upload,
@@ -11,8 +18,12 @@ import {
 import EmptyState from "./EmptyState";
 import type { DashboardSection } from "./DashboardSidebar";
 import { Button } from "~/components/ui/button";
+import { Badge } from "~/components/ui/badge";
+import { Input } from "~/components/ui/input";
 import { useAuth } from "~/store/store";
 import { useStartInterview } from "~/lib/useStartInterview";
+import { BACKEND_URL } from "~/lib/config";
+import { cn } from "~/lib/utils";
 
 function SectionHeader({
   eyebrow,
@@ -43,11 +54,7 @@ function SectionHeader({
   );
 }
 
-/**
- * The workspace's one "Committed" moment: a saturated indigo action surface
- * that anchors the primary task (start an interview). Everything else on the
- * dashboard stays restrained neutral so this reads as the clear next step.
- */
+
 function StartInterviewHero() {
   const startInterview = useStartInterview();
   return (
@@ -90,10 +97,6 @@ function StartInterviewHero() {
   );
 }
 
-/**
- * Compact stat strip — a single card with internal dividers, deliberately not
- * three identical cards. Numerals use the mono face (an ownable Sable detail).
- */
 function StatStrip({
   stats,
 }: {
@@ -115,8 +118,6 @@ function StatStrip({
 }
 
 function Overview() {
-  const startInterview = useStartInterview();
-
   return (
     <div className="flex flex-col gap-8">
       <SectionHeader
@@ -138,13 +139,7 @@ function Overview() {
       <EmptyState
         icon={Sparkles}
         title="No activity yet"
-        description="Pick a role, upload your resume, and Sable builds a tailored interview from your real work — your history and scores show up here."
-        action={
-          <Button variant="outline" onClick={startInterview}>
-            Start new interview
-            <ArrowRight className="size-4" />
-          </Button>
-        }
+        description="Once you complete a session, your interview history, transcripts, and scores collect here so you can track how you improve over time."
       />
     </div>
   );
@@ -299,6 +294,298 @@ function SettingsSection() {
   );
 }
 
+type Job = {
+  id: string;
+  source: "REMOTIVE" | "ARBEITNOW" | "ADZUNA";
+  title: string;
+  company: string;
+  companyLogo: string | null;
+  location: string | null;
+  remote: boolean;
+  jobType: "FULL_TIME" | "PART_TIME" | "CONTRACT" | "INTERNSHIP" | "OTHER";
+  description: string;
+  tags: string[];
+  url: string;
+  postedAt: string | null;
+};
+
+const JOB_TYPE_LABELS: Record<Job["jobType"], string> = {
+  FULL_TIME: "Full-time",
+  PART_TIME: "Part-time",
+  CONTRACT: "Contract",
+  INTERNSHIP: "Internship",
+  OTHER: "Other",
+};
+
+const PAGE_SIZE = 20;
+
+function stripHtml(html: string): string {
+  return html
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&[a-z]+;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function timeAgo(iso: string | null): string | null {
+  if (!iso) return null;
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return null;
+  const days = Math.floor((Date.now() - then) / 86_400_000);
+  if (days <= 0) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  return `${months}mo ago`;
+}
+
+function JobCard({ job }: { job: Job }) {
+  const posted = timeAgo(job.postedAt);
+  const snippet = stripHtml(job.description);
+  return (
+    <a
+      href={job.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="ln-lift group flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 transition-colors hover:border-primary/40"
+    >
+      <div className="flex items-start gap-3">
+        {job.companyLogo ? (
+          <img
+            src={job.companyLogo}
+            alt=""
+            className="size-10 shrink-0 rounded-lg border border-border object-contain"
+          />
+        ) : (
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-muted text-sm font-semibold text-ink-subtle">
+            {job.company.slice(0, 1).toUpperCase()}
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-sm font-semibold text-foreground group-hover:text-primary">
+            {job.title}
+          </h3>
+          <p className="truncate text-sm text-ink-subtle">{job.company}</p>
+        </div>
+        <ExternalLink className="size-4 shrink-0 text-ink-tertiary transition-colors group-hover:text-primary" />
+      </div>
+
+      {snippet && (
+        <p className="line-clamp-2 text-sm leading-relaxed text-ink-subtle">
+          {snippet}
+        </p>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        {job.remote && <Badge variant="secondary">Remote</Badge>}
+        {job.jobType !== "OTHER" && (
+          <Badge variant="outline">{JOB_TYPE_LABELS[job.jobType]}</Badge>
+        )}
+        {job.location && (
+          <span className="inline-flex items-center gap-1 text-xs text-ink-tertiary">
+            <MapPin className="size-3" />
+            {job.location}
+          </span>
+        )}
+        {posted && (
+          <span className="ml-auto text-xs text-ink-tertiary">{posted}</span>
+        )}
+      </div>
+    </a>
+  );
+}
+
+function FilterSelect({
+  value,
+  onChange,
+  children,
+  label,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  children: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <select
+      aria-label={label}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="h-9 rounded-lg border border-border bg-card px-3 text-sm text-foreground shadow-xs transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+    >
+      {children}
+    </select>
+  );
+}
+
+function Jobs() {
+  const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [remoteOnly, setRemoteOnly] = useState(false);
+  const [type, setType] = useState("");
+  const [source, setSource] = useState("");
+  const [page, setPage] = useState(1);
+
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  // Debounce the search box so we don't hit the API on every keystroke.
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query.trim()), 300);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  // Reset to page 1 whenever a filter changes.
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedQuery, remoteOnly, type, source]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(false);
+
+    const params: Record<string, string | number | boolean> = {
+      page,
+      pageSize: PAGE_SIZE,
+    };
+    if (debouncedQuery) params.q = debouncedQuery;
+    if (remoteOnly) params.remote = true;
+    if (type) params.type = type;
+    if (source) params.source = source;
+
+    axios
+      .get(`${BACKEND_URL}/jobs`, { params, withCredentials: true })
+      .then((res) => {
+        if (cancelled) return;
+        const data = res.data?.data ?? {};
+        setJobs(data.jobs ?? []);
+        setTotal(data.total ?? 0);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setError(true);
+        setJobs([]);
+        setTotal(0);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedQuery, remoteOnly, type, source, page]);
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  return (
+    <div className="flex flex-col gap-8">
+      <SectionHeader
+        eyebrow="Opportunities"
+        title="Jobs"
+        description="Software-engineering roles aggregated from top sources. Click any role to apply on the original site."
+      />
+
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative min-w-56 flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-tertiary" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search role, company, or tag…"
+              className="pl-9"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setRemoteOnly((v) => !v)}
+            aria-pressed={remoteOnly}
+            className={cn(
+              "h-9 rounded-lg border px-3 text-sm font-medium transition-colors",
+              remoteOnly
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border bg-card text-ink-subtle hover:text-foreground"
+            )}
+          >
+            Remote only
+          </button>
+
+          <FilterSelect value={type} onChange={setType} label="Job type">
+            <option value="">All types</option>
+            <option value="FULL_TIME">Full-time</option>
+            <option value="PART_TIME">Part-time</option>
+            <option value="CONTRACT">Contract</option>
+            <option value="INTERNSHIP">Internship</option>
+          </FilterSelect>
+
+          <FilterSelect value={source} onChange={setSource} label="Source">
+            <option value="">All sources</option>
+            <option value="REMOTIVE">Remotive</option>
+            <option value="ARBEITNOW">Arbeitnow</option>
+            <option value="ADZUNA">Adzuna</option>
+          </FilterSelect>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-card px-6 py-20 text-sm text-ink-subtle">
+          <Loader2 className="size-4 animate-spin" />
+          Loading jobs…
+        </div>
+      ) : error ? (
+        <EmptyState
+          icon={Briefcase}
+          title="Couldn't load jobs"
+          description="Something went wrong fetching listings. Please try again in a moment."
+        />
+      ) : jobs.length === 0 ? (
+        <EmptyState
+          icon={Briefcase}
+          title="No matching jobs"
+          description="No roles match your filters right now. Try broadening your search or clearing filters."
+        />
+      ) : (
+        <>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {jobs.map((job) => (
+              <JobCard key={job.id} job={job} />
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-ink-tertiary">
+              {total} role{total === 1 ? "" : "s"} · page {page} of {totalPages}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function DashboardSections({
   section,
 }: {
@@ -307,6 +594,8 @@ export default function DashboardSections({
   switch (section) {
     case "overview":
       return <Overview />;
+    case "jobs":
+      return <Jobs />;
     case "interviews":
       return <Interviews />;
     case "resume":

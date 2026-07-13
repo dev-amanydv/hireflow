@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  Briefcase,
   FileText,
   LayoutGrid,
   LogOut,
@@ -19,6 +20,7 @@ import { cn } from "~/lib/utils";
 
 export type DashboardSection =
   | "overview"
+  | "jobs"
   | "interviews"
   | "resume"
   | "insights"
@@ -41,6 +43,7 @@ export const NAV_GROUPS: NavGroup[] = [
     heading: "Workspace",
     items: [
       { id: "overview", label: "Overview", icon: LayoutGrid },
+      { id: "jobs", label: "Jobs", icon: Briefcase },
       { id: "interviews", label: "Past interviews", icon: MessagesSquare },
       { id: "resume", label: "Analyze resume", icon: FileText },
       { id: "insights", label: "Insights", icon: BarChart3 },

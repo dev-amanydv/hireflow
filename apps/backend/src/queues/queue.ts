@@ -46,6 +46,28 @@ export const resumeParseQueue = new Queue('resume-parse', {
     }
 });
 
+export const jobsIngestQueue = new Queue('jobs-ingest', {
+    connection: connection,
+    defaultJobOptions: {
+        attempts: 2,
+        backoff: { type: "exponential", delay: 5_000 },
+        removeOnComplete: { age: 3_600 },
+        removeOnFail: { age: 24 * 3_600 }
+    }
+});
+
+const JOBS_INGEST_EVERY_MS = 30 * 60 * 1_000;
+
+
+export async function scheduleJobsIngest() {
+    await jobsIngestQueue.upsertJobScheduler(
+        'jobs-ingest-cron',
+        { every: JOBS_INGEST_EVERY_MS },
+        { name: 'ingest' }
+    );
+    await jobsIngestQueue.add('ingest', {}, { jobId: 'jobs-ingest-initial' });
+}
+
 export const flowProducer = new FlowProducer({ connection });
 
 const id = (job: string, m: JobMeta, extra?: string) => {

@@ -9,6 +9,7 @@ import { fetchGithub } from "../utils/FetchGithub";
 import { fetchSite } from "../utils/FetchSite";
 import { assembleProfile } from "../utils/AssembleProfile";
 import { Prisma } from "../generated/prisma/client";
+import { ingestJobs } from "../services/jobs/ingest";
 
 export const connection = new IORedis(process.env.REDIS_URL!, { maxRetriesPerRequest: null });
 
@@ -75,6 +76,17 @@ export function startResumeParserWorker() {
         connection: connection
     }
     )
+}
+
+export function startJobsIngestWorker() {
+    return new Worker('jobs-ingest', async () => {
+        console.log("============JOBS_INGEST_STARTED============");
+        return ingestJobs();
+    }, {
+        concurrency: 1,
+        connection: connection,
+        limiter: { max: 10, duration: 1_000 }
+    })
 }
 
 export function startSourceFetchWorker() {
