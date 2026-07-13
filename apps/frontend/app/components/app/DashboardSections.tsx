@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import EmptyState from "./EmptyState";
 import ResumeAnalyzer from "./resume-analyzer/ResumeAnalyzer";
-import type { DashboardSection } from "./DashboardSidebar";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { Input } from "~/components/ui/input";
@@ -116,7 +115,7 @@ function StatStrip({
   );
 }
 
-function Overview() {
+export function Overview() {
   return (
     <div className="flex flex-col gap-8">
       <SectionHeader
@@ -144,7 +143,7 @@ function Overview() {
   );
 }
 
-function Interviews() {
+export function Interviews() {
   const startInterview = useStartInterview();
   return (
     <div className="flex flex-col gap-8">
@@ -174,11 +173,11 @@ function Interviews() {
   );
 }
 
-function Resume() {
+export function Resume() {
   return <ResumeAnalyzer />;
 }
 
-function Insights() {
+export function Insights() {
   return (
     <div className="flex flex-col gap-8">
       <SectionHeader
@@ -195,7 +194,7 @@ function Insights() {
   );
 }
 
-function Profile() {
+export function Profile() {
   const user = useAuth((s) => s.user);
   const openAuthModal = useAuth((s) => s.openAuthModal);
 
@@ -250,7 +249,7 @@ function Profile() {
   );
 }
 
-function SettingsSection() {
+export function SettingsSection() {
   return (
     <div className="flex flex-col gap-8">
       <SectionHeader
@@ -391,7 +390,7 @@ function FilterSelect({
   );
 }
 
-function Jobs() {
+export function Jobs() {
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [remoteOnly, setRemoteOnly] = useState(false);
@@ -404,13 +403,11 @@ function Jobs() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  // Debounce the search box so we don't hit the API on every keystroke.
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQuery(query.trim()), 300);
     return () => clearTimeout(t);
   }, [query]);
 
-  // Reset to page 1 whenever a filter changes.
   useEffect(() => {
     setPage(1);
   }, [debouncedQuery, remoteOnly, type, source]);
@@ -557,27 +554,4 @@ function Jobs() {
       )}
     </div>
   );
-}
-
-export default function DashboardSections({
-  section,
-}: {
-  section: DashboardSection;
-}) {
-  switch (section) {
-    case "overview":
-      return <Overview />;
-    case "jobs":
-      return <Jobs />;
-    case "interviews":
-      return <Interviews />;
-    case "resume":
-      return <Resume />;
-    case "insights":
-      return <Insights />;
-    case "profile":
-      return <Profile />;
-    case "settings":
-      return <SettingsSection />;
-  }
 }

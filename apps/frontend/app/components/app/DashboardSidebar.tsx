@@ -10,7 +10,7 @@ import {
   User,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useNavigate } from "react-router";
+import { NavLink, useNavigate } from "react-router";
 import { Brand } from "./Brand";
 import { ThemeToggle } from "./ThemeToggle";
 import { Button } from "~/components/ui/button";
@@ -18,17 +18,8 @@ import { useAuth } from "~/store/store";
 import { useStartInterview } from "~/lib/useStartInterview";
 import { cn } from "~/lib/utils";
 
-export type DashboardSection =
-  | "overview"
-  | "jobs"
-  | "interviews"
-  | "resume"
-  | "insights"
-  | "profile"
-  | "settings";
-
 type NavItem = {
-  id: DashboardSection;
+  to: string;
   label: string;
   icon: LucideIcon;
 };
@@ -42,62 +33,69 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     heading: "Workspace",
     items: [
-      { id: "overview", label: "Overview", icon: LayoutGrid },
-      { id: "jobs", label: "Jobs", icon: Briefcase },
-      { id: "interviews", label: "Past interviews", icon: MessagesSquare },
-      { id: "resume", label: "Analyze resume", icon: FileText },
-      { id: "insights", label: "Insights", icon: BarChart3 },
+      { to: "/dashboard/overview", label: "Overview", icon: LayoutGrid },
+      { to: "/dashboard/jobs", label: "Jobs", icon: Briefcase },
+      {
+        to: "/dashboard/interviews",
+        label: "Past interviews",
+        icon: MessagesSquare,
+      },
+      { to: "/dashboard/resume", label: "Analyze resume", icon: FileText },
+      { to: "/dashboard/insights", label: "Insights", icon: BarChart3 },
     ],
   },
   {
     heading: "Account",
     items: [
-      { id: "profile", label: "Profile", icon: User },
-      { id: "settings", label: "Settings", icon: Settings },
+      { to: "/dashboard/profile", label: "Profile", icon: User },
+      { to: "/dashboard/settings", label: "Settings", icon: Settings },
     ],
   },
 ];
 
 function NavButton({
   item,
-  active,
-  onSelect,
+  onNavigate,
 }: {
   item: NavItem;
-  active: boolean;
-  onSelect: (id: DashboardSection) => void;
+  onNavigate?: () => void;
 }) {
   const Icon = item.icon;
   return (
-    <button
-      type="button"
-      onClick={() => onSelect(item.id)}
-      aria-current={active ? "page" : undefined}
-      className={cn(
-        "group flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors",
-        active
-          ? "bg-primary/10 font-medium text-primary"
-          : "text-ink-subtle hover:bg-muted hover:text-foreground"
-      )}
+    <NavLink
+      to={item.to}
+      onClick={onNavigate}
+      className={({ isActive }) =>
+        cn(
+          "group flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors",
+          isActive
+            ? "bg-primary/10 font-medium text-primary"
+            : "text-ink-subtle hover:bg-muted hover:text-foreground"
+        )
+      }
     >
-      <Icon
-        className={cn(
-          "size-4 shrink-0 transition-colors",
-          active ? "text-primary" : "text-ink-tertiary group-hover:text-foreground"
-        )}
-      />
-      {item.label}
-    </button>
+      {({ isActive }) => (
+        <>
+          <Icon
+            className={cn(
+              "size-4 shrink-0 transition-colors",
+              isActive
+                ? "text-primary"
+                : "text-ink-tertiary group-hover:text-foreground"
+            )}
+          />
+          {item.label}
+        </>
+      )}
+    </NavLink>
   );
 }
 
 export default function DashboardSidebar({
-  active,
-  onSelect,
+  onNavigate,
   className,
 }: {
-  active: DashboardSection;
-  onSelect: (id: DashboardSection) => void;
+  onNavigate?: () => void;
   className?: string;
 }) {
   const navigate = useNavigate();
@@ -133,10 +131,9 @@ export default function DashboardSidebar({
             <div className="flex flex-col gap-0.5">
               {group.items.map((item) => (
                 <NavButton
-                  key={item.id}
+                  key={item.to}
                   item={item}
-                  active={active === item.id}
-                  onSelect={onSelect}
+                  onNavigate={onNavigate}
                 />
               ))}
             </div>

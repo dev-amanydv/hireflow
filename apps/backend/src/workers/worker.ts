@@ -156,7 +156,6 @@ worker.on('failed', async (job, err) => {
     console.log(`${job?.id} has failed with ${err.message}!`);
 })
 
-// -------- Resume Analyzer workers (standalone pipeline) --------
 
 export function startResumeAnalysisUploadWorker() {
     const w = new Worker('resume-analysis-upload', async job => {
