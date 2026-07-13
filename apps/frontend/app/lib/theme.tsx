@@ -7,23 +7,12 @@ import {
 } from "react";
 import { cn } from "~/lib/utils";
 
-/**
- * Scoped light/dark theme for the app surfaces (dashboard + pre-interview).
- *
- * We intentionally do NOT theme the whole document: the marketing landing page,
- * the result page, and the immersive interview room stay dark-locked. So the
- * theme is applied on a wrapper element via the `.dark` class rather than on
- * `<html>`. The initial value is read from a cookie in the route loader, which
- * keeps the server render and first client paint in sync (no theme flash).
- */
-
 export type Theme = "light" | "dark";
 
-export const THEME_COOKIE = "sable-theme";
+export const THEME_COOKIE = "QuickHire-theme";
 
-/** Parse the theme from a `Cookie` request header. Defaults to light. */
 export function getThemeFromCookie(cookieHeader: string | null): Theme {
-  const match = cookieHeader?.match(/(?:^|;\s*)sable-theme=(light|dark)/);
+  const match = cookieHeader?.match(/(?:^|;\s*)QuickHire-theme=(light|dark)/);
   return match?.[1] === "dark" ? "dark" : "light";
 }
 
@@ -41,11 +30,6 @@ export function useTheme() {
   return ctx;
 }
 
-/**
- * Like `useTheme`, but returns null instead of throwing when there is no
- * provider. Lets shared chrome (e.g. TopNav, used by both themed and
- * dark-locked routes) render a theme control only where a theme is active.
- */
 export function useThemeOptional() {
   return useContext(ThemeContext);
 }
@@ -68,19 +52,20 @@ export function ThemeProvider({
       try {
         localStorage.setItem(THEME_COOKIE, next);
       } catch {
-        // ignore storage failures (private mode, etc.)
       }
     }
   }, []);
 
   const toggle = useCallback(
     () => setTheme(theme === "dark" ? "light" : "dark"),
-    [theme, setTheme]
+    [theme, setTheme],
   );
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, toggle }}>
-      <div className={cn(theme === "dark" && "dark", className)}>{children}</div>
+      <div className={cn(theme === "dark" && "dark", className)}>
+        {children}
+      </div>
     </ThemeContext.Provider>
   );
 }

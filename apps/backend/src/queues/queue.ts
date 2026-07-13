@@ -121,3 +121,76 @@ export function buildSourceFetchFlow (input: {
         children
     })
 }
+
+export interface AnalysisMeta {
+    analysisId: string,
+    s3key: string
+}
+
+const analysisDefaults = {
+    attempts: 2,
+    backoff: { type: "exponential" as const, delay: 2_000 },
+    removeOnComplete: { age: 3_600 },
+    removeOnFail: { age: 24 * 3_600 }
+};
+
+export const resumeAnalysisUploadQueue = new Queue('resume-analysis-upload', {
+    connection, defaultJobOptions: { ...analysisDefaults, attempts: 3 }
+});
+
+export const resumeAnalysisParseQueue = new Queue('resume-analysis-parse', {
+    connection, defaultJobOptions: analysisDefaults
+});
+
+export const resumeAnalysisScoreQueue = new Queue('resume-analysis-score', {
+    connection, defaultJobOptions: analysisDefaults
+});
+
+const aid = (job: string, m: AnalysisMeta, extra?: string) =>
+    `${job}-${m.analysisId}${extra ? '-' + extra : ''}`;
+
+export async function enqueueAnalysisUpload(meta: AnalysisMeta, filePath: string, size: number) {
+    return resumeAnalysisUploadQueue.add('upload', { meta, filePath, size }, { jobId: aid('upload', meta) });
+}
+
+export async function enqueueAnalysisParse(meta: AnalysisMeta, filePath: string) {
+    return resumeAnalysisParseQueue.add('parse-pdf', { meta, filePath }, { jobId: aid('parse-pdf', meta) });
+}
+
+export function buildAnalysisSourceFetchFlow(input: {
+    meta: AnalysisMeta,
+    text: string,
+    githubUrls: string[],
+    siteUrls: string[]
+}) {
+    const { meta, githubUrls, siteUrls, text } = input;
+    const children: FlowJob[] = [];
+
+    for (const url of githubUrls) {
+        children.push({
+            name: 'fetch-github',
+            queueName: 'source-fetch',
+            data: { url },
+            opts: { ...fetchChildOpts, jobId: aid('fetch-github', meta, encodeURIComponent(url)) }
+        });
+    }
+    for (const url of siteUrls) {
+        children.push({
+            name: 'fetch-site',
+            queueName: 'source-fetch',
+            data: { url },
+            opts: { ...fetchChildOpts, jobId: aid('fetch-site', meta, encodeURIComponent(url)) }
+        });
+    }
+
+    return flowProducer.add({
+        name: 'assemble-profile',
+        queueName: 'resume-analysis-parse',
+        data: { meta, text },
+        children
+    });
+}
+
+export async function enqueueAnalysisScore(meta: AnalysisMeta) {
+    return resumeAnalysisScoreQueue.add('score', { meta }, { jobId: aid('score', meta) });
+}

@@ -21,16 +21,14 @@ export function loader({ request }: Route.LoaderArgs) {
   return { user: getUser(request) };
 }
 
-// Inter and Geist are self-hosted via @fontsource-variable (see app.css); no
-// external font stylesheet is needed.
 export const links: Route.LinksFunction = () => [];
 
 export const meta: Route.MetaFunction = () => [
-  { title: "Sable — The AI interviewer, built for the AI era" },
+  { title: "QuickHire — The AI interviewer, built for the AI era" },
   {
     name: "description",
     content:
-      "Practice interviews that feel real. Sable reads your resume, GitHub, and code to run adaptive engineering interviews and score them instantly.",
+      "Practice interviews that feel real. QuickHire reads your resume, GitHub, and code to run adaptive engineering interviews and score them instantly.",
   },
 ];
 

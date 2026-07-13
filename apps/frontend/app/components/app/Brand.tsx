@@ -36,7 +36,7 @@ export function Brand({
       )}
     >
       <BrandMark className="size-[22px] text-foreground" />
-      <span className="text-[17px] font-semibold tracking-tight">Sable</span>
+      <span className="text-[17px] font-semibold tracking-tight">QuickHire</span>
     </Link>
   );
 }

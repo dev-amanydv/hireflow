@@ -17,7 +17,7 @@ import {
 } from "~/components/ui/sheet";
 
 export function meta({}: Route.MetaArgs) {
-  return [{ title: "Dashboard — Sable" }];
+  return [{ title: "Dashboard — QuickHire" }];
 }
 
 export function loader({ request }: Route.LoaderArgs) {
@@ -39,7 +39,6 @@ export default function Dashboard() {
       initialTheme={theme}
       className="flex min-h-screen bg-background text-foreground"
     >
-      {/* Desktop sidebar */}
       <DashboardSidebar
         active={section}
         onSelect={select}
@@ -47,7 +46,6 @@ export default function Dashboard() {
       />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Mobile top bar */}
         <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur-md lg:hidden">
           <Brand to="/" />
           <div className="flex items-center gap-1">

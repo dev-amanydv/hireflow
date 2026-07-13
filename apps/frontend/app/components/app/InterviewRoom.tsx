@@ -9,7 +9,12 @@ import {
   useSessionMessages,
 } from "@livekit/components-react";
 import "@livekit/components-styles";
-import { CircleDot, LayoutGrid, Loader2, MessageSquareText } from "lucide-react";
+import {
+  CircleDot,
+  LayoutGrid,
+  Loader2,
+  MessageSquareText,
+} from "lucide-react";
 import { motion } from "motion/react";
 import { BACKEND_URL } from "~/lib/config";
 import { cn } from "~/lib/utils";
@@ -34,7 +39,7 @@ type TokenResponse = { server_url: string; participant_token: string };
 
 const BRAND_COLOR = "#5e6ad2";
 
-type Visualizer = "grid"
+type Visualizer = "grid";
 
 function RoomShell({ children }: { children: React.ReactNode }) {
   return (
@@ -44,7 +49,11 @@ function RoomShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function InterviewRoom({ interviewId }: { interviewId: string }) {
+export default function InterviewRoom({
+  interviewId,
+}: {
+  interviewId: string;
+}) {
   const [creds, setCreds] = useState<TokenResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -208,7 +217,7 @@ function InterviewSession({ creds }: { creds: TokenResponse }) {
 
           <div className="flex items-center gap-3">
             <span className="hidden text-sm text-ink-subtle sm:inline">
-              Sable · Interviewer
+              QuickHire · Interviewer
             </span>
             <ToggleGroup
               type="single"
@@ -243,18 +252,17 @@ function InterviewSession({ creds }: { creds: TokenResponse }) {
                     "radial-gradient(circle, rgba(94,106,210,0.45) 0%, transparent 70%)",
                 }}
               />
-              
-                <AgentAudioVisualizerGrid
-                  size="md"
-                  color={BRAND_COLOR}
-                  radius={4}
-                  interval={120}
-                  rowCount={12}
-                  columnCount={12}
-                  state={state}
-                  audioTrack={agentAudioTrack}
-                />
-          
+
+              <AgentAudioVisualizerGrid
+                size="md"
+                color={BRAND_COLOR}
+                radius={4}
+                interval={120}
+                rowCount={12}
+                columnCount={12}
+                state={state}
+                audioTrack={agentAudioTrack}
+              />
             </motion.div>
 
             <motion.div
@@ -343,10 +351,7 @@ function InterviewSession({ creds }: { creds: TokenResponse }) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Keep going</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              onClick={() => void end()}
-            >
+            <AlertDialogAction variant="destructive" onClick={() => void end()}>
               End call
             </AlertDialogAction>
           </AlertDialogFooter>

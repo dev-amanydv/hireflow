@@ -20,7 +20,10 @@ export default function Hero() {
       />
       <div className="relative mx-auto max-w-6xl px-5 pt-20 sm:px-8 sm:pt-28">
         <div className="flex flex-col gap-6">
-          <h1 className="ln-rise ln-display-xl max-w-3xl text-foreground" style={{ animationDelay: "40ms" }}>
+          <h1
+            className="ln-rise ln-display-xl max-w-3xl text-foreground"
+            style={{ animationDelay: "40ms" }}
+          >
             The AI interviewer,
             <br className="hidden sm:block" /> built for the AI era
           </h1>
@@ -30,8 +33,9 @@ export default function Hero() {
             style={{ animationDelay: "140ms" }}
           >
             <p className="max-w-xl text-lg leading-relaxed text-ink-subtle">
-              Practice interviews that feel real. Sable reads your resume, GitHub,
-              and code — then runs an adaptive interview and scores it instantly.
+              Practice interviews that feel real. QuickHire reads your resume,
+              GitHub, and code — then runs an adaptive interview and scores it
+              instantly.
             </p>
             <a
               href="#features"
@@ -42,11 +46,14 @@ export default function Hero() {
             </a>
           </div>
 
-          <div className="ln-rise flex flex-wrap items-center gap-3" style={{ animationDelay: "220ms" }}>
+          <div
+            className="ln-rise flex flex-wrap items-center gap-3"
+            style={{ animationDelay: "220ms" }}
+          >
             <button
               type="button"
               onClick={() => navigate("/dashboard")}
-              className="inline-flex items-center gap-2 rounded-md bg-white px-4 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-white/90"
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-brand-hover"
             >
               Start practicing free
               <ArrowRight className="size-4" />
@@ -54,7 +61,12 @@ export default function Hero() {
             {!user && (
               <button
                 type="button"
-                onClick={() => openAuthModal({ mode: "signin", onSuccess: () => navigate("/dashboard") })}
+                onClick={() =>
+                  openAuthModal({
+                    mode: "signin",
+                    onSuccess: () => navigate("/dashboard"),
+                  })
+                }
                 className="rounded-md border border-border bg-secondary px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
               >
                 Log in

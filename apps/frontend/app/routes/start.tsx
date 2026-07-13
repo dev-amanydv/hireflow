@@ -8,7 +8,7 @@ import { ThemeProvider, getThemeFromCookie } from "~/lib/theme";
 import { useAuth } from "~/store/store";
 
 export function meta({}: Route.MetaArgs) {
-  return [{ title: "New interview — Sable" }];
+  return [{ title: "New interview — QuickHire" }];
 }
 
 export function loader({ request }: Route.LoaderArgs) {
@@ -18,14 +18,8 @@ export function loader({ request }: Route.LoaderArgs) {
 export default function Start() {
   const { theme } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
-  // Use the authoritative user resolved server-side by the root loader. Reading
-  // it from the store here would race the client hydration effect in root.tsx
-  // (child effects run first), popping the auth modal on refresh even when the
-  // visitor is actually logged in.
   const user = useRouteLoaderData<typeof rootLoader>("root")?.user ?? null;
 
-  // Guard direct/link entry to /start: an unauthenticated visitor gets the
-  // sign-up modal and is sent back to the dashboard if they dismiss it.
   useEffect(() => {
     if (user) return;
 

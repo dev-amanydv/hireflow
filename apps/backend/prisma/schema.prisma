@@ -38,6 +38,15 @@ enum MessageRole {
   Assistant
 }
 
+enum AnalysisStatus {
+  UPLOADING
+  PARSING
+  PARSED
+  ANALYZING
+  COMPLETE
+  FAILED
+}
+
 enum Experience {
   beginner
   junior
@@ -68,6 +77,7 @@ model User {
   password  String?
   Resume    String?
   interview Interview[]
+  resumeAnalyses ResumeAnalysis[]
   refreshToken String?
   createdAt DateTime        @default(now())
   updatedAt DateTime        @default(now())
@@ -125,6 +135,31 @@ model Result {
   updatedAt DateTime        @default(now())
 }
 
+model ResumeAnalysis {
+  id               String         @id @default(uuid())
+  name             String
+  size             Float
+  ext              String
+  status           AnalysisStatus @default(UPLOADING)
+  url              String?
+  parsed           Json?
+  summary          Json?
+  targetRole       String?
+  targetExperience Experience?
+  targetJobId      String?
+  targetJob        Job?           @relation(fields: [targetJobId], references: [id])
+  targetJdText     String?
+  overallScore     Float?
+  report           Json?
+  error            String?
+  userId           String
+  user             User           @relation(fields: [userId], references: [id])
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @default(now())
+
+  @@index([userId])
+}
+
 model Job {
   id             String    @id @default(uuid())
   source         JobSource
@@ -146,6 +181,7 @@ model Job {
   fetchedAt      DateTime  @default(now())
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+  resumeAnalyses ResumeAnalysis[]
 
   @@unique([source, externalId])
   @@index([postedAt])

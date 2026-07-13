@@ -3,13 +3,18 @@ import IORedis from 'ioredis';
 import { prisma } from "../../prisma/db";
 import { uploadToBucket } from "../utils/upload";
 import fs from 'fs';
-import { buildSourceFetchFlow, enqueueResumeParse, type JobMeta } from "../queues/queue";
+import {
+    buildSourceFetchFlow, enqueueResumeParse, type JobMeta,
+    type AnalysisMeta, enqueueAnalysisParse, buildAnalysisSourceFetchFlow
+} from "../queues/queue";
 import { parseResume } from "../utils/parse";
 import { fetchGithub } from "../utils/FetchGithub";
 import { fetchSite } from "../utils/FetchSite";
-import { assembleProfile } from "../utils/AssembleProfile";
+import { assembleProfile, type AssembledSources } from "../utils/AssembleProfile";
 import { Prisma } from "../generated/prisma/client";
 import { ingestJobs } from "../services/jobs/ingest";
+import { getResumeSummary } from "../services/openai";
+import { analyzeResume, type ParsedSummary } from "../services/ats";
 
 export const connection = new IORedis(process.env.REDIS_URL!, { maxRetriesPerRequest: null });
 
@@ -150,3 +155,140 @@ worker.on('failed', async (job, err) => {
     }
     console.log(`${job?.id} has failed with ${err.message}!`);
 })
+
+// -------- Resume Analyzer workers (standalone pipeline) --------
+
+export function startResumeAnalysisUploadWorker() {
+    const w = new Worker('resume-analysis-upload', async job => {
+        const { meta, filePath, size } = job.data as { meta: AnalysisMeta, filePath: string, size: number };
+        const body = await fs.promises.readFile(filePath);
+        const upload = await uploadToBucket(meta.s3key, body, size);
+        const isLast = job.attemptsMade >= (job.opts.attempts ?? 1);
+
+        if (!upload?.success) {
+            if (isLast) {
+                await prisma.resumeAnalysis.update({
+                    where: { id: meta.analysisId },
+                    data: { status: 'FAILED', error: String(upload?.message ?? 'upload failed') }
+                });
+            }
+            throw new Error(`Analysis upload failed for ${meta.s3key}`);
+        }
+
+        await prisma.resumeAnalysis.update({ where: { id: meta.analysisId }, data: { url: meta.s3key } });
+        return { meta, filePath };
+    }, { connection });
+
+    w.on('completed', async (_job, ret: { meta: AnalysisMeta, filePath: string }) => {
+        try {
+            await enqueueAnalysisParse(ret.meta, ret.filePath);
+        } catch (error) {
+            console.log(error);
+        }
+    });
+
+    w.on('failed', async (job, err) => {
+        if (job && job.attemptsMade >= (job.opts.attempts ?? 1)) {
+            await fs.promises.unlink(job.data.filePath).catch(() => { });
+        }
+        console.log(`analysis-upload ${job?.id} failed: ${err.message}`);
+    });
+
+    return w;
+}
+
+export function startResumeAnalysisParserWorker() {
+    return new Worker('resume-analysis-parse', async job => {
+        const { meta } = job.data as { meta: AnalysisMeta };
+
+        if (job.name === 'parse-pdf') {
+            const { filePath } = job.data as { filePath: string };
+            await prisma.resumeAnalysis.update({ where: { id: meta.analysisId }, data: { status: 'PARSING' } });
+
+            const result = await parseResume(filePath);
+            await prisma.resumeAnalysis.update({
+                where: { id: meta.analysisId },
+                data: { parsed: result as unknown as Prisma.InputJsonValue }
+            });
+
+            await buildAnalysisSourceFetchFlow({
+                meta,
+                text: result.text,
+                githubUrls: result.classifiedLinks.githubUrl,
+                siteUrls: result.classifiedLinks.websites
+            });
+
+            await fs.promises.unlink(filePath).catch(() => { });
+            return;
+        }
+
+        if (job.name === 'assemble-profile') {
+            const { text } = job.data as { text: string };
+            const childResponse = await job.getChildrenValues();
+            const childResults = Object.values(childResponse);
+
+            const profile = assembleProfile(
+                text,
+                { resumeId: meta.analysisId, s3key: meta.s3key, interviewId: '' },
+                childResults
+            );
+            const summary = await getResumeSummary(profile);
+
+            await prisma.resumeAnalysis.update({
+                where: { id: meta.analysisId },
+                data: {
+                    parsed: profile as unknown as Prisma.InputJsonValue,
+                    status: 'PARSED',
+                    ...(summary ? { summary: summary as Prisma.InputJsonValue } : {})
+                }
+            });
+            return;
+        }
+    }, { connection });
+}
+
+export function startResumeAnalysisScoreWorker() {
+    const w = new Worker('resume-analysis-score', async job => {
+        const { meta } = job.data as { meta: AnalysisMeta };
+        const row = await prisma.resumeAnalysis.findUnique({ where: { id: meta.analysisId } });
+        if (!row) return;
+
+        await prisma.resumeAnalysis.update({ where: { id: meta.analysisId }, data: { status: 'ANALYZING' } });
+
+        const parsed = (row.parsed ?? {}) as unknown as Partial<AssembledSources> & { text?: string };
+        const summary = (row.summary ?? null) as unknown as ParsedSummary | null;
+
+        const report = await analyzeResume({
+            rawText: parsed.rawResumeText ?? parsed.text ?? '',
+            usedOcr: Boolean(parsed.usedOcr),
+            summary,
+            target: {
+                role: row.targetRole ?? null,
+                experience: row.targetExperience ?? null,
+                jdText: row.targetJdText ?? null
+            }
+        });
+
+        await prisma.resumeAnalysis.update({
+            where: { id: meta.analysisId },
+            data: {
+                overallScore: report.overallScore,
+                report: report as unknown as Prisma.InputJsonValue,
+                status: 'COMPLETE'
+            }
+        });
+    }, { connection });
+
+    w.on('failed', async (job, err) => {
+        const meta = job?.data?.meta as AnalysisMeta | undefined;
+        if (meta && job && job.attemptsMade >= (job.opts.attempts ?? 1)) {
+            await prisma.resumeAnalysis.update({
+                where: { id: meta.analysisId },
+                data: { status: 'FAILED', error: err.message }
+            }).catch(() => { });
+        }
+        console.log(`analysis-score ${job?.id} failed: ${err.message}`);
+    });
+
+    return w;
+}

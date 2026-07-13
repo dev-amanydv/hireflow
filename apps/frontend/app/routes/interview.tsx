@@ -4,7 +4,7 @@ import type { Route } from "./+types/interview";
 import { Suspense, lazy, useEffect, useState } from "react";
 
 export function meta({}: Route.MetaArgs) {
-  return [{ title: "Interview — Sable" }];
+  return [{ title: "Interview — QuickHire" }];
 }
 
 const InterviewRoom = lazy(() => import("~/components/app/InterviewRoom"));
@@ -26,7 +26,6 @@ export default function Interview() {
   if (!mounted || !id) return <Preparing />;
 
   return (
-    // Interview room stays dark-locked and immersive, independent of the app theme.
     <div className="dark h-dvh w-full overflow-hidden bg-background text-foreground">
       <Suspense fallback={<Preparing />}>
         <InterviewRoom interviewId={id} />

@@ -41,7 +41,9 @@ function SectionHeader({
       <span className="ln-eyebrow">{eyebrow}</span>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="ln-display-md text-foreground text-balance">{title}</h1>
+          <h1 className="ln-display-md text-foreground text-balance">
+            {title}
+          </h1>
           {description && (
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink-subtle">
               {description}
@@ -53,7 +55,6 @@ function SectionHeader({
     </div>
   );
 }
-
 
 function StartInterviewHero() {
   const startInterview = useStartInterview();
@@ -80,8 +81,8 @@ function StartInterviewHero() {
             Ready when you are
           </h2>
           <p className="mt-1.5 text-sm leading-relaxed text-primary-foreground/80">
-            Pick a role, add your resume, and Sable builds an adaptive interview
-            from your history — then scores it the moment you finish.
+            Pick a role, add your resume, and QuickHire builds an adaptive
+            interview from your history — then scores it the moment you finish.
           </p>
         </div>
         <button
@@ -182,7 +183,7 @@ function Resume() {
       <SectionHeader
         eyebrow="Preparation"
         title="Analyze resume"
-        description="Upload your resume and Sable extracts your experience, projects, and GitHub work to tailor every question."
+        description="Upload your resume and QuickHire extracts your experience, projects, and GitHub work to tailor every question."
         action={
           <Button onClick={startInterview}>
             <Upload className="size-4" />
@@ -216,7 +217,7 @@ function Insights() {
       <EmptyState
         icon={BarChart3}
         title="Not enough data yet"
-        description="Complete a few interviews and Sable charts your score trend, strengths by topic, and areas to focus on next."
+        description="Complete a few interviews and QuickHire charts your score trend, strengths by topic, and areas to focus on next."
       />
     </div>
   );
@@ -509,7 +510,7 @@ function Jobs() {
               "h-9 rounded-lg border px-3 text-sm font-medium transition-colors",
               remoteOnly
                 ? "border-primary bg-primary/10 text-primary"
-                : "border-border bg-card text-ink-subtle hover:text-foreground"
+                : "border-border bg-card text-ink-subtle hover:text-foreground",
             )}
           >
             Remote only

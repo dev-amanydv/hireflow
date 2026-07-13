@@ -4,12 +4,11 @@ import type { Route } from "./+types/result";
 import TopNav from "~/components/app/TopNav";
 
 export function meta({}: Route.MetaArgs) {
-  return [{ title: "Result — Sable" }];
+  return [{ title: "Result — QuickHire" }];
 }
 
 export default function Result() {
   return (
-    // Result stays dark-locked, independent of the app theme.
     <div className="dark min-h-screen bg-background text-foreground">
       <TopNav />
       <main className="mx-auto flex max-w-3xl flex-col items-center px-5 py-24 text-center sm:px-8">
@@ -17,10 +16,12 @@ export default function Result() {
           <BarChart3 className="size-6 text-ink-subtle" />
         </div>
         <span className="ln-eyebrow mt-6">Report</span>
-        <h1 className="ln-display-md mt-3 text-foreground">Your scorecard is on its way</h1>
+        <h1 className="ln-display-md mt-3 text-foreground">
+          Your scorecard is on its way
+        </h1>
         <p className="mt-3 max-w-md text-sm leading-relaxed text-ink-subtle">
-          Once you finish an interview, your objective scorecard and breakdown will
-          appear here.
+          Once you finish an interview, your objective scorecard and breakdown
+          will appear here.
         </p>
         <Link
           to="/dashboard"

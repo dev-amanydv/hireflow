@@ -164,13 +164,6 @@ body {
   --radius-4xl: calc(var(--radius) * 5);
 }
 
-/* ===========================================================================
-   Sable theme tokens. `:root` is the LIGHT theme (the app default); `.dark`
-   overrides with the dark theme. Neutrals carry a faint indigo tint (hue ~275)
-   so the whole surface reads as one deliberate family, and the indigo brand
-   (~oklch(0.55 0.15 272) = #5e6ad2) is reserved for primary/selection/focus.
-   Shared, theme-independent values (radius) live in `:root` only.
-   =========================================================================== */
 :root {
   /* Light theme */
   --background: oklch(0.985 0.004 275);

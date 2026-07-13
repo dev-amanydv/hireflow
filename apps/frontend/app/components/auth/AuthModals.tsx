@@ -17,7 +17,10 @@ const credsSchema = z.object({
 
 type Mode = "signin" | "signup";
 
-const COPY: Record<Mode, { title: string; sub: string; cta: string; alt: string; altLabel: string }> = {
+const COPY: Record<
+  Mode,
+  { title: string; sub: string; cta: string; alt: string; altLabel: string }
+> = {
   signup: {
     title: "Create your account",
     sub: "Start your first AI interview in minutes.",
@@ -29,7 +32,7 @@ const COPY: Record<Mode, { title: string; sub: string; cta: string; alt: string;
     title: "Welcome back",
     sub: "Log in to continue where you left off.",
     cta: "Log in",
-    alt: "New to Sable?",
+    alt: "New to QuickHire?",
     altLabel: "Create account",
   },
 };
@@ -41,7 +44,9 @@ export default function AuthModals() {
   const addUser = useAuth((s) => s.addUser);
 
   const [form, setForm] = useState({ email: "", password: "" });
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>(
+    {},
+  );
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -79,7 +84,7 @@ export default function AuthModals() {
       const res = await axios.post(
         `${BACKEND_URL}/auth/${mode}`,
         { email: form.email, password: form.password },
-        { withCredentials: true }
+        { withCredentials: true },
       );
       if (!res.data?.success) {
         toast.error(res.data?.message ?? "Something went wrong");
@@ -126,7 +131,9 @@ export default function AuthModals() {
             <BrandMark className="size-5 text-foreground" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold tracking-tight">{copy.title}</h2>
+            <h2 className="text-xl font-semibold tracking-tight">
+              {copy.title}
+            </h2>
             <p className="mt-1 text-sm text-ink-subtle">{copy.sub}</p>
           </div>
         </div>
@@ -145,7 +152,9 @@ export default function AuthModals() {
                 type="email"
                 autoFocus
                 value={form.email}
-                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, email: e.target.value }))
+                }
                 placeholder="you@company.com"
                 className="h-10 w-full rounded-md border border-border bg-secondary pl-9 pr-3 text-sm text-foreground outline-none transition-colors placeholder:text-ink-tertiary focus:border-ring/60 focus:ring-2 focus:ring-ring/40"
               />
@@ -158,7 +167,9 @@ export default function AuthModals() {
               <input
                 type="password"
                 value={form.password}
-                onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, password: e.target.value }))
+                }
                 placeholder="••••••••"
                 className="h-10 w-full rounded-md border border-border bg-secondary pl-9 pr-3 text-sm text-foreground outline-none transition-colors placeholder:text-ink-tertiary focus:border-ring/60 focus:ring-2 focus:ring-ring/40"
               />
@@ -200,7 +211,9 @@ function Field({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className={cn("text-xs font-semibold text-ink-subtle")}>{label}</label>
+      <label className={cn("text-xs font-semibold text-ink-subtle")}>
+        {label}
+      </label>
       {children}
       {error && <span className="text-xs text-destructive">{error}</span>}
     </div>

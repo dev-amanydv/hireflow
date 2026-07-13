@@ -4,11 +4,15 @@ import cookieParser from 'cookie-parser';
 import authRoutes from './routes/auth.route';
 import interviewRoutes from './routes/interview.routes';
 import jobsRoutes from './routes/jobs.route';
+import resumeRoutes from './routes/resume.routes';
 import { errorHandler } from './middlewares/error.middleware';
 import { NotFound } from './utils/NotFound';
 import './workers/worker';
 import 'dotenv/config';
-import { startResumeParserWorker, startSourceFetchWorker, startJobsIngestWorker } from './workers/worker';
+import {
+    startResumeParserWorker, startSourceFetchWorker, startJobsIngestWorker,
+    startResumeAnalysisUploadWorker, startResumeAnalysisParserWorker, startResumeAnalysisScoreWorker
+} from './workers/worker';
 import { scheduleJobsIngest } from './queues/queue';
 
 const app = express();
@@ -16,6 +20,9 @@ const app = express();
 startResumeParserWorker();
 startSourceFetchWorker();
 startJobsIngestWorker();
+startResumeAnalysisUploadWorker();
+startResumeAnalysisParserWorker();
+startResumeAnalysisScoreWorker();
 scheduleJobsIngest().catch((err) => console.error('Failed to schedule jobs ingest', err));
 
 app.use(express.json());
@@ -33,6 +40,7 @@ app.get('/api/v1/health', (req: Request, res: Response) => {
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/interview', interviewRoutes);
 app.use('/api/v1/jobs', jobsRoutes);
+app.use('/api/v1/resume', resumeRoutes);
 
 app.use(NotFound);
 app.use(errorHandler)
