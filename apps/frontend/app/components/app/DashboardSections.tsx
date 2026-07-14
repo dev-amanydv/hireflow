@@ -11,6 +11,7 @@ import {
   Search,
   Settings,
   Sparkles,
+  TrendingUp,
   User,
 } from "lucide-react";
 import EmptyState from "./EmptyState";
@@ -57,38 +58,63 @@ function SectionHeader({
 function StartInterviewHero() {
   const startInterview = useStartInterview();
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-primary p-6 text-primary-foreground sm:p-8">
+    <div className="relative isolate overflow-hidden rounded-2xl border border-border">
+      <img
+        src="/cta-light-start-interview.png"
+        alt=""
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 size-full object-cover object-right dark:hidden"
+      />
+      <img
+        src="/cta-dark-start-interview.png"
+        alt=""
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 hidden size-full object-cover object-right dark:block"
+      />
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full opacity-60"
-        style={{
-          background:
-            "radial-gradient(closest-side, color-mix(in oklab, white 22%, transparent), transparent)",
-        }}
+        className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-r from-background via-background/85 to-transparent"
       />
-      <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="max-w-md">
-          <div className="flex items-center gap-2 text-primary-foreground/80">
-            <Sparkles className="size-4" />
-            <span className="text-xs font-medium tracking-wide">
-              Tailored to your real work
-            </span>
+
+      <div className="absolute right-4 top-4 hidden items-center gap-2.5 rounded-lg border border-border bg-card/80 px-3 py-2 shadow-sm backdrop-blur-sm lg:flex">
+        <span className="flex size-7 items-center justify-center rounded-md bg-muted text-foreground">
+          <TrendingUp className="size-4" />
+        </span>
+        <span className="leading-tight">
+          <span className="block text-xs font-semibold text-foreground">
+            Track progress
+          </span>
+          <span className="block text-[11px] text-ink-tertiary">
+            and improve
+          </span>
+        </span>
+      </div>
+
+      <div className="relative flex flex-col gap-4 p-5 sm:flex-row sm:items-end sm:justify-between sm:gap-6 sm:p-6">
+        <div className="flex flex-col gap-3.5">
+          
+
+          <div className="flex flex-col gap-5">
+            <h2 className="text-xl font-semibold leading-tight tracking-tight text-foreground text-balance sm:text-2xl">
+              Practice smart.
+              <br />
+              Interview with <span className="text-primary">confidence.</span>
+            </h2>
+            <p className="max-w-md text-xs leading-relaxed text-ink-subtle sm:text-sm">
+              Realistic interviews. Instant feedback.
+              <br />
+              Better you, one interview at a time.
+            </p>
           </div>
-          <h2 className="mt-3 text-xl font-semibold tracking-tight sm:text-2xl">
-            Ready when you are
-          </h2>
-          <p className="mt-1.5 text-sm leading-relaxed text-primary-foreground/80">
-            Pick a role, add your resume, and QuickHire builds an adaptive
-            interview from your history — then scores it the moment you finish.
-          </p>
         </div>
+
         <button
           type="button"
           onClick={startInterview}
-          className="group inline-flex shrink-0 items-center justify-center gap-2 self-start rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-primary shadow-sm transition-colors hover:bg-white/90 sm:self-auto"
+          className="group inline-flex w-fit shrink-0 items-center justify-center gap-2 self-start rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-brand-hover sm:self-end sm:text-sm"
         >
-          Start new interview
-          <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+          Start New Interview
+          <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
         </button>
       </div>
     </div>
