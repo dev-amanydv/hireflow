@@ -179,7 +179,7 @@ function InterviewSession({
       wasConnected.current &&
       connectionState === ConnectionState.Disconnected
     ) {
-      navigate(`/result?interviewId=${interviewId}`);
+      navigate(`/dashboard/interviews/${interviewId}/result`);
     }
   }, [isConnected, connectionState, navigate, interviewId]);
 

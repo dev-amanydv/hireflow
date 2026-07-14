@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1073.0",
+    "@aws-sdk/s3-request-presigner": "3.1073.0",
     "@langchain/core": "^1.2.2",
     "@langchain/openai": "^1.5.5",
     "@langchain/textsplitters": "^1.0.1",

@@ -9,6 +9,7 @@ export default [
         route("practice/:skillId", "routes/dashboard/practice-detail.tsx"),
         route("jobs", "routes/dashboard/jobs.tsx"),
         route("interviews", "routes/dashboard/interviews.tsx"),
+        route("interviews/:interviewId/result", "routes/dashboard/interview-result.tsx"),
         route("resume", "routes/dashboard/resume.tsx"),
         route("insights", "routes/dashboard/insights.tsx"),
         route("profile", "routes/dashboard/profile.tsx"),
