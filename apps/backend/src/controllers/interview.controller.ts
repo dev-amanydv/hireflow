@@ -537,8 +537,17 @@ export const getInterviewTranscript = async (req: Request, res: Response) => {
   });
 };
 
+// The worker transcodes the recorder's OGG/Opus to AAC (.m4a) for Safari/iOS, but
+// falls back to the original OGG if transcoding fails — so derive the stored extension
+// and content-type from what actually arrived.
+const RECORDING_EXT: Record<string, string> = {
+  "audio/mp4": "m4a",
+  "audio/mpeg": "mp3",
+  "audio/ogg": "ogg",
+};
+
 // Internal (agent-worker) endpoint: receives the finalized session audio and stores
-// it in R2. Multipart field `file` (the OGG/Opus recording) + optional `durationMs`.
+// it in R2. Multipart field `file` (the recording) + optional `durationMs`.
 export const uploadInterviewRecording = async (req: Request, res: Response) => {
   const interviewId = req.params.interviewId as string;
   const file = req.file;
@@ -550,9 +559,11 @@ export const uploadInterviewRecording = async (req: Request, res: Response) => {
   });
   if (!interview) throw new AppError(404, "Interview not found");
 
-  const key = `users/${interview.userId}/${interviewId}/recording/interview.ogg`;
+  const mime = file.mimetype || "audio/ogg";
+  const ext = RECORDING_EXT[mime] ?? "ogg";
+  const key = `users/${interview.userId}/${interviewId}/recording/interview.${ext}`;
 
-  const upload = await uploadToBucket(key, file.buffer, file.size, "audio/ogg");
+  const upload = await uploadToBucket(key, file.buffer, file.size, mime);
   if (!upload.success) {
     await prisma.interview.update({
       where: { id: interviewId },
@@ -609,7 +620,8 @@ export const getInterviewRecording = async (req: Request, res: Response) => {
   }
 
   const download = req.query.download === "1" || req.query.download === "true";
-  const filename = `${interview.jobRole ?? "interview"}-recording.ogg`
+  const ext = interview.recordingKey.split(".").pop() || "m4a";
+  const filename = `${interview.jobRole ?? "interview"}-recording.${ext}`
     .replace(/[^a-z0-9.-]+/gi, "-")
     .toLowerCase();
 
