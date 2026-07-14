@@ -13,7 +13,7 @@ const openai = new OpenAI({
     apiKey: apiKey
 });
 
-const summarySchema = z.object({
+export const summarySchema = z.object({
     name: z.string(),
     role: z.string().nullable(),
     summary: z.string().nullable(),
@@ -251,6 +251,7 @@ export async function getResumeSummary(data: AssembledSources) {
     try {
         const response = await openai.responses.create({
             model: model,
+            reasoning: { effort: 'minimal' },
             input: [
                 {
                     role: 'system', content: system

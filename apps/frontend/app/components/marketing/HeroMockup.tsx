@@ -1,6 +1,5 @@
 import { BrandMark } from "~/components/app/Brand";
 
-
 export default function HeroMockup() {
   return (
     <div className="ln-lift overflow-hidden rounded-xl border border-hairline-strong bg-card">
@@ -40,24 +39,29 @@ export default function HeroMockup() {
             <div className="ln-mono text-[10px] uppercase tracking-wider text-ink-tertiary">
               Question
             </div>
-            <div className="mt-1 text-[13px] font-medium text-foreground">03 / 08</div>
+            <div className="mt-1 text-[13px] font-medium text-foreground">
+              03 / 08
+            </div>
           </div>
         </aside>
 
         <div className="flex flex-col gap-4 p-4">
-          <Bubble who="Sable" tint>
-            Walk me through how you'd keep <code className="ln-mono rounded bg-muted px-1 py-0.5 text-[12px]">vehicle_state</code>{" "}
+          <Bubble who="QuickHire" tint>
+            Walk me through how you'd keep{" "}
+            <code className="ln-mono rounded bg-muted px-1 py-0.5 text-[12px]">
+              vehicle_state
+            </code>{" "}
             fresh without blocking the initial render.
           </Bubble>
           <Bubble who="You">
-            I'd render from the last cached snapshot first, then reconcile in the
-            background and diff only what changed…
+            I'd render from the last cached snapshot first, then reconcile in
+            the background and diff only what changed…
           </Bubble>
           <div className="flex items-center gap-2 text-[12px] text-ink-subtle">
             <span className="flex gap-1">
               <Dot /> <Dot delay="150ms" /> <Dot delay="300ms" />
             </span>
-            Sable is following up
+            QuickHire is following up
           </div>
         </div>
 

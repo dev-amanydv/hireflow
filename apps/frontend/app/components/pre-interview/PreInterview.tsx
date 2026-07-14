@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import axios from "axios";
@@ -20,7 +20,6 @@ export default function PreInterview() {
     const [step, setStep] = useState(1);
     const [roleDetails, setRoleDetails] = useState<RoleDetailsType>({
         jobRole: "Backend Engineer",
-        type: "mixed",
         experience: "mid",
     });
     const [sessionDetails, setSessionDetails] = useState<SessionDetails | null>(null);
@@ -28,6 +27,9 @@ export default function PreInterview() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(false);
     const [summary, setSummary] = useState<ResumeSummary | null>(null);
+    // A fresh resume was uploaded since the last summary was built, so the
+    // profile must be (re)generated before showing the preview.
+    const [needsSummary, setNeedsSummary] = useState(false);
 
    
     const roleRef = useRef(roleDetails);
@@ -43,7 +45,6 @@ export default function PreInterview() {
                 `${BACKEND_URL}/interview/pre/role`,
                 {
                     role: roleRef.current.jobRole,
-                    type: roleRef.current.type,
                     experience: roleRef.current.experience,
                 },
                 { withCredentials: true }
@@ -66,26 +67,67 @@ export default function PreInterview() {
         }
     }, []);
 
-    const startProcessing = async (session: SessionDetails) => {
+    // Poll the backend until the resume has been fully parsed by the worker.
+    const waitForResumeParsed = async (id: string) => {
+        const MAX_ATTEMPTS = 60; // ~2 min at a 2s interval
+        for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+            const res = await axios.get(
+                `${BACKEND_URL}/interview/pre/${id}/resume-status`,
+                { withCredentials: true }
+            );
+            const { ready, failed } = res.data?.data ?? {};
+            if (failed) throw new Error("Resume parsing failed");
+            if (ready) return;
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
+        throw new Error("Resume parsing timed out");
+    };
+
+    // Called by step 2 whenever a resume finishes uploading. Persist it so it
+    // survives navigating back and forth, and mark the summary as stale.
+    const handleResumeComplete = useCallback((session: SessionDetails) => {
         setSessionDetails(session);
+        setSummary(null);
+        setNeedsSummary(true);
+    }, []);
+
+    const goToPreview = async () => {
+        if (!sessionDetails) {
+            toast.error("Upload your resume to continue");
+            return;
+        }
+
+        // Resume unchanged since we last built the profile — reuse it and skip
+        // the (slow) parse + summarise round-trip.
+        if (summary && !needsSummary) {
+            setStep(3);
+            return;
+        }
+
         setLoading(true);
         setError(false);
         setSummary(null);
         setStep(3);
 
         try {
+            const id = interviewIdRef.current;
+            if (!id) throw new Error("Missing interview id");
+
+            // 1. Ensure the resume is parsed before asking the LLM for a summary.
+            await waitForResumeParsed(id);
+
+            // 2. Generate (or fetch the cached) profile summary.
             const res = await axios.post(
                 `${BACKEND_URL}/interview/pre/session`,
                 {
-                    interviewId: interviewId,
-                    questions: session.questions,
-                    duration: session.duration,
+                    interviewId: id,
                 },
                 { withCredentials: true }
             );
             const data = res.data?.data as ResumeSummary | null;
             if (!data) throw new Error("No summary returned");
             setSummary(data);
+            setNeedsSummary(false);
         } catch (err) {
             setError(true);
             toast.error("Something went wrong while preparing your profile");
@@ -93,9 +135,7 @@ export default function PreInterview() {
             setLoading(false);
         }
     };
-    useEffect(() => {
-        console.log('step updated to: ', step)
-    }, [step])
+
     return (
         <div className="mx-auto w-full max-w-2xl px-4">
             <div className="mb-8 flex items-center gap-3">
@@ -113,20 +153,21 @@ export default function PreInterview() {
             {step === 1 && <RoleDetails setStep={setStep} registerInterview={registerInterview} setRoleDetails={setRoleDetails} />}
             {step === 2 && (
                 <InterviewDetails
-                    setStep={setStep}
-                    onStart={startProcessing}
                     interviewId={interviewId}
-                    
+                    session={sessionDetails}
+                    onResumeComplete={handleResumeComplete}
+                    onContinue={goToPreview}
                 />
             )}
-            {step === 3 && sessionDetails && (
+            {step === 3 && (
                 <Preview
                     loading={loading}
                     error={error}
                     summary={summary}
                     roleDetails={roleDetails}
-                    sessionDetails={sessionDetails}
+                    interviewId={interviewId}
                     setStep={setStep}
+                    onSummaryChange={setSummary}
                     onStart={() => navigate(`/interview/${interviewIdRef.current}?tab=lobby`)}
                 />
             )}

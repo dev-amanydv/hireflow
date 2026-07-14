@@ -182,13 +182,19 @@ export function InputFile({
   multiple = false,
   hint = "PDF, DOC or DOCX (max. 10MB)",
   onComplete,
+  uploadUrl = `${BACKEND_URL}/interview/pre/resume`,
+  requireInterviewId = true,
+  onUploaded,
 }: {
-  interviewId: string;
+  interviewId?: string;
   accept?: string;
   maxSizeMB?: number;
   multiple?: boolean;
   hint?: string;
   onComplete?: (file: CompletedFile) => void;
+  uploadUrl?: string;
+  requireInterviewId?: boolean;
+  onUploaded?: (data: unknown) => void;
 }) {
   const [dragging, setDragging] = useState(false);
   const [file, setFile] = useState<UploadItem | null>(null);
@@ -206,13 +212,13 @@ export function InputFile({
     return "valid";
   }
 
-  const uploadResume = async (id: string, selectedFile: File, interviewId: string) => {
+  const uploadResume = async (id: string, selectedFile: File, interviewId?: string) => {
     const form = new FormData();
     form.append("resume", selectedFile);
-    form.append("interviewId", interviewId);
+    if (interviewId) form.append("interviewId", interviewId);
 
     try {
-      await axios.post(`${BACKEND_URL}/interview/pre/resume`, form, {
+      const res = await axios.post(uploadUrl, form, {
         withCredentials: true,
         onUploadProgress: (e) => {
           const pct = e.total ? Math.round((e.loaded / e.total) * 100) : 0;
@@ -227,6 +233,7 @@ export function InputFile({
         prev && prev.id === id ? { ...prev, progress: 100, status: "complete" } : prev
       );
       onComplete?.({ name: selectedFile.name, size: formatSize(selectedFile.size), ext: extOf(selectedFile.name) });
+      onUploaded?.(res.data?.data);
     } catch {
       setFile((prev) =>
         prev && prev.id === id
@@ -256,8 +263,8 @@ export function InputFile({
       return;
     }
 
-    if (!interviewId) return;
-    interviewIdRef.current = interviewId;
+    if (requireInterviewId && !interviewId) return;
+    interviewIdRef.current = interviewId ?? null;
 
     setFile({
       id,
@@ -280,8 +287,8 @@ export function InputFile({
   const handleRetry = async () => {
     const selectedFile = rawFile.current;
     if (!selectedFile || !file) return;
-    if (!interviewId) return;
-    interviewIdRef.current = interviewId;
+    if (requireInterviewId && !interviewId) return;
+    interviewIdRef.current = interviewId ?? null;
     setFile({ ...file, status: "uploading", progress: 0, error: undefined });
     uploadResume(file.id, selectedFile, interviewId);
   };

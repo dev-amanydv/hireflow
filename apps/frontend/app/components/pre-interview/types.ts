@@ -1,6 +1,5 @@
 export interface RoleDetails {
   jobRole: string;
-  type: "mixed" | "behavioural" | "technical" | "systemDesign";
   experience: "beginner" | "junior" | "mid" | "senior" | "staff";
 }
 
@@ -13,8 +12,6 @@ export interface ResumeFile {
 
 export interface SessionDetails {
   resume: ResumeFile;
-  questions: number;
-  duration: number;
 }
 
 export interface GithubProject {
@@ -113,13 +110,6 @@ export const EXPERIENCE_LABELS: Record<RoleDetails["experience"], string> = {
   staff: "Staff",
 };
 
-export const FOCUS_LABELS: Record<RoleDetails["type"], string> = {
-  mixed: "Mixed",
-  behavioural: "Behavioural",
-  technical: "Technical",
-  systemDesign: "System Design",
-};
-
 export const MOCK_SESSION: SessionDetails = {
   resume: {
     name: "Aarav_Sharma_Resume.pdf",
@@ -127,8 +117,6 @@ export const MOCK_SESSION: SessionDetails = {
     parsed: true,
     skills: ["TypeScript", "Node.js", "PostgreSQL", "Redis", "AWS", "Docker"],
   },
-  questions: 8,
-  duration: 30,
 };
 
 export const MOCK_CANDIDATE: CandidateProfile = {

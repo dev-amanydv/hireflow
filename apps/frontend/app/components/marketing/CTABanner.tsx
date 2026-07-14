@@ -23,17 +23,13 @@ export default function CTABanner() {
             Ready to run your first interview?
           </h2>
           <p className="max-w-md text-base text-ink-subtle">
-            Bring your resume and GitHub. Sable handles the rest — no scheduling, no
-            waiting.
+            Bring your resume and GitHub. QuickHire handles the rest — no
+            scheduling, no waiting.
           </p>
           <button
             type="button"
-            onClick={() =>
-              user
-                ? navigate("/start")
-                : navigate("/dashboard")
-            }
-            className="inline-flex items-center gap-2 rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-white/90"
+            onClick={() => (user ? navigate("/start") : navigate("/dashboard"))}
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-brand-hover"
           >
             Start practicing free
             <ArrowRight className="size-4" />

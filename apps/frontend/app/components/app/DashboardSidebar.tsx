@@ -1,5 +1,7 @@
 import {
   BarChart3,
+  Briefcase,
+  Dumbbell,
   FileText,
   LayoutGrid,
   LogOut,
@@ -9,22 +11,26 @@ import {
   User,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useNavigate } from "react-router";
+import { NavLink, useNavigate } from "react-router";
 import { Brand } from "./Brand";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "~/components/ui/alert-dialog";
+import { Button } from "~/components/ui/button";
 import { useAuth } from "~/store/store";
 import { useStartInterview } from "~/lib/useStartInterview";
 import { cn } from "~/lib/utils";
 
-export type DashboardSection =
-  | "overview"
-  | "interviews"
-  | "resume"
-  | "insights"
-  | "profile"
-  | "settings";
-
 type NavItem = {
-  id: DashboardSection;
+  to: string;
   label: string;
   icon: LucideIcon;
 };
@@ -38,67 +44,70 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     heading: "Workspace",
     items: [
-      { id: "overview", label: "Overview", icon: LayoutGrid },
-      { id: "interviews", label: "Past interviews", icon: MessagesSquare },
-      { id: "resume", label: "Analyze resume", icon: FileText },
-      { id: "insights", label: "Insights", icon: BarChart3 },
+      { to: "/dashboard/overview", label: "Overview", icon: LayoutGrid },
+      { to: "/dashboard/practice", label: "Practice", icon: Dumbbell },
+      { to: "/dashboard/jobs", label: "Jobs", icon: Briefcase },
+      {
+        to: "/dashboard/interviews",
+        label: "Past interviews",
+        icon: MessagesSquare,
+      },
+      { to: "/dashboard/resume", label: "Analyze resume", icon: FileText },
+      { to: "/dashboard/insights", label: "Insights", icon: BarChart3 },
     ],
   },
   {
     heading: "Account",
     items: [
-      { id: "profile", label: "Profile", icon: User },
-      { id: "settings", label: "Settings", icon: Settings },
+      { to: "/dashboard/profile", label: "Profile", icon: User },
+      { to: "/dashboard/settings", label: "Settings", icon: Settings },
     ],
   },
 ];
 
 function NavButton({
   item,
-  active,
-  onSelect,
+  onNavigate,
 }: {
   item: NavItem;
-  active: boolean;
-  onSelect: (id: DashboardSection) => void;
+  onNavigate?: () => void;
 }) {
   const Icon = item.icon;
   return (
-    <button
-      type="button"
-      onClick={() => onSelect(item.id)}
-      aria-current={active ? "page" : undefined}
-      className={cn(
-        "group relative flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors",
-        active
-          ? "bg-accent font-medium text-foreground"
-          : "text-ink-subtle hover:bg-muted hover:text-foreground"
-      )}
+    <NavLink
+      to={item.to}
+      onClick={onNavigate}
+      className={({ isActive }) =>
+        cn(
+          "group flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors",
+          isActive
+            ? "bg-primary/10 font-medium text-primary"
+            : "text-ink-subtle hover:bg-muted hover:text-foreground"
+        )
+      }
     >
-      <span
-        className={cn(
-          "absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-primary transition-opacity",
-          active ? "opacity-100" : "opacity-0"
-        )}
-      />
-      <Icon
-        className={cn(
-          "size-4 shrink-0 transition-colors",
-          active ? "text-foreground" : "text-ink-tertiary group-hover:text-foreground"
-        )}
-      />
-      {item.label}
-    </button>
+      {({ isActive }) => (
+        <>
+          <Icon
+            className={cn(
+              "size-4 shrink-0 transition-colors",
+              isActive
+                ? "text-primary"
+                : "text-ink-tertiary group-hover:text-foreground"
+            )}
+          />
+          {item.label}
+        </>
+      )}
+    </NavLink>
   );
 }
 
 export default function DashboardSidebar({
-  active,
-  onSelect,
+  onNavigate,
   className,
 }: {
-  active: DashboardSection;
-  onSelect: (id: DashboardSection) => void;
+  onNavigate?: () => void;
   className?: string;
 }) {
   const navigate = useNavigate();
@@ -118,14 +127,10 @@ export default function DashboardSidebar({
       </div>
 
       <div className="px-3 pb-2 pt-1">
-        <button
-          type="button"
-          onClick={startInterview}
-          className="ln-lift flex w-full items-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-semibold text-black transition-colors hover:bg-white/90"
-        >
+        <Button onClick={startInterview} className="w-full justify-center">
           <Sparkles className="size-4" />
           Start new interview
-        </button>
+        </Button>
       </div>
 
       <nav className="flex-1 overflow-hidden px-3 py-3">
@@ -137,10 +142,9 @@ export default function DashboardSidebar({
             <div className="flex flex-col gap-0.5">
               {group.items.map((item) => (
                 <NavButton
-                  key={item.id}
+                  key={item.to}
                   item={item}
-                  active={active === item.id}
-                  onSelect={onSelect}
+                  onNavigate={onNavigate}
                 />
               ))}
             </div>
@@ -150,28 +154,37 @@ export default function DashboardSidebar({
 
       {user && (
         <div className="border-t border-border p-3">
-          <div className="flex items-center gap-2.5 rounded-md px-2 py-1.5">
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-foreground">
-              {user.email.slice(0, 1).toUpperCase()}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-foreground">
-                {user.email.split("@")[0]}
-              </p>
-              <p className="truncate text-xs text-ink-tertiary">{user.email}</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                removeUser();
-                navigate("/");
-              }}
-              aria-label="Sign out"
-              className="rounded-md p-1.5 text-ink-tertiary transition-colors hover:bg-muted hover:text-foreground"
-            >
-              <LogOut className="size-4" />
-            </button>
-          </div>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button
+                type="button"
+                className="group flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-ink-subtle transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <LogOut className="size-4 shrink-0 text-ink-tertiary transition-colors group-hover:text-foreground" />
+                Log out
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Log out?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  You&apos;ll be signed out of your account and returned to the
+                  home page.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    removeUser();
+                    navigate("/");
+                  }}
+                >
+                  Log out
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       )}
     </aside>

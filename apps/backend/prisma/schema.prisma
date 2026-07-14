@@ -39,10 +39,17 @@ enum MessageRole {
 }
 
 enum InterviewType {
-  mixed
-  behavioural
-  technical
-  systemDesign
+  REAL
+  PRACTICE
+}
+
+enum AnalysisStatus {
+  UPLOADING
+  PARSING
+  PARSED
+  ANALYZING
+  COMPLETE
+  FAILED
 }
 
 enum Experience {
@@ -53,6 +60,20 @@ enum Experience {
   staff
 }
 
+enum JobSource {
+  REMOTIVE
+  ARBEITNOW
+  ADZUNA
+}
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+  OTHER
+}
+
 model User {
   id        String          @id @default(uuid())
   username  String?
@@ -61,6 +82,7 @@ model User {
   password  String?
   Resume    String?
   interview Interview[]
+  resumeAnalyses ResumeAnalysis[]
   refreshToken String?
   createdAt DateTime        @default(now())
   updatedAt DateTime        @default(now())
@@ -70,13 +92,12 @@ model Interview {
   id        String          @id @default(uuid())
   jobRole   String
   resume    Resume?
-  question  Int?            @default(5)
-  duration  Int?            @default(15)
   startAt   DateTime?
   endAt     DateTime?
   summary   String?
-  type      InterviewType   @default(mixed)
   status    InterviewStatus @default(SCHEDULED)
+  type      InterviewType   @default(REAL)
+  skill     String?
   experience  Experience    @default(beginner)
   resultId  String?          @unique
   result    Result?          @relation(fields: [resultId], references: [id])
@@ -116,8 +137,62 @@ model Message {
 model Result {
   id        String          @id @default(uuid())
   score     Float
+  report    Json?
   interview Interview?
   createdAt DateTime        @default(now())
   updatedAt DateTime        @default(now())
+}
+
+model ResumeAnalysis {
+  id               String         @id @default(uuid())
+  name             String
+  size             Float
+  ext              String
+  status           AnalysisStatus @default(UPLOADING)
+  url              String?
+  parsed           Json?
+  summary          Json?
+  targetRole       String?
+  targetExperience Experience?
+  targetJobId      String?
+  targetJob        Job?           @relation(fields: [targetJobId], references: [id])
+  targetJdText     String?
+  overallScore     Float?
+  report           Json?
+  error            String?
+  userId           String
+  user             User           @relation(fields: [userId], references: [id])
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @default(now())
+
+  @@index([userId])
+}
+
+model Job {
+  id             String    @id @default(uuid())
+  source         JobSource
+  externalId     String
+  title          String
+  company        String
+  companyLogo    String?
+  location       String?
+  remote         Boolean   @default(false)
+  jobType        JobType   @default(OTHER)
+  category       String?
+  description    String
+  tags           String[]
+  salaryMin      Float?
+  salaryMax      Float?
+  salaryCurrency String?
+  url            String
+  postedAt       DateTime?
+  fetchedAt      DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  resumeAnalyses ResumeAnalysis[]
+
+  @@unique([source, externalId])
+  @@index([postedAt])
+  @@index([remote])
 }
 

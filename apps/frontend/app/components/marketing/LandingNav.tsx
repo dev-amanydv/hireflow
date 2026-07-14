@@ -1,6 +1,7 @@
-import { Link, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import { useAuth } from "~/store/store";
 import { Brand } from "~/components/app/Brand";
+import { ThemeToggle } from "~/components/app/ThemeToggle";
 
 const LINKS = ["Product", "How it works", "Pricing", "Company"];
 
@@ -27,11 +28,12 @@ export default function LandingNav() {
         </nav>
 
         <div className="flex items-center gap-1.5">
+          <ThemeToggle />
           {user ? (
             <button
               type="button"
               onClick={() => navigate("/dashboard")}
-              className="rounded-md bg-white px-3.5 py-1.5 text-sm font-semibold text-black transition-colors hover:bg-white/90"
+              className="rounded-md bg-primary px-3.5 py-1.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-brand-hover"
             >
               Dashboard
             </button>
@@ -51,7 +53,7 @@ export default function LandingNav() {
                 onClick={() =>
                   openAuthModal({ mode: "signup", onSuccess: () => navigate("/dashboard") })
                 }
-                className="rounded-md bg-white px-3.5 py-1.5 text-sm font-semibold text-black transition-colors hover:bg-white/90"
+                className="rounded-md bg-primary px-3.5 py-1.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-brand-hover"
               >
                 Sign up
               </button>
