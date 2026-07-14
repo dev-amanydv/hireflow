@@ -135,12 +135,14 @@ model Message {
 }
 
 model Result {
-  id        String          @id @default(uuid())
-  score     Float
-  report    Json?
-  interview Interview?
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @default(now())
+  id            String          @id @default(uuid())
+  score         Float
+  report        Json?
+  schemaVersion Int             @default(2)
+  analyzedAt    DateTime?
+  interview     Interview?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @default(now())
 }
 
 model ResumeAnalysis {

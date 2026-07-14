@@ -275,11 +275,15 @@ export function startInterviewFeedbackWorker() {
         if (!feedback) throw new Error(`Feedback generation returned null for ${interviewId}`);
 
         // Create the Result and link it back to the interview in one transaction.
+        // The report is stored as a versioned envelope so the frontend can branch
+        // on schemaVersion when the scorecard shape evolves.
         await prisma.$transaction(async (tx) => {
             const result = await tx.result.create({
                 data: {
                     score: feedback.overall,
-                    report: feedback as unknown as Prisma.InputJsonValue
+                    report: { schemaVersion: 2, ...feedback } as unknown as Prisma.InputJsonValue,
+                    schemaVersion: 2,
+                    analyzedAt: new Date()
                 }
             });
             await tx.interview.update({
