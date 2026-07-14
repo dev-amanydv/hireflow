@@ -73,6 +73,19 @@ export const listPracticeSkills = async (_req: Request, res: Response) => {
   });
 };
 
+// Returns a single skill's full detail (topic outline + per-level rubric) for the
+// skill detail page. Unlike listSkills(), this exposes topics/subtopics/rubrics.
+export const getPracticeSkillDetail = async (req: Request, res: Response) => {
+  const id = typeof req.params.id === "string" ? req.params.id : "";
+  const skill = getSkill(id);
+  if (!skill) throw new AppError(404, "UnknownSkill");
+  res.status(200).json({
+    success: true,
+    message: "Practice skill fetched",
+    data: { skill },
+  });
+};
+
 // Creates a resume-less, skill-focused practice interview. Mirrors handleRoleDetails
 // but branches on a curated skill instead of a free-text role + resume upload.
 export const handlePracticeDetails = async (req: Request, res: Response) => {

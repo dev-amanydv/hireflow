@@ -1,5 +1,5 @@
 import express from 'express';
-import { handlePreSession, handleResume, handleResumeStatus, handleRoleDetails, generateLivekitToken, recordInterviewMessage, completeInterview, updateSummary, listPracticeSkills, handlePracticeDetails, getInterviewResult, listInterviews } from '../controllers/interview.controller';
+import { handlePreSession, handleResume, handleResumeStatus, handleRoleDetails, generateLivekitToken, recordInterviewMessage, completeInterview, updateSummary, listPracticeSkills, getPracticeSkillDetail, handlePracticeDetails, getInterviewResult, listInterviews } from '../controllers/interview.controller';
 import { uploadMiddleware } from '../middlewares/upload.middleware';
 import { AsyncHandler } from '../utils/asyncHandler';
 import { authMiddleware } from '../middlewares/auth.middleware';
@@ -10,6 +10,7 @@ const router = express.Router();
 router.post('/pre/role', authMiddleware, AsyncHandler(handleRoleDetails));
 
 router.get('/practice/skills', authMiddleware, AsyncHandler(listPracticeSkills));
+router.get('/practice/skills/:id', authMiddleware, AsyncHandler(getPracticeSkillDetail));
 router.post('/practice', authMiddleware, AsyncHandler(handlePracticeDetails));
 router.get('/list', authMiddleware, AsyncHandler(listInterviews));
 

@@ -6,6 +6,7 @@ export default [
         index("routes/dashboard/index.tsx"),
         route("overview", "routes/dashboard/overview.tsx"),
         route("practice", "routes/dashboard/practice.tsx"),
+        route("practice/:skillId", "routes/dashboard/practice-detail.tsx"),
         route("jobs", "routes/dashboard/jobs.tsx"),
         route("interviews", "routes/dashboard/interviews.tsx"),
         route("resume", "routes/dashboard/resume.tsx"),

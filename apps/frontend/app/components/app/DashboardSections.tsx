@@ -1,22 +1,37 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import axios from "axios";
 import { toast } from "sonner";
 import {
+  ArrowLeft,
   ArrowRight,
+  Atom,
   BarChart3,
+  Binary,
+  Blocks,
+  Braces,
   Briefcase,
+  Clock,
+  Database,
   Dumbbell,
   ExternalLink,
+  Hexagon,
+  ListChecks,
   Loader2,
   MapPin,
   MessagesSquare,
+  Mic,
+  Network,
   Search,
   Settings,
   Sparkles,
+  Target,
+  Terminal,
   TrendingUp,
   User,
+  Zap,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import EmptyState from "./EmptyState";
 import ResumeAnalyzer from "./resume-analyzer/ResumeAnalyzer";
 import { Button } from "~/components/ui/button";
@@ -29,13 +44,60 @@ import { cn } from "~/lib/utils";
 
 type Difficulty = "beginner" | "junior" | "mid" | "senior" | "staff";
 
-const PRACTICE_LEVELS: { value: Difficulty; label: string; note: string }[] = [
-  { value: "beginner", label: "Beginner", note: "0 yrs" },
-  { value: "junior", label: "Junior", note: "0–2 yrs" },
-  { value: "mid", label: "Mid", note: "2–5 yrs" },
-  { value: "senior", label: "Senior", note: "5–9 yrs" },
-  { value: "staff", label: "Staff", note: "10+ yrs" },
+const PRACTICE_LEVELS: {
+  value: Difficulty;
+  label: string;
+  note: string;
+  desc: string;
+}[] = [
+  {
+    value: "beginner",
+    label: "Beginner",
+    note: "0 yrs",
+    desc: "Fundamentals and first principles",
+  },
+  {
+    value: "junior",
+    label: "Junior",
+    note: "0–2 yrs",
+    desc: "Core concepts and everyday patterns",
+  },
+  {
+    value: "mid",
+    label: "Mid",
+    note: "2–5 yrs",
+    desc: "Trade-offs and deliberate decisions",
+  },
+  {
+    value: "senior",
+    label: "Senior",
+    note: "5–9 yrs",
+    desc: "Internals, depth, and system thinking",
+  },
+  {
+    value: "staff",
+    label: "Staff",
+    note: "10+ yrs",
+    desc: "Architecture and ambiguous problems",
+  },
 ];
+
+// Per-skill identity: a distinct icon + a cohesive jewel-tone accent so the grid
+// reads as a considered set rather than eight identical tiles. Accents are
+// mid-lightness, restrained-chroma oklch — variety without breaking the theme.
+const SKILL_META: Record<string, { icon: LucideIcon; accent: string }> = {
+  react: { icon: Atom, accent: "oklch(0.68 0.13 220)" },
+  nodejs: { icon: Hexagon, accent: "oklch(0.64 0.14 150)" },
+  "distributed-systems": { icon: Network, accent: "oklch(0.62 0.15 285)" },
+  "system-design": { icon: Blocks, accent: "oklch(0.72 0.12 70)" },
+  "sql-databases": { icon: Database, accent: "oklch(0.66 0.12 195)" },
+  javascript: { icon: Braces, accent: "oklch(0.74 0.13 95)" },
+  python: { icon: Terminal, accent: "oklch(0.62 0.14 255)" },
+  dsa: { icon: Binary, accent: "oklch(0.65 0.15 12)" },
+};
+
+const skillMeta = (id: string) =>
+  SKILL_META[id] ?? { icon: Dumbbell, accent: "var(--primary)" };
 
 const LEVEL_LABEL: Record<Difficulty, string> = {
   beginner: "Beginner",
@@ -189,54 +251,136 @@ export function Overview() {
 }
 
 type PracticeSkill = { id: string; label: string; blurb: string };
+type SkillTopic = { name: string; subtopics: string[] };
+type SkillDetail = PracticeSkill & {
+  topics: SkillTopic[];
+  levelRubric: Record<Difficulty, string>;
+};
 
-function SkillCard({
-  skill,
-  selected,
-  onSelect,
-}: {
-  skill: PracticeSkill;
-  selected: boolean;
-  onSelect: () => void;
-}) {
+function SkillCard({ skill, index }: { skill: PracticeSkill; index: number }) {
+  const { icon: Icon, accent } = skillMeta(skill.id);
   return (
-    <button
-      type="button"
-      onClick={onSelect}
-      aria-pressed={selected}
+    <Link
+      to={`/dashboard/practice/${skill.id}`}
+      style={{
+        ["--accent" as string]: accent,
+        animationDelay: `${Math.min(index, 8) * 45}ms`,
+      }}
       className={cn(
-        "ln-lift group flex flex-col gap-1.5 rounded-2xl border bg-card p-5 text-left transition-colors",
-        selected
-          ? "border-primary ring-1 ring-primary/40"
-          : "border-border hover:border-primary/40",
+        "ln-lift ln-rise group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card p-5 text-left",
+        "transition-[transform,border-color] duration-200 ease-out",
+        "hover:-translate-y-0.5 hover:border-[color-mix(in_oklab,var(--accent)_45%,var(--border))]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--accent)_55%,transparent)]",
+        "active:translate-y-0 active:scale-[0.99]",
       )}
     >
+      {/* Accent wash — atmosphere that only surfaces on hover. */}
       <span
-        className={cn(
-          "flex size-9 items-center justify-center rounded-lg transition-colors",
-          selected
-            ? "bg-primary/15 text-primary"
-            : "bg-muted text-ink-subtle group-hover:text-foreground",
-        )}
+        aria-hidden
+        className="pointer-events-none absolute -right-8 -top-8 size-28 rounded-full opacity-0 blur-2xl transition-opacity duration-300 ease-out group-hover:opacity-100"
+        style={{
+          background:
+            "radial-gradient(circle, color-mix(in oklab, var(--accent) 45%, transparent), transparent 70%)",
+        }}
+      />
+
+      <span
+        className="flex size-11 items-center justify-center rounded-xl text-[var(--accent)] ring-1 ring-[color-mix(in_oklab,var(--accent)_22%,transparent)] transition-transform duration-200 ease-out group-hover:scale-[1.06]"
+        style={{
+          background: "color-mix(in oklab, var(--accent) 13%, var(--card))",
+        }}
       >
-        <Dumbbell className="size-4" />
+        <Icon className="size-5" />
       </span>
-      <h3 className="mt-1 text-sm font-semibold text-foreground">
+
+      <h3 className="mt-4 text-[15px] font-semibold tracking-tight text-foreground">
         {skill.label}
       </h3>
-      <p className="text-xs leading-relaxed text-ink-subtle">{skill.blurb}</p>
-    </button>
+      <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-ink-subtle">
+        {skill.blurb}
+      </p>
+
+      <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-ink-tertiary transition-colors duration-200 group-hover:text-[var(--accent)]">
+        View details
+        <ArrowRight className="size-3.5 transition-transform duration-200 ease-out group-hover:translate-x-1" />
+      </span>
+    </Link>
+  );
+}
+
+// Shared level picker — reads its accent from a `--accent` var on any ancestor.
+function DifficultySelector({
+  level,
+  onLevel,
+}: {
+  level: Difficulty;
+  onLevel: (v: Difficulty) => void;
+}) {
+  return (
+    <div role="radiogroup" className="flex flex-col gap-2">
+      {PRACTICE_LEVELS.map((l) => {
+        const on = level === l.value;
+        return (
+          <button
+            key={l.value}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            onClick={() => onLevel(l.value)}
+            className={cn(
+              "flex items-center gap-3 rounded-xl border px-3.5 py-2.5 text-left",
+              "transition-[transform,border-color,background-color] duration-150 ease-out active:scale-[0.99]",
+              on
+                ? "border-[var(--accent)] bg-[color-mix(in_oklab,var(--accent)_9%,transparent)]"
+                : "border-border hover:border-[color-mix(in_oklab,var(--accent)_40%,var(--border))] hover:bg-muted/40",
+            )}
+          >
+            <span
+              className={cn(
+                "flex size-4 shrink-0 items-center justify-center rounded-full border-2 transition-colors duration-150",
+                on ? "border-[var(--accent)]" : "border-input",
+              )}
+            >
+              {on && (
+                <span className="size-1.5 rounded-full bg-[var(--accent)]" />
+              )}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="flex items-baseline gap-2">
+                <span className="text-sm font-semibold tracking-tight text-foreground">
+                  {l.label}
+                </span>
+                <span className="ln-mono text-[11px] text-ink-tertiary">
+                  {l.note}
+                </span>
+              </span>
+              <span className="mt-0.5 block truncate text-xs text-ink-subtle">
+                {l.desc}
+              </span>
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function SkillCardSkeleton() {
+  return (
+    <div className="ln-lift rounded-2xl border border-border bg-card p-5">
+      <div className="skeleton-shimmer size-11 rounded-xl bg-muted" />
+      <div className="skeleton-shimmer mt-4 h-4 w-24 rounded bg-muted" />
+      <div className="skeleton-shimmer mt-2.5 h-3 w-full rounded bg-muted" />
+      <div className="skeleton-shimmer mt-1.5 h-3 w-2/3 rounded bg-muted" />
+      <div className="skeleton-shimmer mt-4 h-3 w-20 rounded bg-muted" />
+    </div>
   );
 }
 
 export function Practice() {
-  const navigate = useNavigate();
   const [skills, setSkills] = useState<PracticeSkill[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [selected, setSelected] = useState<PracticeSkill | null>(null);
-  const [level, setLevel] = useState<Difficulty>("mid");
-  const [starting, setStarting] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -258,13 +402,106 @@ export function Practice() {
     };
   }, []);
 
+  return (
+    <div className="flex flex-col gap-8">
+      <SectionHeader
+        eyebrow="Practice"
+        title="Skill practice interviews"
+        description="Choose a skill to see what gets covered, pick your level, and our AI interviewer runs a mock interview focused purely on it. No resume needed."
+      />
+
+      {loading ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <SkillCardSkeleton key={i} />
+          ))}
+        </div>
+      ) : error ? (
+        <EmptyState
+          icon={Dumbbell}
+          title="Couldn't load skills"
+          description="Something went wrong fetching practice skills. Please try again in a moment."
+        />
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {skills.map((skill, i) => (
+            <SkillCard key={skill.id} skill={skill} index={i} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PracticeDetailSkeleton() {
+  return (
+    <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+      <div className="flex flex-col gap-6 lg:col-span-2">
+        <div className="ln-lift rounded-2xl border border-border bg-card p-6">
+          <div className="skeleton-shimmer size-14 rounded-2xl bg-muted" />
+          <div className="skeleton-shimmer mt-4 h-6 w-48 rounded bg-muted" />
+          <div className="skeleton-shimmer mt-3 h-3 w-full max-w-md rounded bg-muted" />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className="ln-lift rounded-2xl border border-border bg-card p-5"
+            >
+              <div className="skeleton-shimmer h-4 w-32 rounded bg-muted" />
+              <div className="skeleton-shimmer mt-3 h-3 w-full rounded bg-muted" />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="ln-lift h-fit rounded-2xl border border-border bg-card p-5">
+        <div className="skeleton-shimmer h-3 w-20 rounded bg-muted" />
+        <div className="skeleton-shimmer mt-4 h-40 w-full rounded-xl bg-muted" />
+        <div className="skeleton-shimmer mt-4 h-11 w-full rounded-lg bg-muted" />
+      </div>
+    </div>
+  );
+}
+
+export function PracticeSkillDetail() {
+  const { skillId } = useParams();
+  const navigate = useNavigate();
+  const [skill, setSkill] = useState<SkillDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [level, setLevel] = useState<Difficulty>("mid");
+  const [starting, setStarting] = useState(false);
+
+  useEffect(() => {
+    if (!skillId) return;
+    let cancelled = false;
+    setLoading(true);
+    setError(false);
+    axios
+      .get(`${BACKEND_URL}/interview/practice/skills/${skillId}`, {
+        withCredentials: true,
+      })
+      .then((res) => {
+        if (!cancelled) setSkill(res.data?.data?.skill ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [skillId]);
+
   const startPractice = async () => {
-    if (!selected || starting) return;
+    if (!skill || starting) return;
     setStarting(true);
     try {
       const res = await axios.post(
         `${BACKEND_URL}/interview/practice`,
-        { skill: selected.id, experience: level },
+        { skill: skill.id, experience: level },
         { withCredentials: true },
       );
       const id = res.data?.data?.interview?.id;
@@ -276,101 +513,219 @@ export function Practice() {
     }
   };
 
-  return (
-    <div className="flex flex-col gap-8">
-      <SectionHeader
-        eyebrow="Practice"
-        title="Skill practice interviews"
-        description="Pick a skill and a difficulty, and our AI interviewer runs a mock interview focused purely on that skill — no resume needed."
-      />
+  const backLink = (
+    <Link
+      to="/dashboard/practice"
+      className="inline-flex w-fit items-center gap-1.5 text-sm text-ink-subtle transition-colors hover:text-foreground"
+    >
+      <ArrowLeft className="size-4" />
+      All skills
+    </Link>
+  );
 
-      {loading ? (
-        <div className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-card px-6 py-20 text-sm text-ink-subtle">
-          <Loader2 className="size-4 animate-spin" />
-          Loading skills…
-        </div>
-      ) : error ? (
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-6">
+        {backLink}
+        <PracticeDetailSkeleton />
+      </div>
+    );
+  }
+
+  if (error || !skill) {
+    return (
+      <div className="flex flex-col gap-6">
+        {backLink}
         <EmptyState
           icon={Dumbbell}
-          title="Couldn't load skills"
-          description="Something went wrong fetching practice skills. Please try again in a moment."
+          title="Skill not found"
+          description="We couldn't load this practice skill. It may have moved — head back and pick another."
+          action={
+            <Button variant="outline" onClick={() => navigate("/dashboard/practice")}>
+              Back to skills
+              <ArrowRight className="size-4" />
+            </Button>
+          }
         />
-      ) : (
-        <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {skills.map((skill) => (
-              <SkillCard
-                key={skill.id}
-                skill={skill}
-                selected={selected?.id === skill.id}
-                onSelect={() => setSelected(skill)}
-              />
-            ))}
-          </div>
+      </div>
+    );
+  }
 
-          {selected && (
-            <div className="ln-lift flex flex-col gap-5 rounded-2xl border border-border bg-card p-6">
-              <div>
-                <span className="ln-eyebrow">Difficulty</span>
-                <p className="mt-1 text-sm text-ink-subtle">
-                  How challenging should the{" "}
-                  <span className="font-medium text-foreground">
-                    {selected.label}
-                  </span>{" "}
-                  interview be?
+  const { icon: Icon, accent } = skillMeta(skill.id);
+  const activeLevel = PRACTICE_LEVELS.find((l) => l.value === level);
+
+  return (
+    <div
+      className="flex flex-col gap-6"
+      style={{ ["--accent" as string]: accent }}
+    >
+      {backLink}
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-start">
+        {/* Left: hero + topics + how it works */}
+        <div className="flex flex-col gap-6 lg:col-span-2">
+          <div className="ln-lift ln-rise relative overflow-hidden rounded-2xl border border-border bg-card p-6">
+            <span
+              aria-hidden
+              className="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full opacity-70 blur-3xl"
+              style={{
+                background:
+                  "radial-gradient(circle, color-mix(in oklab, var(--accent) 30%, transparent), transparent 70%)",
+              }}
+            />
+            <div className="relative flex items-start gap-4">
+              <span
+                className="flex size-14 shrink-0 items-center justify-center rounded-2xl text-[var(--accent)] ring-1 ring-[color-mix(in_oklab,var(--accent)_22%,transparent)]"
+                style={{
+                  background:
+                    "color-mix(in oklab, var(--accent) 14%, var(--card))",
+                }}
+              >
+                <Icon className="size-6" />
+              </span>
+              <div className="min-w-0">
+                <span className="ln-eyebrow">Practice interview</span>
+                <h1 className="ln-display-md mt-1 text-foreground">
+                  {skill.label}
+                </h1>
+                <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink-subtle">
+                  {skill.blurb}
                 </p>
               </div>
+            </div>
 
-              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-5">
-                {PRACTICE_LEVELS.map((l) => {
-                  const on = level === l.value;
-                  return (
-                    <button
-                      key={l.value}
-                      type="button"
-                      onClick={() => setLevel(l.value)}
-                      className={cn(
-                        "flex flex-col gap-1 rounded-xl border px-4 py-2.5 text-left transition-all",
-                        on
-                          ? "border-primary bg-primary/5"
-                          : "border-border bg-muted/40 hover:border-primary/30",
-                      )}
-                    >
-                      <span className="text-[15px] font-semibold tracking-tight text-foreground">
-                        {l.label}
-                      </span>
-                      <span className="text-xs text-ink-tertiary">
-                        {l.note}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+            <div className="relative mt-5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-ink-tertiary">
+              <span className="inline-flex items-center gap-1.5">
+                <Mic className="size-3.5" />
+                Voice interview
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <Clock className="size-3.5" />
+                ~15 minutes
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <MessagesSquare className="size-3.5" />
+                No resume needed
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <Zap className="size-3.5" />
+                Instant feedback
+              </span>
+            </div>
+          </div>
 
-              <div className="flex justify-end border-t border-border pt-5">
-                <Button
-                  size="lg"
-                  className="gap-2 px-6"
-                  disabled={starting}
-                  onClick={startPractice}
+          <section className="flex flex-col gap-3">
+            <div className="flex items-center gap-2">
+              <ListChecks className="size-4 text-ink-tertiary" />
+              <h2 className="text-sm font-semibold text-foreground">
+                What you'll be asked
+              </h2>
+              <span className="ln-mono text-xs text-ink-tertiary">
+                {skill.topics.length} areas
+              </span>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {skill.topics.map((topic, i) => (
+                <div
+                  key={topic.name}
+                  className="ln-lift ln-rise flex flex-col gap-2.5 rounded-2xl border border-border bg-card p-4"
+                  style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
                 >
-                  {starting ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" />
-                      Starting…
-                    </>
-                  ) : (
-                    <>
-                      Start practice interview
-                      <ArrowRight className="size-4" />
-                    </>
-                  )}
-                </Button>
+                  <div className="flex items-start gap-2">
+                    <span
+                      aria-hidden
+                      className="mt-1.5 size-1.5 shrink-0 rounded-full bg-[var(--accent)]"
+                    />
+                    <h3 className="text-sm font-semibold text-foreground">
+                      {topic.name}
+                    </h3>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 pl-3.5">
+                    {topic.subtopics.map((sub) => (
+                      <span
+                        key={sub}
+                        className="rounded-md border border-border bg-muted/50 px-2 py-0.5 text-[11px] text-ink-subtle"
+                      >
+                        {sub}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="ln-lift rounded-2xl border border-border bg-card p-5">
+            <h2 className="text-sm font-semibold text-foreground">
+              How it works
+            </h2>
+            <ol className="mt-3 flex flex-col gap-3">
+              {[
+                "Pick a difficulty that matches the level you're targeting.",
+                "Talk through questions out loud with the AI interviewer — just like the real thing.",
+                "Get an instant scored breakdown with strengths and what to work on.",
+              ].map((step, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <span className="ln-mono flex size-5 shrink-0 items-center justify-center rounded-md bg-muted text-[11px] font-semibold text-ink-subtle">
+                    {i + 1}
+                  </span>
+                  <span className="text-sm leading-relaxed text-ink-subtle">
+                    {step}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </section>
+        </div>
+
+        {/* Right: sticky launch panel */}
+        <div className="ln-lift ln-rise h-fit rounded-2xl border border-border bg-card p-5 lg:sticky lg:top-[4.5rem]">
+          <span className="ln-eyebrow">Choose difficulty</span>
+          <p className="mt-1 text-xs text-ink-subtle">
+            Sets how deep the interviewer probes.
+          </p>
+
+          <div className="mt-4">
+            <DifficultySelector level={level} onLevel={setLevel} />
+          </div>
+
+          {activeLevel && (
+            <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-border bg-muted/40 p-3.5">
+              <Target className="mt-0.5 size-4 shrink-0 text-[var(--accent)]" />
+              <div>
+                <p className="text-xs font-medium text-foreground">
+                  What good looks like at {activeLevel.label} level
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-ink-subtle">
+                  {skill.levelRubric[level]}
+                </p>
               </div>
             </div>
           )}
-        </>
-      )}
+
+          <Button
+            size="lg"
+            className="mt-5 w-full gap-2 transition-transform duration-150 ease-out active:scale-[0.98]"
+            disabled={starting}
+            onClick={startPractice}
+          >
+            {starting ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                Starting…
+              </>
+            ) : (
+              <>
+                Start practice interview
+                <ArrowRight className="size-4" />
+              </>
+            )}
+          </Button>
+          <p className="mt-2.5 text-center text-[11px] text-ink-tertiary">
+            Your mic turns on in the next step.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
