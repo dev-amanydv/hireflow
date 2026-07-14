@@ -83,6 +83,7 @@ model User {
   Resume    String?
   interview Interview[]
   resumeAnalyses ResumeAnalysis[]
+  savedJobs SavedJob[]
   refreshToken String?
   createdAt DateTime        @default(now())
   updatedAt DateTime        @default(now())
@@ -135,12 +136,14 @@ model Message {
 }
 
 model Result {
-  id        String          @id @default(uuid())
-  score     Float
-  report    Json?
-  interview Interview?
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @default(now())
+  id            String          @id @default(uuid())
+  score         Float
+  report        Json?
+  schemaVersion Int             @default(2)
+  analyzedAt    DateTime?
+  interview     Interview?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @default(now())
 }
 
 model ResumeAnalysis {
@@ -190,9 +193,22 @@ model Job {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   resumeAnalyses ResumeAnalysis[]
+  savedBy        SavedJob[]
 
   @@unique([source, externalId])
   @@index([postedAt])
   @@index([remote])
+}
+
+model SavedJob {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  jobId     String
+  job       Job      @relation(fields: [jobId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([userId, jobId])
+  @@index([userId])
 }
 

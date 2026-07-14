@@ -9,25 +9,32 @@ import {
   BarChart3,
   Binary,
   Blocks,
+  Bookmark,
+  BookmarkCheck,
   Braces,
   Briefcase,
+  CheckCircle2,
   Clock,
   Database,
   Dumbbell,
-  ExternalLink,
+  FileText,
   Hexagon,
   ListChecks,
   Loader2,
   MapPin,
+  Wallet,
   MessagesSquare,
   Mic,
   Network,
+  PlayCircle,
   Search,
   Settings,
   Sparkles,
   Target,
   Terminal,
+  TrendingDown,
   TrendingUp,
+  Trophy,
   User,
   Zap,
 } from "lucide-react";
@@ -202,50 +209,604 @@ function StartInterviewHero() {
   );
 }
 
-function StatStrip({
-  stats,
+function formatMinutes(total: number): string {
+  if (total <= 0) return "0m";
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
+function KpiCard({
+  icon: Icon,
+  accent,
+  label,
+  value,
+  hint,
+  hintTone = "neutral",
 }: {
-  stats: { label: string; value: string; hint: string }[];
+  icon: LucideIcon;
+  accent: string;
+  label: string;
+  value: string;
+  hint?: string;
+  hintTone?: "up" | "down" | "neutral";
 }) {
   return (
-    <div className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-      {stats.map((s) => (
-        <div key={s.label} className="px-5 py-4">
-          <p className="text-xs text-ink-tertiary">{s.label}</p>
-          <p className="ln-mono mt-1.5 text-2xl font-semibold tabular-nums text-foreground">
-            {s.value}
-          </p>
-          <p className="mt-0.5 text-xs text-ink-tertiary">{s.hint}</p>
-        </div>
-      ))}
+    <div
+      style={{ ["--accent" as string]: accent }}
+      className="ln-lift ln-rise rounded-2xl border border-border bg-card p-5"
+    >
+      <span
+        className="flex size-9 items-center justify-center rounded-lg text-[var(--accent)] ring-1 ring-[color-mix(in_oklab,var(--accent)_22%,transparent)]"
+        style={{
+          background: "color-mix(in oklab, var(--accent) 13%, var(--card))",
+        }}
+      >
+        <Icon className="size-4" />
+      </span>
+      <p className="ln-eyebrow mt-4">{label}</p>
+      <p className="ln-mono mt-1 text-2xl font-semibold tabular-nums text-foreground">
+        {value}
+      </p>
+      {hint && (
+        <p
+          className={cn(
+            "mt-1 flex items-center gap-1 text-xs",
+            hintTone === "up" && "text-[var(--success)]",
+            hintTone === "down" && "text-destructive",
+            hintTone === "neutral" && "text-ink-tertiary",
+          )}
+        >
+          {hintTone === "up" && <TrendingUp className="size-3" />}
+          {hintTone === "down" && <TrendingDown className="size-3" />}
+          {hint}
+        </p>
+      )}
     </div>
   );
 }
 
+function KpiCardSkeleton() {
+  return (
+    <div className="ln-lift rounded-2xl border border-border bg-card p-5">
+      <div className="skeleton-shimmer size-9 rounded-lg bg-muted" />
+      <div className="skeleton-shimmer mt-4 h-3 w-20 rounded bg-muted" />
+      <div className="skeleton-shimmer mt-2 h-7 w-16 rounded bg-muted" />
+    </div>
+  );
+}
+
+function ContinueCard({
+  interview,
+  onResume,
+}: {
+  interview: PastInterview | null;
+  onResume: () => void;
+}) {
+  if (!interview) {
+    return (
+      <div className="ln-lift ln-rise flex h-full flex-col justify-between rounded-2xl border border-border bg-card p-5">
+        <div>
+          <span className="ln-eyebrow">Next up</span>
+          <h3 className="mt-2 text-sm font-semibold text-foreground">
+            Nothing in progress
+          </h3>
+          <p className="mt-1.5 text-xs leading-relaxed text-ink-subtle">
+            Start a practice interview or analyze your resume to see it picked
+            up here.
+          </p>
+        </div>
+        <Link
+          to="/dashboard/resume"
+          className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+        >
+          Analyze your resume
+          <ArrowRight className="size-3.5" />
+        </Link>
+      </div>
+    );
+  }
+
+  const { icon: Icon, accent } = interview.skill
+    ? skillMeta(interview.skill)
+    : { icon: MessagesSquare, accent: "var(--primary)" };
+
+  return (
+    <div
+      style={{ ["--accent" as string]: accent }}
+      className="ln-lift ln-rise flex h-full flex-col justify-between rounded-2xl border border-border bg-card p-5"
+    >
+      <div>
+        <span className="ln-eyebrow">Pick up where you left off</span>
+        <div className="mt-3 flex items-center gap-3">
+          <span
+            className="flex size-9 shrink-0 items-center justify-center rounded-lg text-[var(--accent)] ring-1 ring-[color-mix(in_oklab,var(--accent)_22%,transparent)]"
+            style={{
+              background: "color-mix(in oklab, var(--accent) 13%, var(--card))",
+            }}
+          >
+            <Icon className="size-4" />
+          </span>
+          <div className="min-w-0">
+            <h3 className="truncate text-sm font-semibold text-foreground">
+              {interview.jobRole}
+            </h3>
+            <p className="text-xs text-ink-tertiary">
+              {LEVEL_LABEL[interview.experience]} ·{" "}
+              {interview.status === "ONGOING" ? "In progress" : "Scheduled"}
+            </p>
+          </div>
+        </div>
+      </div>
+      <Button size="sm" className="mt-4 w-full gap-1.5" onClick={onResume}>
+        <PlayCircle className="size-4" />
+        Continue
+      </Button>
+    </div>
+  );
+}
+
+const RESUME_FEATURES = [
+  "ATS Score",
+  "Keyword Matching",
+  "Missing Skills Detection",
+  "Resume Improvements",
+  "Recruiter Feedback",
+  "Formatting Suggestions",
+];
+
+function ResumeFeatureCard({ atsScore }: { atsScore: number | null }) {
+  return (
+    <div className="ln-lift ln-rise relative overflow-hidden rounded-2xl border border-border bg-card p-6 sm:p-8">
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -right-16 -top-16 size-64 rounded-full opacity-60 blur-3xl"
+        style={{
+          background:
+            "radial-gradient(circle, color-mix(in oklab, var(--primary) 22%, transparent), transparent 70%)",
+        }}
+      />
+      <div className="relative grid grid-cols-1 gap-8 lg:grid-cols-[1.3fr_1fr] lg:items-center">
+        <div>
+          <span className="ln-eyebrow">Resume Analyzer</span>
+          <h2 className="ln-display-md mt-2 text-foreground">
+            Beat the ATS before you apply.
+          </h2>
+          <p className="mt-3 max-w-md text-sm leading-relaxed text-ink-subtle">
+            Upload your resume and get a transparent, category-by-category
+            score with concrete fixes — not a black-box number.
+          </p>
+          <div className="mt-5 grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
+            {RESUME_FEATURES.map((f) => (
+              <span
+                key={f}
+                className="flex items-center gap-2 text-xs text-ink-subtle"
+              >
+                <CheckCircle2 className="size-3.5 shrink-0 text-primary" />
+                {f}
+              </span>
+            ))}
+          </div>
+          <Button asChild size="lg" className="mt-6 gap-2">
+            <Link to="/dashboard/resume">
+              Analyze Resume
+              <ArrowRight className="size-4" />
+            </Link>
+          </Button>
+          <p className="mt-2.5 text-xs text-ink-tertiary">
+            Improve your chances of passing ATS screening before applying.
+          </p>
+        </div>
+
+        <div className="flex items-center justify-center">
+          <div className="ln-lift flex size-40 flex-col items-center justify-center gap-1 rounded-full border border-border bg-muted/40 sm:size-48">
+            {atsScore != null ? (
+              <>
+                <span className="ln-mono text-4xl font-semibold tabular-nums text-foreground">
+                  {Math.round(atsScore)}
+                </span>
+                <span className="text-xs text-ink-tertiary">
+                  Latest ATS score
+                </span>
+              </>
+            ) : (
+              <>
+                <FileText className="size-8 text-ink-tertiary" />
+                <span className="mt-1 max-w-28 text-center text-xs text-ink-tertiary">
+                  No analysis yet
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BottomCta() {
+  const startInterview = useStartInterview();
+  return (
+    <div className="ln-lift ln-rise relative overflow-hidden rounded-2xl border border-border bg-card p-8 text-center sm:p-12">
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-full opacity-70"
+        style={{
+          background:
+            "radial-gradient(60% 100% at 50% 0%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 70%)",
+        }}
+      />
+      <h2 className="ln-display-md text-foreground">
+        Ready for your next interview?
+      </h2>
+      <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-ink-subtle">
+        Practice with a resume-tailored session or drill a single skill —
+        either way, you'll walk away with a scored, actionable breakdown.
+      </p>
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <Button size="lg" className="gap-2" onClick={startInterview}>
+          Start AI Interview
+          <ArrowRight className="size-4" />
+        </Button>
+        <Button asChild variant="outline" size="lg">
+          <Link to="/dashboard/practice">Explore features</Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+type DashboardOverviewData = {
+  totalInterviews: number;
+  minutesPracticed: number;
+  bestScore: number | null;
+  avgScore: number | null;
+  lastScoreDelta: number | null;
+  savedJobs: number;
+  latestAtsScore: number | null;
+  recent: PastInterview[];
+};
+
+const FEATURED_SKILL_IDS = ["react", "nodejs", "javascript"];
+
 export function Overview() {
+  const navigate = useNavigate();
+  const user = useAuth((s) => s.user);
+
+  const [dashboard, setDashboard] = useState<DashboardOverviewData | null>(
+    null,
+  );
+  const [dashboardLoading, setDashboardLoading] = useState(true);
+
+  const [skills, setSkills] = useState<PracticeSkill[]>([]);
+  const [skillsLoading, setSkillsLoading] = useState(true);
+
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [jobsLoading, setJobsLoading] = useState(true);
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    let cancelled = false;
+    axios
+      .get(`${BACKEND_URL}/dashboard`, { withCredentials: true })
+      .then((res) => {
+        if (!cancelled) setDashboard(res.data?.data ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setDashboard(null);
+      })
+      .finally(() => {
+        if (!cancelled) setDashboardLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    axios
+      .get(`${BACKEND_URL}/interview/practice/skills`, {
+        withCredentials: true,
+      })
+      .then((res) => {
+        if (cancelled) return;
+        const all: PracticeSkill[] = res.data?.data?.skills ?? [];
+        const featured = FEATURED_SKILL_IDS.map((id) =>
+          all.find((s) => s.id === id),
+        ).filter((s): s is PracticeSkill => Boolean(s));
+        setSkills(featured.length > 0 ? featured : all.slice(0, 3));
+      })
+      .catch(() => {
+        if (!cancelled) setSkills([]);
+      })
+      .finally(() => {
+        if (!cancelled) setSkillsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([
+      axios.get(`${BACKEND_URL}/jobs`, {
+        params: { page: 1, pageSize: 6 },
+        withCredentials: true,
+      }),
+      axios
+        .get(`${BACKEND_URL}/jobs/saved`, { withCredentials: true })
+        .catch(() => ({ data: { data: { jobs: [] } } })),
+    ])
+      .then(([jobsRes, savedRes]) => {
+        if (cancelled) return;
+        setJobs(jobsRes.data?.data?.jobs ?? []);
+        const savedList: Job[] = savedRes.data?.data?.jobs ?? [];
+        setSavedIds(new Set(savedList.map((j) => j.id)));
+      })
+      .catch(() => {
+        if (!cancelled) setJobs([]);
+      })
+      .finally(() => {
+        if (!cancelled) setJobsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const toggleSave = (job: Job) => {
+    const wasSaved = savedIds.has(job.id);
+    setSavedIds((prev) => {
+      const next = new Set(prev);
+      if (wasSaved) next.delete(job.id);
+      else next.add(job.id);
+      return next;
+    });
+    const request = wasSaved
+      ? axios.delete(`${BACKEND_URL}/jobs/${job.id}/save`, {
+          withCredentials: true,
+        })
+      : axios.post(
+          `${BACKEND_URL}/jobs/${job.id}/save`,
+          {},
+          { withCredentials: true },
+        );
+    request
+      .then(() => toast.success(wasSaved ? "Removed from saved" : "Job saved"))
+      .catch(() => {
+        setSavedIds((prev) => {
+          const next = new Set(prev);
+          if (wasSaved) next.add(job.id);
+          else next.delete(job.id);
+          return next;
+        });
+        toast.error("Couldn't update saved jobs. Please try again.");
+      });
+  };
+
+  const inProgress =
+    dashboard?.recent.find(
+      (i) => i.status === "ONGOING" || i.status === "SCHEDULED",
+    ) ?? null;
+
+  const greetingName = user?.email ? user.email.split("@")[0] : null;
+
   return (
     <div className="flex flex-col gap-8">
       <SectionHeader
         eyebrow="Workspace"
-        title="Welcome back"
+        title={greetingName ? `Welcome back, ${greetingName}` : "Welcome back"}
         description="Your interview activity at a glance. Start a session and your progress builds up here."
       />
 
       <StartInterviewHero />
 
-      <StatStrip
-        stats={[
-          { label: "Interviews", value: "0", hint: "No sessions yet" },
-          { label: "Best score", value: "—", hint: "Awaiting first result" },
-          { label: "Avg. score", value: "—", hint: "Awaiting first result" },
-        ]}
-      />
+      {dashboardLoading ? (
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <KpiCardSkeleton key={i} />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <KpiCard
+            icon={MessagesSquare}
+            accent="oklch(0.62 0.15 285)"
+            label="Total Interviews"
+            value={String(dashboard?.totalInterviews ?? 0)}
+            hint={
+              dashboard && dashboard.totalInterviews > 0
+                ? "Across practice & real"
+                : "No sessions yet"
+            }
+          />
+          <KpiCard
+            icon={Clock}
+            accent="oklch(0.66 0.12 195)"
+            label="Minutes Practiced"
+            value={formatMinutes(dashboard?.minutesPracticed ?? 0)}
+            hint="Time in live interviews"
+          />
+          <KpiCard
+            icon={Trophy}
+            accent="oklch(0.72 0.12 70)"
+            label="Best / Avg Score"
+            value={
+              dashboard?.bestScore != null
+                ? `${Math.round(dashboard.bestScore)}`
+                : "—"
+            }
+            hint={
+              dashboard?.lastScoreDelta != null
+                ? `${dashboard.lastScoreDelta >= 0 ? "+" : ""}${Math.round(
+                    dashboard.lastScoreDelta,
+                  )} from last · avg ${
+                    dashboard.avgScore != null
+                      ? Math.round(dashboard.avgScore)
+                      : "—"
+                  }`
+                : dashboard?.avgScore != null
+                  ? `Avg ${Math.round(dashboard.avgScore)}`
+                  : "Awaiting first result"
+            }
+            hintTone={
+              dashboard?.lastScoreDelta == null
+                ? "neutral"
+                : dashboard.lastScoreDelta > 0
+                  ? "up"
+                  : dashboard.lastScoreDelta < 0
+                    ? "down"
+                    : "neutral"
+            }
+          />
+          <KpiCard
+            icon={Bookmark}
+            accent="oklch(0.64 0.14 150)"
+            label="Jobs Saved"
+            value={String(dashboard?.savedJobs ?? 0)}
+            hint="From the job board"
+          />
+        </div>
+      )}
 
-      <EmptyState
-        icon={Sparkles}
-        title="No activity yet"
-        description="Once you complete a session, your interview history, transcripts, and scores collect here so you can track how you improve over time."
-      />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="flex flex-col gap-4 lg:col-span-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-foreground">
+              Recent interviews
+            </h2>
+            <Link
+              to="/dashboard/interviews"
+              className="inline-flex items-center gap-1 text-xs font-medium text-ink-subtle hover:text-primary"
+            >
+              View all
+              <ArrowRight className="size-3.5" />
+            </Link>
+          </div>
+          {dashboardLoading ? (
+            <div className="flex flex-col gap-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="ln-lift rounded-2xl border border-border bg-card p-5"
+                >
+                  <div className="skeleton-shimmer h-4 w-32 rounded bg-muted" />
+                  <div className="skeleton-shimmer mt-2 h-3 w-24 rounded bg-muted" />
+                </div>
+              ))}
+            </div>
+          ) : dashboard && dashboard.recent.length > 0 ? (
+            <div className="flex flex-col gap-3">
+              {dashboard.recent.map((interview) => (
+                <InterviewRow key={interview.id} interview={interview} />
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon={Sparkles}
+              title="No activity yet"
+              description="Once you complete a session, your interview history and scores collect here."
+            />
+          )}
+        </div>
+
+        {!dashboardLoading && (
+          <ContinueCard
+            interview={inProgress}
+            onResume={() =>
+              inProgress && navigate(`/interview/${inProgress.id}?tab=lobby`)
+            }
+          />
+        )}
+      </div>
+
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">
+              Practice by Skill
+            </h2>
+            <p className="mt-1 text-xs text-ink-subtle">
+              No resume required. Master individual technologies with
+              expertly researched interview questions.
+            </p>
+          </div>
+          <Link
+            to="/dashboard/practice"
+            className="inline-flex items-center gap-1 text-xs font-medium text-ink-subtle hover:text-primary"
+          >
+            View all skills
+            <ArrowRight className="size-3.5" />
+          </Link>
+        </div>
+        {skillsLoading ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <SkillCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {skills.map((skill, i) => (
+              <SkillCard key={skill.id} skill={skill} index={i} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <ResumeFeatureCard atsScore={dashboard?.latestAtsScore ?? null} />
+
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">
+              Latest Jobs
+            </h2>
+            <p className="mt-1 text-xs text-ink-subtle">
+              Discover curated software engineering jobs from multiple
+              sources.
+            </p>
+          </div>
+          <Link
+            to="/dashboard/jobs"
+            className="inline-flex items-center gap-1 text-xs font-medium text-ink-subtle hover:text-primary"
+          >
+            View all jobs
+            <ArrowRight className="size-3.5" />
+          </Link>
+        </div>
+        {jobsLoading ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <JobCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : jobs.length > 0 ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {jobs.map((job, i) => (
+              <JobCard
+                key={job.id}
+                job={job}
+                index={i}
+                saved={savedIds.has(job.id)}
+                onToggleSave={toggleSave}
+              />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            icon={Briefcase}
+            title="No jobs available"
+            description="Check back soon — new roles are ingested regularly."
+          />
+        )}
+      </div>
+
+      <BottomCta />
     </div>
   );
 }
@@ -960,8 +1521,12 @@ type Job = {
   location: string | null;
   remote: boolean;
   jobType: "FULL_TIME" | "PART_TIME" | "CONTRACT" | "INTERNSHIP" | "OTHER";
+  category: string | null;
   description: string;
   tags: string[];
+  salaryMin: number | null;
+  salaryMax: number | null;
+  salaryCurrency: string | null;
   url: string;
   postedAt: string | null;
 };
@@ -974,7 +1539,70 @@ const JOB_TYPE_LABELS: Record<Job["jobType"], string> = {
   OTHER: "Other",
 };
 
+const SOURCE_LABELS: Record<Job["source"], string> = {
+  REMOTIVE: "Remotive",
+  ARBEITNOW: "Arbeitnow",
+  ADZUNA: "Adzuna",
+};
+
 const PAGE_SIZE = 20;
+
+// A stable jewel-tone accent per company, drawn from the same restrained oklch
+// family as the practice-skill accents — so the grid reads as a considered set,
+// and a given company keeps its color across renders and pages.
+const JOB_ACCENTS = [
+  "oklch(0.68 0.13 220)",
+  "oklch(0.64 0.14 150)",
+  "oklch(0.62 0.15 285)",
+  "oklch(0.72 0.12 70)",
+  "oklch(0.66 0.12 195)",
+  "oklch(0.74 0.13 95)",
+  "oklch(0.62 0.14 255)",
+  "oklch(0.65 0.15 12)",
+] as const;
+
+function jobAccent(company: string): string {
+  let hash = 0;
+  for (let i = 0; i < company.length; i++) {
+    hash = (hash * 31 + company.charCodeAt(i)) | 0;
+  }
+  return JOB_ACCENTS[Math.abs(hash) % JOB_ACCENTS.length];
+}
+
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+  INR: "₹",
+  CAD: "$",
+  AUD: "$",
+};
+
+function compactMoney(n: number, symbol: string): string {
+  if (n >= 1000) {
+    const k = n / 1000;
+    const rounded = k >= 100 ? Math.round(k) : Math.round(k * 10) / 10;
+    return `${symbol}${rounded}k`;
+  }
+  return `${symbol}${Math.round(n)}`;
+}
+
+function formatSalary(
+  min: number | null,
+  max: number | null,
+  currency: string | null,
+): string | null {
+  if (!min && !max) return null;
+  const code = (currency ?? "USD").toUpperCase();
+  const symbol = CURRENCY_SYMBOLS[code] ?? "";
+  const suffix = symbol ? "" : ` ${code}`;
+  if (min && max) {
+    if (min === max) return `${compactMoney(min, symbol)}${suffix}`;
+    return `${compactMoney(min, symbol)}–${compactMoney(max, symbol)}${suffix}`;
+  }
+  if (min) return `From ${compactMoney(min, symbol)}${suffix}`;
+  return `Up to ${compactMoney(max as number, symbol)}${suffix}`;
+}
 
 function stripHtml(html: string): string {
   return html
@@ -996,59 +1624,196 @@ function timeAgo(iso: string | null): string | null {
   return `${months}mo ago`;
 }
 
-function JobCard({ job }: { job: Job }) {
+function JobCard({
+  job,
+  index,
+  saved,
+  onToggleSave,
+}: {
+  job: Job;
+  index: number;
+  saved: boolean;
+  onToggleSave: (job: Job) => void;
+}) {
   const posted = timeAgo(job.postedAt);
   const snippet = stripHtml(job.description);
+  const salary = formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency);
+  const accent = jobAccent(job.company);
+  const tags = (job.tags ?? []).slice(0, 3);
+  const extraTags = Math.max(0, (job.tags?.length ?? 0) - tags.length);
+
   return (
-    <a
-      href={job.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="ln-lift group flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 transition-colors hover:border-primary/40"
+    <article
+      style={{
+        ["--accent" as string]: accent,
+        animationDelay: `${Math.min(index, 8) * 45}ms`,
+      }}
+      className={cn(
+        "ln-lift ln-rise group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card p-5",
+        "transition-[transform,border-color] duration-200 ease-out",
+        "hover:-translate-y-0.5 hover:border-[color-mix(in_oklab,var(--accent)_45%,var(--border))]",
+      )}
     >
+      {/* Accent wash — atmosphere that only surfaces on hover. */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -right-8 -top-8 size-28 rounded-full opacity-0 blur-2xl transition-opacity duration-300 ease-out group-hover:opacity-100"
+        style={{
+          background:
+            "radial-gradient(circle, color-mix(in oklab, var(--accent) 45%, transparent), transparent 70%)",
+        }}
+      />
+
       <div className="flex items-start gap-3">
         {job.companyLogo ? (
-          <img
-            src={job.companyLogo}
-            alt=""
-            className="size-10 shrink-0 rounded-lg border border-border object-contain"
-          />
+          <span className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-card ring-1 ring-[color-mix(in_oklab,var(--accent)_22%,transparent)] transition-transform duration-200 ease-out group-hover:scale-[1.06]">
+            <img
+              src={job.companyLogo}
+              alt=""
+              className="size-full object-contain p-1.5"
+            />
+          </span>
         ) : (
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-muted text-sm font-semibold text-ink-subtle">
+          <span
+            className="flex size-11 shrink-0 items-center justify-center rounded-xl text-sm font-semibold text-[var(--accent)] ring-1 ring-[color-mix(in_oklab,var(--accent)_22%,transparent)] transition-transform duration-200 ease-out group-hover:scale-[1.06]"
+            style={{
+              background: "color-mix(in oklab, var(--accent) 13%, var(--card))",
+            }}
+          >
             {job.company.slice(0, 1).toUpperCase()}
-          </div>
+          </span>
         )}
+
         <div className="min-w-0 flex-1">
-          <h3 className="truncate text-sm font-semibold text-foreground group-hover:text-primary">
+          <h3 className="truncate text-[15px] font-semibold tracking-tight text-foreground transition-colors duration-200 group-hover:text-[var(--accent)]">
             {job.title}
           </h3>
-          <p className="truncate text-sm text-ink-subtle">{job.company}</p>
+          <p className="mt-0.5 flex items-center gap-1.5 text-xs text-ink-subtle">
+            <span className="truncate">{job.company}</span>
+            <span aria-hidden className="text-ink-tertiary">
+              ·
+            </span>
+            <span className="shrink-0 text-ink-tertiary">
+              {SOURCE_LABELS[job.source]}
+            </span>
+          </p>
         </div>
-        <ExternalLink className="size-4 shrink-0 text-ink-tertiary transition-colors group-hover:text-primary" />
+
+        <button
+          type="button"
+          onClick={() => onToggleSave(job)}
+          aria-pressed={saved}
+          aria-label={saved ? "Remove from saved jobs" : "Save job"}
+          title={saved ? "Saved" : "Save"}
+          className={cn(
+            "-mr-1 -mt-1 flex size-8 shrink-0 items-center justify-center rounded-lg border",
+            "transition-[transform,color,background-color,border-color] duration-150 ease-out active:scale-[0.92]",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--accent)_55%,transparent)]",
+            saved
+              ? "border-[color-mix(in_oklab,var(--accent)_40%,var(--border))] bg-[color-mix(in_oklab,var(--accent)_12%,var(--card))] text-[var(--accent)]"
+              : "border-transparent text-ink-tertiary hover:border-border hover:bg-muted/60 hover:text-foreground",
+          )}
+        >
+          {saved ? (
+            <BookmarkCheck className="size-4" />
+          ) : (
+            <Bookmark className="size-4" />
+          )}
+        </button>
       </div>
 
+      {salary && (
+        <p className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
+          <Wallet className="size-3.5 text-[var(--accent)]" />
+          {salary}
+        </p>
+      )}
+
       {snippet && (
-        <p className="line-clamp-2 text-sm leading-relaxed text-ink-subtle">
+        <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-ink-subtle">
           {snippet}
         </p>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
-        {job.remote && <Badge variant="secondary">Remote</Badge>}
-        {job.jobType !== "OTHER" && (
-          <Badge variant="outline">{JOB_TYPE_LABELS[job.jobType]}</Badge>
-        )}
-        {job.location && (
-          <span className="inline-flex items-center gap-1 text-xs text-ink-tertiary">
-            <MapPin className="size-3" />
-            {job.location}
-          </span>
-        )}
-        {posted && (
-          <span className="ml-auto text-xs text-ink-tertiary">{posted}</span>
-        )}
+      {(tags.length > 0 || job.jobType !== "OTHER") && (
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          {tags.length > 0
+            ? tags.map((t) => (
+                <span
+                  key={t}
+                  className="rounded-md border border-border bg-muted/50 px-2 py-0.5 text-[11px] text-ink-subtle"
+                >
+                  {t}
+                </span>
+              ))
+            : job.jobType !== "OTHER" && (
+                <Badge variant="outline">{JOB_TYPE_LABELS[job.jobType]}</Badge>
+              )}
+          {extraTags > 0 && (
+            <span className="px-1 py-0.5 text-[11px] text-ink-tertiary">
+              +{extraTags}
+            </span>
+          )}
+        </div>
+      )}
+
+      <div className="mt-4 flex items-center gap-3 border-t border-border/60 pt-4">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-tertiary">
+          {job.remote && (
+            <span className="inline-flex items-center gap-1.5 font-medium text-[var(--accent)]">
+              <span className="size-1.5 rounded-full bg-[var(--accent)]" />
+              Remote
+            </span>
+          )}
+          {job.location && (
+            <span className="inline-flex min-w-0 items-center gap-1">
+              <MapPin className="size-3 shrink-0" />
+              <span className="truncate">{job.location}</span>
+            </span>
+          )}
+          {posted && (
+            <span className="inline-flex items-center gap-1">
+              <Clock className="size-3" />
+              {posted}
+            </span>
+          )}
+        </div>
+
+        <Button asChild size="sm" className="shrink-0">
+          <a href={job.url} target="_blank" rel="noopener noreferrer">
+            Apply
+            <ArrowRight className="transition-transform duration-200 ease-out group-hover:translate-x-0.5" />
+          </a>
+        </Button>
       </div>
-    </a>
+    </article>
+  );
+}
+
+function JobCardSkeleton() {
+  return (
+    <div className="ln-lift flex flex-col rounded-2xl border border-border bg-card p-5">
+      <div className="flex items-start gap-3">
+        <div className="skeleton-shimmer size-11 shrink-0 rounded-xl bg-muted" />
+        <div className="min-w-0 flex-1">
+          <div className="skeleton-shimmer h-4 w-40 rounded bg-muted" />
+          <div className="skeleton-shimmer mt-2 h-3 w-24 rounded bg-muted" />
+        </div>
+        <div className="skeleton-shimmer size-8 shrink-0 rounded-lg bg-muted" />
+      </div>
+      <div className="skeleton-shimmer mt-3 h-4 w-28 rounded bg-muted" />
+      <div className="skeleton-shimmer mt-3 h-3 w-full rounded bg-muted" />
+      <div className="skeleton-shimmer mt-1.5 h-3 w-2/3 rounded bg-muted" />
+      <div className="mt-3 flex gap-1.5">
+        <div className="skeleton-shimmer h-5 w-14 rounded-md bg-muted" />
+        <div className="skeleton-shimmer h-5 w-16 rounded-md bg-muted" />
+        <div className="skeleton-shimmer h-5 w-12 rounded-md bg-muted" />
+      </div>
+      <div className="mt-4 flex items-center justify-between border-t border-border/60 pt-4">
+        <div className="skeleton-shimmer h-3 w-24 rounded bg-muted" />
+        <div className="skeleton-shimmer h-7 w-16 rounded-lg bg-muted" />
+      </div>
+    </div>
   );
 }
 
@@ -1076,6 +1841,8 @@ function FilterSelect({
 }
 
 export function Jobs() {
+  const [view, setView] = useState<"all" | "saved">("all");
+
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [remoteOnly, setRemoteOnly] = useState(false);
@@ -1087,6 +1854,11 @@ export function Jobs() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+
+  const [savedJobs, setSavedJobs] = useState<Job[]>([]);
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [savedLoading, setSavedLoading] = useState(true);
+  const [savedError, setSavedError] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQuery(query.trim()), 300);
@@ -1134,6 +1906,78 @@ export function Jobs() {
     };
   }, [debouncedQuery, remoteOnly, type, source, page]);
 
+  // Saved jobs load once — they drive both the "Saved" view and each card's
+  // bookmark state in the "All" view.
+  useEffect(() => {
+    let cancelled = false;
+    axios
+      .get(`${BACKEND_URL}/jobs/saved`, { withCredentials: true })
+      .then((res) => {
+        if (cancelled) return;
+        const list: Job[] = res.data?.data?.jobs ?? [];
+        setSavedJobs(list);
+        setSavedIds(new Set(list.map((j) => j.id)));
+      })
+      .catch(() => {
+        if (!cancelled) setSavedError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setSavedLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const toggleSave = (job: Job) => {
+    const wasSaved = savedIds.has(job.id);
+
+    // Optimistic update.
+    setSavedIds((prev) => {
+      const next = new Set(prev);
+      if (wasSaved) next.delete(job.id);
+      else next.add(job.id);
+      return next;
+    });
+    setSavedJobs((prev) =>
+      wasSaved
+        ? prev.filter((j) => j.id !== job.id)
+        : prev.some((j) => j.id === job.id)
+          ? prev
+          : [job, ...prev],
+    );
+
+    const request = wasSaved
+      ? axios.delete(`${BACKEND_URL}/jobs/${job.id}/save`, {
+          withCredentials: true,
+        })
+      : axios.post(
+          `${BACKEND_URL}/jobs/${job.id}/save`,
+          {},
+          { withCredentials: true },
+        );
+
+    request
+      .then(() => toast.success(wasSaved ? "Removed from saved" : "Job saved"))
+      .catch(() => {
+        // Roll back on failure.
+        setSavedIds((prev) => {
+          const next = new Set(prev);
+          if (wasSaved) next.add(job.id);
+          else next.delete(job.id);
+          return next;
+        });
+        setSavedJobs((prev) =>
+          wasSaved
+            ? prev.some((j) => j.id === job.id)
+              ? prev
+              : [job, ...prev]
+            : prev.filter((j) => j.id !== job.id),
+        );
+        toast.error("Couldn't update saved jobs. Please try again.");
+      });
+  };
+
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
@@ -1141,56 +1985,126 @@ export function Jobs() {
       <SectionHeader
         eyebrow="Opportunities"
         title="Jobs"
-        description="Software-engineering roles aggregated from top sources. Click any role to apply on the original site."
+        description="Software-engineering roles aggregated from top sources. Save the ones worth a second look, then apply on the original site."
       />
 
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative min-w-56 flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-tertiary" />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search role, company, or tag…"
-              className="pl-9"
-            />
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setRemoteOnly((v) => !v)}
-            aria-pressed={remoteOnly}
-            className={cn(
-              "h-9 rounded-lg border px-3 text-sm font-medium transition-colors",
-              remoteOnly
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-border bg-card text-ink-subtle hover:text-foreground",
-            )}
-          >
-            Remote only
-          </button>
-
-          <FilterSelect value={type} onChange={setType} label="Job type">
-            <option value="">All types</option>
-            <option value="FULL_TIME">Full-time</option>
-            <option value="PART_TIME">Part-time</option>
-            <option value="CONTRACT">Contract</option>
-            <option value="INTERNSHIP">Internship</option>
-          </FilterSelect>
-
-          <FilterSelect value={source} onChange={setSource} label="Source">
-            <option value="">All sources</option>
-            <option value="REMOTIVE">Remotive</option>
-            <option value="ARBEITNOW">Arbeitnow</option>
-            <option value="ADZUNA">Adzuna</option>
-          </FilterSelect>
+      <div className="flex flex-wrap items-center gap-3">
+        {/* All / Saved view segmented control. */}
+        <div className="inline-flex rounded-lg border border-border bg-card p-0.5">
+          {(["all", "saved"] as const).map((v) => {
+            const on = view === v;
+            const count = v === "saved" ? savedIds.size : null;
+            return (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setView(v)}
+                aria-pressed={on}
+                className={cn(
+                  "inline-flex h-8 items-center gap-1.5 rounded-[7px] px-3 text-sm font-medium transition-colors",
+                  on
+                    ? "bg-primary/10 text-primary"
+                    : "text-ink-subtle hover:text-foreground",
+                )}
+              >
+                {v === "saved" && <Bookmark className="size-3.5" />}
+                {v === "all" ? "All jobs" : "Saved"}
+                {count !== null && count > 0 && (
+                  <span
+                    className={cn(
+                      "rounded-full px-1.5 text-[11px] tabular-nums",
+                      on ? "bg-primary/15" : "bg-muted text-ink-tertiary",
+                    )}
+                  >
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
+
+        {view === "all" && (
+          <>
+            <div className="relative min-w-56 flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-tertiary" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search role, company, or tag…"
+                className="pl-9"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setRemoteOnly((v) => !v)}
+              aria-pressed={remoteOnly}
+              className={cn(
+                "h-9 rounded-lg border px-3 text-sm font-medium transition-colors",
+                remoteOnly
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border bg-card text-ink-subtle hover:text-foreground",
+              )}
+            >
+              Remote only
+            </button>
+
+            <FilterSelect value={type} onChange={setType} label="Job type">
+              <option value="">All types</option>
+              <option value="FULL_TIME">Full-time</option>
+              <option value="PART_TIME">Part-time</option>
+              <option value="CONTRACT">Contract</option>
+              <option value="INTERNSHIP">Internship</option>
+            </FilterSelect>
+
+            <FilterSelect value={source} onChange={setSource} label="Source">
+              <option value="">All sources</option>
+              <option value="REMOTIVE">Remotive</option>
+              <option value="ARBEITNOW">Arbeitnow</option>
+              <option value="ADZUNA">Adzuna</option>
+            </FilterSelect>
+          </>
+        )}
       </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-card px-6 py-20 text-sm text-ink-subtle">
-          <Loader2 className="size-4 animate-spin" />
-          Loading jobs…
+      {view === "saved" ? (
+        savedLoading ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <JobCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : savedError ? (
+          <EmptyState
+            icon={Briefcase}
+            title="Couldn't load saved jobs"
+            description="Something went wrong fetching your saved roles. Please try again in a moment."
+          />
+        ) : savedJobs.length === 0 ? (
+          <EmptyState
+            icon={Bookmark}
+            title="No saved jobs yet"
+            description="Tap the bookmark on any role to keep it here for later."
+          />
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {savedJobs.map((job, i) => (
+              <JobCard
+                key={job.id}
+                job={job}
+                index={i}
+                saved={savedIds.has(job.id)}
+                onToggleSave={toggleSave}
+              />
+            ))}
+          </div>
+        )
+      ) : loading ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <JobCardSkeleton key={i} />
+          ))}
         </div>
       ) : error ? (
         <EmptyState
@@ -1206,9 +2120,15 @@ export function Jobs() {
         />
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {jobs.map((job) => (
-              <JobCard key={job.id} job={job} />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {jobs.map((job, i) => (
+              <JobCard
+                key={job.id}
+                job={job}
+                index={i}
+                saved={savedIds.has(job.id)}
+                onToggleSave={toggleSave}
+              />
             ))}
           </div>
 

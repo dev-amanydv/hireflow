@@ -1,5 +1,5 @@
 import express from 'express';
-import { handlePreSession, handleResume, handleResumeStatus, handleRoleDetails, generateLivekitToken, recordInterviewMessage, completeInterview, updateSummary, listPracticeSkills, getPracticeSkillDetail, handlePracticeDetails, getInterviewResult, listInterviews } from '../controllers/interview.controller';
+import { handlePreSession, handleResume, handleResumeStatus, handleRoleDetails, generateLivekitToken, recordInterviewMessage, completeInterview, updateSummary, listPracticeSkills, getPracticeSkillDetail, handlePracticeDetails, getInterviewResult, getInterviewTranscript, listInterviews } from '../controllers/interview.controller';
 import { uploadMiddleware } from '../middlewares/upload.middleware';
 import { AsyncHandler } from '../utils/asyncHandler';
 import { authMiddleware } from '../middlewares/auth.middleware';
@@ -21,6 +21,7 @@ router.patch('/pre/:interviewId/summary', authMiddleware, AsyncHandler(updateSum
 router.post('/pre/:interviewId/get-token', authMiddleware, AsyncHandler(generateLivekitToken))
 
 router.get('/:interviewId/result', authMiddleware, AsyncHandler(getInterviewResult));
+router.get('/:interviewId/transcript', authMiddleware, AsyncHandler(getInterviewTranscript));
 
 
 router.post('/:interviewId/messages', internalAuth, AsyncHandler(recordInterviewMessage));

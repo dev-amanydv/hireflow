@@ -466,6 +466,7 @@ export const getInterviewResult = async (req: Request, res: Response) => {
       skill: true,
       jobRole: true,
       experience: true,
+      createdAt: true,
       result: { select: { score: true, report: true } },
     },
   });
@@ -480,8 +481,49 @@ export const getInterviewResult = async (req: Request, res: Response) => {
       skill: interview.skill,
       jobRole: interview.jobRole,
       experience: interview.experience,
+      createdAt: interview.createdAt,
       ready: Boolean(interview.result),
       result: interview.result ?? null,
+    },
+  });
+};
+
+// Returns the full ordered transcript plus header context, used by the result
+// page to generate a downloadable PDF. Scoped to the owning user.
+export const getInterviewTranscript = async (req: Request, res: Response) => {
+  const userId = req.userId;
+  if (!userId) throw new AppError(401, "Unauthorised");
+
+  const interviewId = req.params.interviewId as string;
+  if (!interviewId) throw new AppError(400, "interviewId required");
+
+  const interview = await prisma.interview.findFirst({
+    where: { id: interviewId, userId },
+    select: {
+      id: true,
+      type: true,
+      skill: true,
+      jobRole: true,
+      experience: true,
+      createdAt: true,
+      messages: {
+        orderBy: { id: "asc" },
+        select: { role: true, content: true, createdAt: true },
+      },
+    },
+  });
+  if (!interview) throw new AppError(404, "Interview not found");
+
+  res.status(200).json({
+    success: true,
+    message: "Interview transcript fetched",
+    data: {
+      type: interview.type,
+      skill: interview.skill,
+      jobRole: interview.jobRole,
+      experience: interview.experience,
+      createdAt: interview.createdAt,
+      messages: interview.messages,
     },
   });
 };

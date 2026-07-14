@@ -51,3 +51,59 @@ export const listJobs = async (req: Request, res: Response) => {
     data: { jobs, total, page, pageSize },
   });
 };
+
+const jobIdSchema = z.object({ id: z.string().uuid() });
+
+export const listSavedJobs = async (req: Request, res: Response) => {
+  const userId = req.userId;
+  const saved = await prisma.savedJob.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    include: { job: true },
+  });
+
+  const jobs = saved.map((s) => s.job);
+
+  res.status(200).json({
+    success: true,
+    message: "Saved jobs fetched",
+    data: { jobs, total: jobs.length },
+  });
+};
+
+export const saveJob = async (req: Request, res: Response) => {
+  const parsed = jobIdSchema.safeParse(req.params);
+  if (!parsed.success) throw new AppError(400, "InvalidJobId");
+  const userId = req.userId;
+  const jobId = parsed.data.id;
+
+  const job = await prisma.job.findUnique({ where: { id: jobId } });
+  if (!job) throw new AppError(404, "JobNotFound");
+
+  const saved = await prisma.savedJob.upsert({
+    where: { userId_jobId: { userId, jobId } },
+    create: { userId, jobId },
+    update: {},
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "Job saved",
+    data: { savedJob: saved },
+  });
+};
+
+export const unsaveJob = async (req: Request, res: Response) => {
+  const parsed = jobIdSchema.safeParse(req.params);
+  if (!parsed.success) throw new AppError(400, "InvalidJobId");
+  const userId = req.userId;
+  const jobId = parsed.data.id;
+
+  await prisma.savedJob.deleteMany({ where: { userId, jobId } });
+
+  res.status(200).json({
+    success: true,
+    message: "Job removed",
+    data: null,
+  });
+};
