@@ -41,6 +41,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import EmptyState from "./EmptyState";
 import ResumeAnalyzer from "./resume-analyzer/ResumeAnalyzer";
+import type { RecordingStatus } from "./RecordingPlayer";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { Input } from "~/components/ui/input";
@@ -278,72 +279,88 @@ function KpiCardSkeleton() {
   );
 }
 
-function ContinueCard({
-  interview,
-  onResume,
-}: {
-  interview: PastInterview | null;
-  onResume: () => void;
-}) {
-  if (!interview) {
-    return (
-      <div className="ln-lift ln-rise flex h-full flex-col justify-between rounded-2xl border border-border bg-card p-5">
-        <div>
-          <span className="ln-eyebrow">Next up</span>
-          <h3 className="mt-2 text-sm font-semibold text-foreground">
-            Nothing in progress
-          </h3>
-          <p className="mt-1.5 text-xs leading-relaxed text-ink-subtle">
-            Start a practice interview or analyze your resume to see it picked
-            up here.
-          </p>
-        </div>
-        <Link
-          to="/dashboard/resume"
-          className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
-        >
-          Analyze your resume
-          <ArrowRight className="size-3.5" />
-        </Link>
-      </div>
-    );
-  }
-
-  const { icon: Icon, accent } = interview.skill
-    ? skillMeta(interview.skill)
-    : { icon: MessagesSquare, accent: "var(--primary)" };
+function RecordingRow({ interview }: { interview: PastInterview }) {
+  const date = new Date(interview.createdAt);
+  const dateLabel = Number.isNaN(date.getTime())
+    ? ""
+    : date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const status = interview.recordingStatus ?? "NONE";
+  const ready = status === "READY";
+  const processing = status === "PROCESSING";
 
   return (
-    <div
-      style={{ ["--accent" as string]: accent }}
-      className="ln-lift ln-rise flex h-full flex-col justify-between rounded-2xl border border-border bg-card p-5"
+    <Link
+      to={`/dashboard/interviews/${interview.id}/result`}
+      className="group -mx-2 flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-muted"
     >
-      <div>
-        <span className="ln-eyebrow">Pick up where you left off</span>
-        <div className="mt-3 flex items-center gap-3">
-          <span
-            className="flex size-9 shrink-0 items-center justify-center rounded-lg text-[var(--accent)] ring-1 ring-[color-mix(in_oklab,var(--accent)_22%,transparent)]"
-            style={{
-              background: "color-mix(in oklab, var(--accent) 13%, var(--card))",
-            }}
-          >
-            <Icon className="size-4" />
-          </span>
-          <div className="min-w-0">
-            <h3 className="truncate text-sm font-semibold text-foreground">
-              {interview.jobRole}
-            </h3>
-            <p className="text-xs text-ink-tertiary">
-              {LEVEL_LABEL[interview.experience]} ·{" "}
-              {interview.status === "ONGOING" ? "In progress" : "Scheduled"}
-            </p>
-          </div>
-        </div>
+      <span
+        className={cn(
+          "flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors",
+          ready
+            ? "bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground"
+            : "bg-muted text-ink-tertiary",
+        )}
+      >
+        {processing ? (
+          <Loader2 className="size-4 animate-spin" />
+        ) : (
+          <PlayCircle className="size-4" />
+        )}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-foreground group-hover:text-primary">
+          {interview.jobRole}
+        </p>
+        <p className="truncate text-[11px] text-ink-tertiary">
+          {LEVEL_LABEL[interview.experience]}
+          {dateLabel ? ` · ${dateLabel}` : ""}
+          {processing ? " · Preparing" : ready ? "" : " · No recording"}
+        </p>
       </div>
-      <Button size="sm" className="mt-4 w-full gap-1.5" onClick={onResume}>
-        <PlayCircle className="size-4" />
-        Continue
-      </Button>
+    </Link>
+  );
+}
+
+// Replaces the old "Continue" card: a compact replay shelf of the user's most recent
+// sessions, each linking to its recording + report.
+function RecentRecordings({ interviews }: { interviews: PastInterview[] }) {
+  const recent = interviews.slice(0, 4);
+  return (
+    <div className="ln-lift ln-rise flex h-full flex-col rounded-2xl border border-border bg-card p-5">
+      <div className="flex items-center justify-between">
+        <div className="flex flex-col">
+          <span className="ln-eyebrow">Replay</span>
+          <h3 className="mt-1 text-sm font-semibold text-foreground">
+            Recent recordings
+          </h3>
+        </div>
+        <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <Mic className="size-4" />
+        </span>
+      </div>
+
+      {recent.length > 0 ? (
+        <div className="mt-3 flex flex-1 flex-col">
+          {recent.map((interview) => (
+            <RecordingRow key={interview.id} interview={interview} />
+          ))}
+        </div>
+      ) : (
+        <div className="mt-3 flex flex-1 flex-col justify-center">
+          <p className="text-xs leading-relaxed text-ink-subtle">
+            Every interview is recorded. Finish a session and replay it here to
+            hear exactly how you answered.
+          </p>
+        </div>
+      )}
+
+      <Link
+        to="/dashboard/interviews"
+        className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+      >
+        All interviews
+        <ArrowRight className="size-3.5" />
+      </Link>
     </div>
   );
 }
@@ -472,7 +489,6 @@ type DashboardOverviewData = {
 const FEATURED_SKILL_IDS = ["react", "nodejs", "javascript"];
 
 export function Overview() {
-  const navigate = useNavigate();
   const user = useAuth((s) => s.user);
 
   const [dashboard, setDashboard] = useState<DashboardOverviewData | null>(
@@ -587,11 +603,6 @@ export function Overview() {
         toast.error("Couldn't update saved jobs. Please try again.");
       });
   };
-
-  const inProgress =
-    dashboard?.recent.find(
-      (i) => i.status === "ONGOING" || i.status === "SCHEDULED",
-    ) ?? null;
 
   const greetingName = user?.email ? user.email.split("@")[0] : null;
 
@@ -715,12 +726,7 @@ export function Overview() {
         </div>
 
         {!dashboardLoading && (
-          <ContinueCard
-            interview={inProgress}
-            onResume={() =>
-              inProgress && navigate(`/interview/${inProgress.id}?tab=lobby`)
-            }
-          />
+          <RecentRecordings interviews={dashboard?.recent ?? []} />
         )}
       </div>
 
@@ -1299,6 +1305,7 @@ type PastInterview = {
   experience: Difficulty;
   status: "SCHEDULED" | "ONGOING" | "COMPLETED";
   createdAt: string;
+  recordingStatus?: RecordingStatus;
   score: number | null;
 };
 
@@ -1313,7 +1320,7 @@ function InterviewRow({ interview }: { interview: PastInterview }) {
       });
   return (
     <Link
-      to={`/result?interviewId=${interview.id}`}
+      to={`/dashboard/interviews/${interview.id}/result`}
       className="ln-lift group flex items-center gap-4 rounded-2xl border border-border bg-card p-5 transition-colors hover:border-primary/40"
     >
       <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-ink-subtle group-hover:text-foreground">

@@ -4,6 +4,7 @@ import {
     GetObjectCommand,
     ListObjectsV2Command,
 } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { Readable } from "stream";
 
 const R2_ENDPOINT = process.env.R2_ENDPOINT
@@ -23,7 +24,29 @@ const s3 = new S3Client({
     },
 });
 
-async function uploadToBucket(key: string, body?: Buffer | Blob | string | Uint8Array | Readable | ReadableStream, contentLength?: number) {
+/**
+ * Presigned GET URL for an object. Used to hand the browser a short-lived,
+ * range-request-capable link to a private recording without proxying the bytes.
+ * Pass `downloadFilename` to force a download (Content-Disposition: attachment).
+ */
+async function getPresignedGetUrl(
+    key: string,
+    { expiresIn = 3600, downloadFilename }: { expiresIn?: number; downloadFilename?: string } = {},
+) {
+    const command = new GetObjectCommand({
+        Bucket: R2_BUCKET_NAME,
+        Key: key,
+        ...(downloadFilename
+            ? { ResponseContentDisposition: `attachment; filename="${downloadFilename}"` }
+            : {}),
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the presigner and
+    // client-s3 resolve to duplicate @smithy/types copies, so the S3Client instance
+    // isn't structurally assignable to the presigner's Client param. Runtime-safe.
+    return getSignedUrl(s3 as any, command as any, { expiresIn });
+}
+
+async function uploadToBucket(key: string, body?: Buffer | Blob | string | Uint8Array | Readable | ReadableStream, contentLength?: number, contentType?: string) {
     if (!key) return { success: false, message: 'missing key', data: null };
     try {
         const res = await s3.send(
@@ -32,6 +55,7 @@ async function uploadToBucket(key: string, body?: Buffer | Blob | string | Uint8
                 Key: key,
                 Body: body ?? "Hello R2!",
                 ContentLength: contentLength,
+                ContentType: contentType,
             }),
         );
         return {
@@ -93,7 +117,10 @@ async function listObjFromBucket() {
 }
 
 export {
+    s3,
+    R2_BUCKET_NAME,
     uploadToBucket,
+    getPresignedGetUrl,
     downloadFromBucket,
     listObjFromBucket
 }

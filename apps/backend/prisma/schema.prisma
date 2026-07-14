@@ -43,6 +43,13 @@ enum InterviewType {
   PRACTICE
 }
 
+enum RecordingStatus {
+  NONE
+  PROCESSING
+  READY
+  FAILED
+}
+
 enum AnalysisStatus {
   UPLOADING
   PARSING
@@ -103,6 +110,9 @@ model Interview {
   resultId  String?          @unique
   result    Result?          @relation(fields: [resultId], references: [id])
   messages  Message[]
+  recordingKey        String?
+  recordingStatus     RecordingStatus @default(NONE)
+  recordingDurationMs Int?
   githubMetadata  Json?
   userId    String  
   user      User            @relation(fields: [userId], references: [id])

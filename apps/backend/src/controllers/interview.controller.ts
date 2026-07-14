@@ -18,6 +18,7 @@ import {
   listSkills,
   type Difficulty,
 } from "../data/skillCatalog";
+import { uploadToBucket, getPresignedGetUrl } from "../utils/upload";
 
 const AGENT_NAME = "my-agent";
 
@@ -360,7 +361,9 @@ export const generateLivekitToken = async (req: Request, res: Response) => {
 
   await prisma.interview.update({
     where: { id: interviewId },
-    data: { status: "ONGOING", startAt: new Date() },
+    // The agent records every session and uploads the audio on shutdown; mark it
+    // processing up front so the UI can show a "recording is being prepared" state.
+    data: { status: "ONGOING", startAt: new Date(), recordingStatus: "PROCESSING" },
   });
 
   res.status(201).json({
@@ -427,6 +430,7 @@ export const listInterviews = async (req: Request, res: Response) => {
       experience: true,
       status: true,
       createdAt: true,
+      recordingStatus: true,
       result: { select: { score: true } },
     },
   });
@@ -443,6 +447,7 @@ export const listInterviews = async (req: Request, res: Response) => {
         experience: i.experience,
         status: i.status,
         createdAt: i.createdAt,
+        recordingStatus: i.recordingStatus,
         score: i.result?.score ?? null,
       })),
     },
@@ -467,6 +472,8 @@ export const getInterviewResult = async (req: Request, res: Response) => {
       jobRole: true,
       experience: true,
       createdAt: true,
+      recordingStatus: true,
+      recordingDurationMs: true,
       result: { select: { score: true, report: true } },
     },
   });
@@ -482,6 +489,8 @@ export const getInterviewResult = async (req: Request, res: Response) => {
       jobRole: interview.jobRole,
       experience: interview.experience,
       createdAt: interview.createdAt,
+      recordingStatus: interview.recordingStatus,
+      recordingDurationMs: interview.recordingDurationMs,
       ready: Boolean(interview.result),
       result: interview.result ?? null,
     },
@@ -524,6 +533,110 @@ export const getInterviewTranscript = async (req: Request, res: Response) => {
       experience: interview.experience,
       createdAt: interview.createdAt,
       messages: interview.messages,
+    },
+  });
+};
+
+// The worker transcodes the recorder's OGG/Opus to AAC (.m4a) for Safari/iOS, but
+// falls back to the original OGG if transcoding fails — so derive the stored extension
+// and content-type from what actually arrived.
+const RECORDING_EXT: Record<string, string> = {
+  "audio/mp4": "m4a",
+  "audio/mpeg": "mp3",
+  "audio/ogg": "ogg",
+};
+
+// Internal (agent-worker) endpoint: receives the finalized session audio and stores
+// it in R2. Multipart field `file` (the recording) + optional `durationMs`.
+export const uploadInterviewRecording = async (req: Request, res: Response) => {
+  const interviewId = req.params.interviewId as string;
+  const file = req.file;
+  if (!file) throw new AppError(400, "recording file required");
+
+  const interview = await prisma.interview.findUnique({
+    where: { id: interviewId },
+    select: { id: true, userId: true },
+  });
+  if (!interview) throw new AppError(404, "Interview not found");
+
+  const mime = file.mimetype || "audio/ogg";
+  const ext = RECORDING_EXT[mime] ?? "ogg";
+  const key = `users/${interview.userId}/${interviewId}/recording/interview.${ext}`;
+
+  const upload = await uploadToBucket(key, file.buffer, file.size, mime);
+  if (!upload.success) {
+    await prisma.interview.update({
+      where: { id: interviewId },
+      data: { recordingStatus: "FAILED" },
+    });
+    throw new AppError(502, "Failed to store recording");
+  }
+
+  const durationMs = Number(req.body?.durationMs);
+  await prisma.interview.update({
+    where: { id: interviewId },
+    data: {
+      recordingKey: key,
+      recordingStatus: "READY",
+      recordingDurationMs: Number.isFinite(durationMs) ? Math.round(durationMs) : null,
+    },
+  });
+
+  res.status(201).json({ success: true, message: "Recording stored", data: null });
+};
+
+// Returns a short-lived presigned URL to the owner's recording so the browser can
+// stream (range requests) or download it directly from R2. `?download=1` forces a
+// download with a friendly filename.
+export const getInterviewRecording = async (req: Request, res: Response) => {
+  const userId = req.userId;
+  if (!userId) throw new AppError(401, "Unauthorised");
+
+  const interviewId = req.params.interviewId as string;
+  if (!interviewId) throw new AppError(400, "interviewId required");
+
+  const interview = await prisma.interview.findFirst({
+    where: { id: interviewId, userId },
+    select: {
+      recordingKey: true,
+      recordingStatus: true,
+      recordingDurationMs: true,
+      jobRole: true,
+    },
+  });
+  if (!interview) throw new AppError(404, "Interview not found");
+
+  if (interview.recordingStatus !== "READY" || !interview.recordingKey) {
+    res.status(200).json({
+      success: true,
+      message: "Recording not ready",
+      data: {
+        status: interview.recordingStatus,
+        url: null,
+        durationMs: interview.recordingDurationMs,
+      },
+    });
+    return;
+  }
+
+  const download = req.query.download === "1" || req.query.download === "true";
+  const ext = interview.recordingKey.split(".").pop() || "m4a";
+  const filename = `${interview.jobRole ?? "interview"}-recording.${ext}`
+    .replace(/[^a-z0-9.-]+/gi, "-")
+    .toLowerCase();
+
+  const url = await getPresignedGetUrl(interview.recordingKey, {
+    expiresIn: 3600,
+    downloadFilename: download ? filename : undefined,
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "Recording url generated",
+    data: {
+      status: interview.recordingStatus,
+      url,
+      durationMs: interview.recordingDurationMs,
     },
   });
 };
