@@ -8,7 +8,6 @@ import {
   BarChart3,
   Check,
   Download,
-  GraduationCap,
   Info,
   Loader2,
   Quote,
@@ -35,12 +34,7 @@ export function meta({}: Route.MetaArgs) {
 
 // ── The v2 scorecard contract (mirrors backend feedbackSchema) ──────────────
 type Evidence = { quote: string; note: string };
-type Dimension = {
-  key: string;
-  name: string;
-  score: number;
-  rationale: string;
-};
+type Dimension = { key: string; name: string; score: number; rationale: string };
 type Topic = {
   name: string;
   score: number;
@@ -130,7 +124,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="dark min-h-screen bg-background text-foreground">
       <TopNav />
-      <main className="mx-auto flex max-w-4xl flex-col px-5 py-16 sm:px-8">
+      <main className="mx-auto flex max-w-6xl flex-col px-5 py-14 sm:px-8">
         {children}
       </main>
     </div>
@@ -139,15 +133,21 @@ function Shell({ children }: { children: React.ReactNode }) {
 
 function Reveal({
   delay = 0,
+  id,
   className,
   children,
 }: {
   delay?: number;
+  id?: string;
   className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className={cn("ln-rise", className)} style={{ animationDelay: `${delay}ms` }}>
+    <div
+      id={id}
+      className={cn("ln-rise", id && "scroll-mt-24", className)}
+      style={{ animationDelay: `${delay}ms` }}
+    >
       {children}
     </div>
   );
@@ -191,9 +191,11 @@ function EvidenceQuote({ evidence }: { evidence: Evidence }) {
 function DownloadTranscriptButton({
   interviewId,
   variant = "solid",
+  fullWidth = false,
 }: {
   interviewId: string;
   variant?: "solid" | "ghost";
+  fullWidth?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const onClick = async () => {
@@ -214,6 +216,7 @@ function DownloadTranscriptButton({
       disabled={busy}
       className={cn(
         "inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors disabled:opacity-60",
+        fullWidth && "w-full justify-center",
         variant === "solid"
           ? "border border-border bg-secondary text-foreground hover:bg-muted"
           : "text-ink-subtle hover:text-foreground",
@@ -229,87 +232,122 @@ function DownloadTranscriptButton({
   );
 }
 
-// ── Scorecard sections ──────────────────────────────────────────────────────
-function Header({
+// ── The pinned verdict rail ─────────────────────────────────────────────────
+type NavItem = { href: string; label: string };
+
+function Rail({
   data,
+  report,
   interviewId,
+  nav,
 }: {
   data: ResultData;
+  report: Report;
   interviewId: string;
+  nav: NavItem[];
 }) {
+  const overall = Math.round(report.overall ?? 0);
   const date = formatDate(data.createdAt);
   return (
-    <Reveal className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-      <div className="flex flex-col gap-2.5">
-        <span className="ln-eyebrow">Interview Report</span>
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="ln-display-md text-foreground">{data.jobRole}</h1>
-          <Badge variant={data.type === "PRACTICE" ? "secondary" : "outline"}>
-            {data.type === "PRACTICE" ? "Practice" : "Interview"}
-          </Badge>
+    <aside className="shrink-0 lg:sticky lg:top-24 lg:w-[17.5rem]">
+      <Reveal className="ln-lift flex flex-col gap-6 rounded-2xl border border-border bg-card p-6">
+        {/* Identity */}
+        <div className="flex flex-col gap-2.5">
+          <span className="ln-eyebrow">Interview Report</span>
+          <h1 className="text-2xl font-semibold leading-tight tracking-tight text-foreground text-balance">
+            {data.jobRole}
+          </h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={data.type === "PRACTICE" ? "secondary" : "outline"}>
+              {data.type === "PRACTICE" ? "Practice" : "Interview"}
+            </Badge>
+            <span className="text-xs text-ink-tertiary">
+              <span className="capitalize">{data.experience}</span>
+              {date && <span> · {date}</span>}
+            </span>
+          </div>
         </div>
-        <p className="text-sm text-ink-subtle">
-          <span className="capitalize">{data.experience}</span> level
-          {date && <span className="text-ink-tertiary"> · {date}</span>}
-        </p>
-      </div>
-      <div className="shrink-0">
-        <DownloadTranscriptButton interviewId={interviewId} />
-      </div>
-    </Reveal>
-  );
-}
 
-function ScorePanel({ report }: { report: Report }) {
-  const overall = Math.round(report.overall ?? 0);
-  return (
-    <Reveal delay={80}>
-      <div className="ln-lift grid gap-8 rounded-2xl border border-border bg-card p-7 sm:grid-cols-[auto_1fr] sm:gap-10 sm:p-9">
-        <div className="flex flex-col items-start gap-3 sm:border-r sm:border-border sm:pr-10">
+        {/* Score */}
+        <div className="flex flex-col gap-3 border-t border-border pt-6">
           <div className="flex items-end gap-1.5">
             <span
               className={cn(
-                "ln-mono text-6xl font-semibold leading-none tabular-nums sm:text-7xl",
+                "ln-mono text-6xl font-semibold leading-none tabular-nums",
                 scoreTone(overall),
               )}
             >
               {overall}
             </span>
-            <span className="mb-1.5 text-lg text-ink-tertiary">/100</span>
+            <span className="mb-1 text-base text-ink-tertiary">/100</span>
           </div>
           {report.bandLabel && (
-            <span className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium text-ink-muted">
+            <span className="inline-flex w-fit items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium text-ink-muted">
               <span className={cn("size-1.5 rounded-full", bandDot(report.band))} />
               {report.bandLabel}
             </span>
           )}
         </div>
-        <div className="flex flex-col justify-center gap-3">
-          {report.headline && (
-            <p className="text-lg font-medium leading-snug text-foreground text-pretty">
-              {report.headline}
-            </p>
-          )}
-          {report.summary && (
-            <p className="max-w-[62ch] text-sm leading-relaxed text-ink-subtle text-pretty">
-              {report.summary}
-            </p>
-          )}
-          {report.transcriptNote && (
-            <p className="mt-1 flex items-start gap-2 text-xs leading-relaxed text-ink-tertiary">
-              <Info className="mt-0.5 size-3.5 shrink-0" />
-              {report.transcriptNote}
-            </p>
-          )}
+
+        {/* In-page nav */}
+        {nav.length > 0 && (
+          <nav className="flex flex-col gap-0.5 border-t border-border pt-5">
+            {nav.map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                className="rounded-md px-2 py-1.5 text-sm text-ink-subtle transition-colors hover:bg-muted hover:text-foreground"
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
+        )}
+
+        {/* Actions */}
+        <div className="flex flex-col gap-2 border-t border-border pt-5">
+          <DownloadTranscriptButton interviewId={interviewId} fullWidth />
+          <Link
+            to="/dashboard/interviews"
+            className="inline-flex items-center justify-center gap-2 px-3.5 py-2 text-sm font-medium text-ink-subtle transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="size-4" />
+            Back to interviews
+          </Link>
         </div>
-      </div>
+      </Reveal>
+    </aside>
+  );
+}
+
+// ── Detail column sections ──────────────────────────────────────────────────
+function Lede({ report }: { report: Report }) {
+  if (!report.headline && !report.summary && !report.transcriptNote) return null;
+  return (
+    <Reveal className="flex flex-col gap-4">
+      {report.headline && (
+        <p className="ln-display-md text-foreground text-balance">
+          {report.headline}
+        </p>
+      )}
+      {report.summary && (
+        <p className="max-w-[64ch] text-base leading-relaxed text-ink-subtle text-pretty">
+          {report.summary}
+        </p>
+      )}
+      {report.transcriptNote && (
+        <p className="flex items-start gap-2 text-xs leading-relaxed text-ink-tertiary">
+          <Info className="mt-0.5 size-3.5 shrink-0" />
+          {report.transcriptNote}
+        </p>
+      )}
     </Reveal>
   );
 }
 
 function Dimensions({ dimensions }: { dimensions: Dimension[] }) {
   return (
-    <Reveal delay={140}>
+    <Reveal id="competencies" delay={80}>
       <SectionTitle hint="Scored across every interview">Competencies</SectionTitle>
       <div className="grid gap-x-10 gap-y-7 sm:grid-cols-2">
         {dimensions.map((d) => (
@@ -355,7 +393,10 @@ function PointList({
       </span>
       <ul className="flex flex-col gap-2">
         {items.map((item, i) => (
-          <li key={i} className="flex gap-2.5 text-[13.5px] leading-relaxed text-ink-subtle">
+          <li
+            key={i}
+            className="flex gap-2.5 text-[13.5px] leading-relaxed text-ink-subtle"
+          >
             {tone === "good" ? (
               <Check className="mt-0.5 size-3.5 shrink-0 text-emerald-400" />
             ) : (
@@ -371,7 +412,7 @@ function PointList({
 
 function Topics({ topics }: { topics: Topic[] }) {
   return (
-    <Reveal delay={200}>
+    <Reveal id="topics" delay={80}>
       <SectionTitle hint={`${topics.length} area${topics.length === 1 ? "" : "s"}`}>
         Topic breakdown
       </SectionTitle>
@@ -496,7 +537,7 @@ function Highlights({
 }) {
   if (strengths.length === 0 && growthAreas.length === 0) return null;
   return (
-    <Reveal delay={260}>
+    <Reveal id="strengths" delay={80}>
       <div className="grid gap-x-10 gap-y-10 rounded-2xl border border-border bg-card p-7 sm:grid-cols-2 sm:p-8">
         <HighlightColumn
           title="Strengths"
@@ -518,7 +559,7 @@ function Highlights({
 function StudyPlan({ items }: { items: StudyItem[] }) {
   if (!items || items.length === 0) return null;
   return (
-    <Reveal delay={320}>
+    <Reveal id="study" delay={80}>
       <SectionTitle>Your study plan</SectionTitle>
       <ol className="flex flex-col gap-3">
         {items.map((item, i) => (
@@ -570,27 +611,27 @@ function Scorecard({
     report.studyPlan ??
     (report.studyNext ?? []).map((s) => ({ focus: s, why: "", action: "" }));
 
-  return (
-    <div className="flex flex-col gap-14">
-      <Header data={data} interviewId={interviewId} />
-      <ScorePanel report={report} />
-      {dimensions.length > 0 && <Dimensions dimensions={dimensions} />}
-      {topics.length > 0 && <Topics topics={topics} />}
-      <Highlights strengths={strengths} growthAreas={growthAreas} />
-      <StudyPlan items={studyPlan} />
+  const nav: NavItem[] = [
+    dimensions.length > 0 && { href: "#competencies", label: "Competencies" },
+    topics.length > 0 && { href: "#topics", label: "Topic breakdown" },
+    (strengths.length > 0 || growthAreas.length > 0) && {
+      href: "#strengths",
+      label: "Strengths & growth",
+    },
+    studyPlan.length > 0 && { href: "#study", label: "Study plan" },
+  ].filter(Boolean) as NavItem[];
 
-      <Reveal delay={380}>
-        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6">
-          <Link
-            to="/dashboard/interviews"
-            className="inline-flex items-center gap-2 text-sm font-medium text-ink-subtle transition-colors hover:text-foreground"
-          >
-            <ArrowLeft className="size-4" />
-            Back to interviews
-          </Link>
-          <DownloadTranscriptButton interviewId={interviewId} variant="ghost" />
-        </div>
-      </Reveal>
+  return (
+    <div className="flex flex-col gap-12 lg:flex-row-reverse lg:items-start lg:gap-14">
+      <Rail data={data} report={report} interviewId={interviewId} nav={nav} />
+
+      <div className="flex min-w-0 flex-1 flex-col gap-14">
+        <Lede report={report} />
+        {dimensions.length > 0 && <Dimensions dimensions={dimensions} />}
+        {topics.length > 0 && <Topics topics={topics} />}
+        <Highlights strengths={strengths} growthAreas={growthAreas} />
+        <StudyPlan items={studyPlan} />
+      </div>
     </div>
   );
 }
@@ -608,15 +649,13 @@ function CenteredState({
   children?: React.ReactNode;
 }) {
   return (
-    <Reveal className="flex flex-col items-center py-16 text-center">
+    <Reveal className="mx-auto flex max-w-md flex-col items-center py-16 text-center">
       <div className="flex size-14 items-center justify-center rounded-2xl border border-border bg-secondary">
         {icon}
       </div>
       <span className="ln-eyebrow mt-6">Interview Report</span>
       <h1 className="ln-display-md mt-3 text-foreground">{title}</h1>
-      <p className="mt-3 max-w-md text-sm leading-relaxed text-ink-subtle">
-        {description}
-      </p>
+      <p className="mt-3 text-sm leading-relaxed text-ink-subtle">{description}</p>
       {children}
     </Reveal>
   );

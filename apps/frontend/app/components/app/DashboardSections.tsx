@@ -9,16 +9,18 @@ import {
   BarChart3,
   Binary,
   Blocks,
+  Bookmark,
+  BookmarkCheck,
   Braces,
   Briefcase,
   Clock,
   Database,
   Dumbbell,
-  ExternalLink,
   Hexagon,
   ListChecks,
   Loader2,
   MapPin,
+  Wallet,
   MessagesSquare,
   Mic,
   Network,
@@ -960,8 +962,12 @@ type Job = {
   location: string | null;
   remote: boolean;
   jobType: "FULL_TIME" | "PART_TIME" | "CONTRACT" | "INTERNSHIP" | "OTHER";
+  category: string | null;
   description: string;
   tags: string[];
+  salaryMin: number | null;
+  salaryMax: number | null;
+  salaryCurrency: string | null;
   url: string;
   postedAt: string | null;
 };
@@ -974,7 +980,70 @@ const JOB_TYPE_LABELS: Record<Job["jobType"], string> = {
   OTHER: "Other",
 };
 
+const SOURCE_LABELS: Record<Job["source"], string> = {
+  REMOTIVE: "Remotive",
+  ARBEITNOW: "Arbeitnow",
+  ADZUNA: "Adzuna",
+};
+
 const PAGE_SIZE = 20;
+
+// A stable jewel-tone accent per company, drawn from the same restrained oklch
+// family as the practice-skill accents — so the grid reads as a considered set,
+// and a given company keeps its color across renders and pages.
+const JOB_ACCENTS = [
+  "oklch(0.68 0.13 220)",
+  "oklch(0.64 0.14 150)",
+  "oklch(0.62 0.15 285)",
+  "oklch(0.72 0.12 70)",
+  "oklch(0.66 0.12 195)",
+  "oklch(0.74 0.13 95)",
+  "oklch(0.62 0.14 255)",
+  "oklch(0.65 0.15 12)",
+] as const;
+
+function jobAccent(company: string): string {
+  let hash = 0;
+  for (let i = 0; i < company.length; i++) {
+    hash = (hash * 31 + company.charCodeAt(i)) | 0;
+  }
+  return JOB_ACCENTS[Math.abs(hash) % JOB_ACCENTS.length];
+}
+
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+  INR: "₹",
+  CAD: "$",
+  AUD: "$",
+};
+
+function compactMoney(n: number, symbol: string): string {
+  if (n >= 1000) {
+    const k = n / 1000;
+    const rounded = k >= 100 ? Math.round(k) : Math.round(k * 10) / 10;
+    return `${symbol}${rounded}k`;
+  }
+  return `${symbol}${Math.round(n)}`;
+}
+
+function formatSalary(
+  min: number | null,
+  max: number | null,
+  currency: string | null,
+): string | null {
+  if (!min && !max) return null;
+  const code = (currency ?? "USD").toUpperCase();
+  const symbol = CURRENCY_SYMBOLS[code] ?? "";
+  const suffix = symbol ? "" : ` ${code}`;
+  if (min && max) {
+    if (min === max) return `${compactMoney(min, symbol)}${suffix}`;
+    return `${compactMoney(min, symbol)}–${compactMoney(max, symbol)}${suffix}`;
+  }
+  if (min) return `From ${compactMoney(min, symbol)}${suffix}`;
+  return `Up to ${compactMoney(max as number, symbol)}${suffix}`;
+}
 
 function stripHtml(html: string): string {
   return html
@@ -996,59 +1065,196 @@ function timeAgo(iso: string | null): string | null {
   return `${months}mo ago`;
 }
 
-function JobCard({ job }: { job: Job }) {
+function JobCard({
+  job,
+  index,
+  saved,
+  onToggleSave,
+}: {
+  job: Job;
+  index: number;
+  saved: boolean;
+  onToggleSave: (job: Job) => void;
+}) {
   const posted = timeAgo(job.postedAt);
   const snippet = stripHtml(job.description);
+  const salary = formatSalary(job.salaryMin, job.salaryMax, job.salaryCurrency);
+  const accent = jobAccent(job.company);
+  const tags = (job.tags ?? []).slice(0, 3);
+  const extraTags = Math.max(0, (job.tags?.length ?? 0) - tags.length);
+
   return (
-    <a
-      href={job.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="ln-lift group flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 transition-colors hover:border-primary/40"
+    <article
+      style={{
+        ["--accent" as string]: accent,
+        animationDelay: `${Math.min(index, 8) * 45}ms`,
+      }}
+      className={cn(
+        "ln-lift ln-rise group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card p-5",
+        "transition-[transform,border-color] duration-200 ease-out",
+        "hover:-translate-y-0.5 hover:border-[color-mix(in_oklab,var(--accent)_45%,var(--border))]",
+      )}
     >
+      {/* Accent wash — atmosphere that only surfaces on hover. */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -right-8 -top-8 size-28 rounded-full opacity-0 blur-2xl transition-opacity duration-300 ease-out group-hover:opacity-100"
+        style={{
+          background:
+            "radial-gradient(circle, color-mix(in oklab, var(--accent) 45%, transparent), transparent 70%)",
+        }}
+      />
+
       <div className="flex items-start gap-3">
         {job.companyLogo ? (
-          <img
-            src={job.companyLogo}
-            alt=""
-            className="size-10 shrink-0 rounded-lg border border-border object-contain"
-          />
+          <span className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-card ring-1 ring-[color-mix(in_oklab,var(--accent)_22%,transparent)] transition-transform duration-200 ease-out group-hover:scale-[1.06]">
+            <img
+              src={job.companyLogo}
+              alt=""
+              className="size-full object-contain p-1.5"
+            />
+          </span>
         ) : (
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-muted text-sm font-semibold text-ink-subtle">
+          <span
+            className="flex size-11 shrink-0 items-center justify-center rounded-xl text-sm font-semibold text-[var(--accent)] ring-1 ring-[color-mix(in_oklab,var(--accent)_22%,transparent)] transition-transform duration-200 ease-out group-hover:scale-[1.06]"
+            style={{
+              background: "color-mix(in oklab, var(--accent) 13%, var(--card))",
+            }}
+          >
             {job.company.slice(0, 1).toUpperCase()}
-          </div>
+          </span>
         )}
+
         <div className="min-w-0 flex-1">
-          <h3 className="truncate text-sm font-semibold text-foreground group-hover:text-primary">
+          <h3 className="truncate text-[15px] font-semibold tracking-tight text-foreground transition-colors duration-200 group-hover:text-[var(--accent)]">
             {job.title}
           </h3>
-          <p className="truncate text-sm text-ink-subtle">{job.company}</p>
+          <p className="mt-0.5 flex items-center gap-1.5 text-xs text-ink-subtle">
+            <span className="truncate">{job.company}</span>
+            <span aria-hidden className="text-ink-tertiary">
+              ·
+            </span>
+            <span className="shrink-0 text-ink-tertiary">
+              {SOURCE_LABELS[job.source]}
+            </span>
+          </p>
         </div>
-        <ExternalLink className="size-4 shrink-0 text-ink-tertiary transition-colors group-hover:text-primary" />
+
+        <button
+          type="button"
+          onClick={() => onToggleSave(job)}
+          aria-pressed={saved}
+          aria-label={saved ? "Remove from saved jobs" : "Save job"}
+          title={saved ? "Saved" : "Save"}
+          className={cn(
+            "-mr-1 -mt-1 flex size-8 shrink-0 items-center justify-center rounded-lg border",
+            "transition-[transform,color,background-color,border-color] duration-150 ease-out active:scale-[0.92]",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--accent)_55%,transparent)]",
+            saved
+              ? "border-[color-mix(in_oklab,var(--accent)_40%,var(--border))] bg-[color-mix(in_oklab,var(--accent)_12%,var(--card))] text-[var(--accent)]"
+              : "border-transparent text-ink-tertiary hover:border-border hover:bg-muted/60 hover:text-foreground",
+          )}
+        >
+          {saved ? (
+            <BookmarkCheck className="size-4" />
+          ) : (
+            <Bookmark className="size-4" />
+          )}
+        </button>
       </div>
 
+      {salary && (
+        <p className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
+          <Wallet className="size-3.5 text-[var(--accent)]" />
+          {salary}
+        </p>
+      )}
+
       {snippet && (
-        <p className="line-clamp-2 text-sm leading-relaxed text-ink-subtle">
+        <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-ink-subtle">
           {snippet}
         </p>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
-        {job.remote && <Badge variant="secondary">Remote</Badge>}
-        {job.jobType !== "OTHER" && (
-          <Badge variant="outline">{JOB_TYPE_LABELS[job.jobType]}</Badge>
-        )}
-        {job.location && (
-          <span className="inline-flex items-center gap-1 text-xs text-ink-tertiary">
-            <MapPin className="size-3" />
-            {job.location}
-          </span>
-        )}
-        {posted && (
-          <span className="ml-auto text-xs text-ink-tertiary">{posted}</span>
-        )}
+      {(tags.length > 0 || job.jobType !== "OTHER") && (
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          {tags.length > 0
+            ? tags.map((t) => (
+                <span
+                  key={t}
+                  className="rounded-md border border-border bg-muted/50 px-2 py-0.5 text-[11px] text-ink-subtle"
+                >
+                  {t}
+                </span>
+              ))
+            : job.jobType !== "OTHER" && (
+                <Badge variant="outline">{JOB_TYPE_LABELS[job.jobType]}</Badge>
+              )}
+          {extraTags > 0 && (
+            <span className="px-1 py-0.5 text-[11px] text-ink-tertiary">
+              +{extraTags}
+            </span>
+          )}
+        </div>
+      )}
+
+      <div className="mt-4 flex items-center gap-3 border-t border-border/60 pt-4">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-tertiary">
+          {job.remote && (
+            <span className="inline-flex items-center gap-1.5 font-medium text-[var(--accent)]">
+              <span className="size-1.5 rounded-full bg-[var(--accent)]" />
+              Remote
+            </span>
+          )}
+          {job.location && (
+            <span className="inline-flex min-w-0 items-center gap-1">
+              <MapPin className="size-3 shrink-0" />
+              <span className="truncate">{job.location}</span>
+            </span>
+          )}
+          {posted && (
+            <span className="inline-flex items-center gap-1">
+              <Clock className="size-3" />
+              {posted}
+            </span>
+          )}
+        </div>
+
+        <Button asChild size="sm" className="shrink-0">
+          <a href={job.url} target="_blank" rel="noopener noreferrer">
+            Apply
+            <ArrowRight className="transition-transform duration-200 ease-out group-hover:translate-x-0.5" />
+          </a>
+        </Button>
       </div>
-    </a>
+    </article>
+  );
+}
+
+function JobCardSkeleton() {
+  return (
+    <div className="ln-lift flex flex-col rounded-2xl border border-border bg-card p-5">
+      <div className="flex items-start gap-3">
+        <div className="skeleton-shimmer size-11 shrink-0 rounded-xl bg-muted" />
+        <div className="min-w-0 flex-1">
+          <div className="skeleton-shimmer h-4 w-40 rounded bg-muted" />
+          <div className="skeleton-shimmer mt-2 h-3 w-24 rounded bg-muted" />
+        </div>
+        <div className="skeleton-shimmer size-8 shrink-0 rounded-lg bg-muted" />
+      </div>
+      <div className="skeleton-shimmer mt-3 h-4 w-28 rounded bg-muted" />
+      <div className="skeleton-shimmer mt-3 h-3 w-full rounded bg-muted" />
+      <div className="skeleton-shimmer mt-1.5 h-3 w-2/3 rounded bg-muted" />
+      <div className="mt-3 flex gap-1.5">
+        <div className="skeleton-shimmer h-5 w-14 rounded-md bg-muted" />
+        <div className="skeleton-shimmer h-5 w-16 rounded-md bg-muted" />
+        <div className="skeleton-shimmer h-5 w-12 rounded-md bg-muted" />
+      </div>
+      <div className="mt-4 flex items-center justify-between border-t border-border/60 pt-4">
+        <div className="skeleton-shimmer h-3 w-24 rounded bg-muted" />
+        <div className="skeleton-shimmer h-7 w-16 rounded-lg bg-muted" />
+      </div>
+    </div>
   );
 }
 
@@ -1076,6 +1282,8 @@ function FilterSelect({
 }
 
 export function Jobs() {
+  const [view, setView] = useState<"all" | "saved">("all");
+
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [remoteOnly, setRemoteOnly] = useState(false);
@@ -1087,6 +1295,11 @@ export function Jobs() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+
+  const [savedJobs, setSavedJobs] = useState<Job[]>([]);
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [savedLoading, setSavedLoading] = useState(true);
+  const [savedError, setSavedError] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQuery(query.trim()), 300);
@@ -1134,6 +1347,78 @@ export function Jobs() {
     };
   }, [debouncedQuery, remoteOnly, type, source, page]);
 
+  // Saved jobs load once — they drive both the "Saved" view and each card's
+  // bookmark state in the "All" view.
+  useEffect(() => {
+    let cancelled = false;
+    axios
+      .get(`${BACKEND_URL}/jobs/saved`, { withCredentials: true })
+      .then((res) => {
+        if (cancelled) return;
+        const list: Job[] = res.data?.data?.jobs ?? [];
+        setSavedJobs(list);
+        setSavedIds(new Set(list.map((j) => j.id)));
+      })
+      .catch(() => {
+        if (!cancelled) setSavedError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setSavedLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const toggleSave = (job: Job) => {
+    const wasSaved = savedIds.has(job.id);
+
+    // Optimistic update.
+    setSavedIds((prev) => {
+      const next = new Set(prev);
+      if (wasSaved) next.delete(job.id);
+      else next.add(job.id);
+      return next;
+    });
+    setSavedJobs((prev) =>
+      wasSaved
+        ? prev.filter((j) => j.id !== job.id)
+        : prev.some((j) => j.id === job.id)
+          ? prev
+          : [job, ...prev],
+    );
+
+    const request = wasSaved
+      ? axios.delete(`${BACKEND_URL}/jobs/${job.id}/save`, {
+          withCredentials: true,
+        })
+      : axios.post(
+          `${BACKEND_URL}/jobs/${job.id}/save`,
+          {},
+          { withCredentials: true },
+        );
+
+    request
+      .then(() => toast.success(wasSaved ? "Removed from saved" : "Job saved"))
+      .catch(() => {
+        // Roll back on failure.
+        setSavedIds((prev) => {
+          const next = new Set(prev);
+          if (wasSaved) next.add(job.id);
+          else next.delete(job.id);
+          return next;
+        });
+        setSavedJobs((prev) =>
+          wasSaved
+            ? prev.some((j) => j.id === job.id)
+              ? prev
+              : [job, ...prev]
+            : prev.filter((j) => j.id !== job.id),
+        );
+        toast.error("Couldn't update saved jobs. Please try again.");
+      });
+  };
+
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
@@ -1141,56 +1426,126 @@ export function Jobs() {
       <SectionHeader
         eyebrow="Opportunities"
         title="Jobs"
-        description="Software-engineering roles aggregated from top sources. Click any role to apply on the original site."
+        description="Software-engineering roles aggregated from top sources. Save the ones worth a second look, then apply on the original site."
       />
 
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative min-w-56 flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-tertiary" />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search role, company, or tag…"
-              className="pl-9"
-            />
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setRemoteOnly((v) => !v)}
-            aria-pressed={remoteOnly}
-            className={cn(
-              "h-9 rounded-lg border px-3 text-sm font-medium transition-colors",
-              remoteOnly
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-border bg-card text-ink-subtle hover:text-foreground",
-            )}
-          >
-            Remote only
-          </button>
-
-          <FilterSelect value={type} onChange={setType} label="Job type">
-            <option value="">All types</option>
-            <option value="FULL_TIME">Full-time</option>
-            <option value="PART_TIME">Part-time</option>
-            <option value="CONTRACT">Contract</option>
-            <option value="INTERNSHIP">Internship</option>
-          </FilterSelect>
-
-          <FilterSelect value={source} onChange={setSource} label="Source">
-            <option value="">All sources</option>
-            <option value="REMOTIVE">Remotive</option>
-            <option value="ARBEITNOW">Arbeitnow</option>
-            <option value="ADZUNA">Adzuna</option>
-          </FilterSelect>
+      <div className="flex flex-wrap items-center gap-3">
+        {/* All / Saved view segmented control. */}
+        <div className="inline-flex rounded-lg border border-border bg-card p-0.5">
+          {(["all", "saved"] as const).map((v) => {
+            const on = view === v;
+            const count = v === "saved" ? savedIds.size : null;
+            return (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setView(v)}
+                aria-pressed={on}
+                className={cn(
+                  "inline-flex h-8 items-center gap-1.5 rounded-[7px] px-3 text-sm font-medium transition-colors",
+                  on
+                    ? "bg-primary/10 text-primary"
+                    : "text-ink-subtle hover:text-foreground",
+                )}
+              >
+                {v === "saved" && <Bookmark className="size-3.5" />}
+                {v === "all" ? "All jobs" : "Saved"}
+                {count !== null && count > 0 && (
+                  <span
+                    className={cn(
+                      "rounded-full px-1.5 text-[11px] tabular-nums",
+                      on ? "bg-primary/15" : "bg-muted text-ink-tertiary",
+                    )}
+                  >
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
+
+        {view === "all" && (
+          <>
+            <div className="relative min-w-56 flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-tertiary" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search role, company, or tag…"
+                className="pl-9"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setRemoteOnly((v) => !v)}
+              aria-pressed={remoteOnly}
+              className={cn(
+                "h-9 rounded-lg border px-3 text-sm font-medium transition-colors",
+                remoteOnly
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border bg-card text-ink-subtle hover:text-foreground",
+              )}
+            >
+              Remote only
+            </button>
+
+            <FilterSelect value={type} onChange={setType} label="Job type">
+              <option value="">All types</option>
+              <option value="FULL_TIME">Full-time</option>
+              <option value="PART_TIME">Part-time</option>
+              <option value="CONTRACT">Contract</option>
+              <option value="INTERNSHIP">Internship</option>
+            </FilterSelect>
+
+            <FilterSelect value={source} onChange={setSource} label="Source">
+              <option value="">All sources</option>
+              <option value="REMOTIVE">Remotive</option>
+              <option value="ARBEITNOW">Arbeitnow</option>
+              <option value="ADZUNA">Adzuna</option>
+            </FilterSelect>
+          </>
+        )}
       </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-card px-6 py-20 text-sm text-ink-subtle">
-          <Loader2 className="size-4 animate-spin" />
-          Loading jobs…
+      {view === "saved" ? (
+        savedLoading ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <JobCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : savedError ? (
+          <EmptyState
+            icon={Briefcase}
+            title="Couldn't load saved jobs"
+            description="Something went wrong fetching your saved roles. Please try again in a moment."
+          />
+        ) : savedJobs.length === 0 ? (
+          <EmptyState
+            icon={Bookmark}
+            title="No saved jobs yet"
+            description="Tap the bookmark on any role to keep it here for later."
+          />
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {savedJobs.map((job, i) => (
+              <JobCard
+                key={job.id}
+                job={job}
+                index={i}
+                saved={savedIds.has(job.id)}
+                onToggleSave={toggleSave}
+              />
+            ))}
+          </div>
+        )
+      ) : loading ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <JobCardSkeleton key={i} />
+          ))}
         </div>
       ) : error ? (
         <EmptyState
@@ -1206,9 +1561,15 @@ export function Jobs() {
         />
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {jobs.map((job) => (
-              <JobCard key={job.id} job={job} />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {jobs.map((job, i) => (
+              <JobCard
+                key={job.id}
+                job={job}
+                index={i}
+                saved={savedIds.has(job.id)}
+                onToggleSave={toggleSave}
+              />
             ))}
           </div>
 
