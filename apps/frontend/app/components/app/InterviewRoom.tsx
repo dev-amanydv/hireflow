@@ -95,7 +95,7 @@ export default function InterviewRoom({
       </RoomShell>
     );
 
-  return <InterviewSession creds={creds} />;
+  return <InterviewSession creds={creds} interviewId={interviewId} />;
 }
 
 const STATUS_LABEL: Partial<Record<AgentState, string>> = {
@@ -116,7 +116,13 @@ function formatElapsed(totalSeconds: number) {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-function InterviewSession({ creds }: { creds: TokenResponse }) {
+function InterviewSession({
+  creds,
+  interviewId,
+}: {
+  creds: TokenResponse;
+  interviewId: string;
+}) {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -173,9 +179,9 @@ function InterviewSession({ creds }: { creds: TokenResponse }) {
       wasConnected.current &&
       connectionState === ConnectionState.Disconnected
     ) {
-      navigate("/result");
+      navigate(`/result?interviewId=${interviewId}`);
     }
-  }, [isConnected, connectionState, navigate]);
+  }, [isConnected, connectionState, navigate, interviewId]);
 
   if (error)
     return (

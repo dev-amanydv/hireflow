@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router";
 import axios from "axios";
+import { toast } from "sonner";
 import {
   ArrowRight,
   BarChart3,
   Briefcase,
+  Dumbbell,
   ExternalLink,
   Loader2,
   MapPin,
@@ -23,6 +26,24 @@ import { useAuth } from "~/store/store";
 import { useStartInterview } from "~/lib/useStartInterview";
 import { BACKEND_URL } from "~/lib/config";
 import { cn } from "~/lib/utils";
+
+type Difficulty = "beginner" | "junior" | "mid" | "senior" | "staff";
+
+const PRACTICE_LEVELS: { value: Difficulty; label: string; note: string }[] = [
+  { value: "beginner", label: "Beginner", note: "0 yrs" },
+  { value: "junior", label: "Junior", note: "0–2 yrs" },
+  { value: "mid", label: "Mid", note: "2–5 yrs" },
+  { value: "senior", label: "Senior", note: "5–9 yrs" },
+  { value: "staff", label: "Staff", note: "10+ yrs" },
+];
+
+const LEVEL_LABEL: Record<Difficulty, string> = {
+  beginner: "Beginner",
+  junior: "Junior",
+  mid: "Mid",
+  senior: "Senior",
+  staff: "Staff",
+};
 
 function SectionHeader({
   eyebrow,
@@ -92,8 +113,6 @@ function StartInterviewHero() {
 
       <div className="relative flex flex-col gap-4 p-5 sm:flex-row sm:items-end sm:justify-between sm:gap-6 sm:p-6">
         <div className="flex flex-col gap-3.5">
-          
-
           <div className="flex flex-col gap-5">
             <h2 className="text-xl font-semibold leading-tight tracking-tight text-foreground text-balance sm:text-2xl">
               Practice smart.
@@ -169,8 +188,280 @@ export function Overview() {
   );
 }
 
+type PracticeSkill = { id: string; label: string; blurb: string };
+
+function SkillCard({
+  skill,
+  selected,
+  onSelect,
+}: {
+  skill: PracticeSkill;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      className={cn(
+        "ln-lift group flex flex-col gap-1.5 rounded-2xl border bg-card p-5 text-left transition-colors",
+        selected
+          ? "border-primary ring-1 ring-primary/40"
+          : "border-border hover:border-primary/40",
+      )}
+    >
+      <span
+        className={cn(
+          "flex size-9 items-center justify-center rounded-lg transition-colors",
+          selected
+            ? "bg-primary/15 text-primary"
+            : "bg-muted text-ink-subtle group-hover:text-foreground",
+        )}
+      >
+        <Dumbbell className="size-4" />
+      </span>
+      <h3 className="mt-1 text-sm font-semibold text-foreground">
+        {skill.label}
+      </h3>
+      <p className="text-xs leading-relaxed text-ink-subtle">{skill.blurb}</p>
+    </button>
+  );
+}
+
+export function Practice() {
+  const navigate = useNavigate();
+  const [skills, setSkills] = useState<PracticeSkill[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [selected, setSelected] = useState<PracticeSkill | null>(null);
+  const [level, setLevel] = useState<Difficulty>("mid");
+  const [starting, setStarting] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    axios
+      .get(`${BACKEND_URL}/interview/practice/skills`, {
+        withCredentials: true,
+      })
+      .then((res) => {
+        if (!cancelled) setSkills(res.data?.data?.skills ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const startPractice = async () => {
+    if (!selected || starting) return;
+    setStarting(true);
+    try {
+      const res = await axios.post(
+        `${BACKEND_URL}/interview/practice`,
+        { skill: selected.id, experience: level },
+        { withCredentials: true },
+      );
+      const id = res.data?.data?.interview?.id;
+      if (!id) throw new Error("missing interview id");
+      navigate(`/interview/${id}?tab=lobby`);
+    } catch {
+      toast.error("Couldn't start the practice interview. Please try again.");
+      setStarting(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-8">
+      <SectionHeader
+        eyebrow="Practice"
+        title="Skill practice interviews"
+        description="Pick a skill and a difficulty, and our AI interviewer runs a mock interview focused purely on that skill — no resume needed."
+      />
+
+      {loading ? (
+        <div className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-card px-6 py-20 text-sm text-ink-subtle">
+          <Loader2 className="size-4 animate-spin" />
+          Loading skills…
+        </div>
+      ) : error ? (
+        <EmptyState
+          icon={Dumbbell}
+          title="Couldn't load skills"
+          description="Something went wrong fetching practice skills. Please try again in a moment."
+        />
+      ) : (
+        <>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {skills.map((skill) => (
+              <SkillCard
+                key={skill.id}
+                skill={skill}
+                selected={selected?.id === skill.id}
+                onSelect={() => setSelected(skill)}
+              />
+            ))}
+          </div>
+
+          {selected && (
+            <div className="ln-lift flex flex-col gap-5 rounded-2xl border border-border bg-card p-6">
+              <div>
+                <span className="ln-eyebrow">Difficulty</span>
+                <p className="mt-1 text-sm text-ink-subtle">
+                  How challenging should the{" "}
+                  <span className="font-medium text-foreground">
+                    {selected.label}
+                  </span>{" "}
+                  interview be?
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-5">
+                {PRACTICE_LEVELS.map((l) => {
+                  const on = level === l.value;
+                  return (
+                    <button
+                      key={l.value}
+                      type="button"
+                      onClick={() => setLevel(l.value)}
+                      className={cn(
+                        "flex flex-col gap-1 rounded-xl border px-4 py-2.5 text-left transition-all",
+                        on
+                          ? "border-primary bg-primary/5"
+                          : "border-border bg-muted/40 hover:border-primary/30",
+                      )}
+                    >
+                      <span className="text-[15px] font-semibold tracking-tight text-foreground">
+                        {l.label}
+                      </span>
+                      <span className="text-xs text-ink-tertiary">
+                        {l.note}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex justify-end border-t border-border pt-5">
+                <Button
+                  size="lg"
+                  className="gap-2 px-6"
+                  disabled={starting}
+                  onClick={startPractice}
+                >
+                  {starting ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      Starting…
+                    </>
+                  ) : (
+                    <>
+                      Start practice interview
+                      <ArrowRight className="size-4" />
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+type PastInterview = {
+  id: string;
+  type: "REAL" | "PRACTICE";
+  skill: string | null;
+  jobRole: string;
+  experience: Difficulty;
+  status: "SCHEDULED" | "ONGOING" | "COMPLETED";
+  createdAt: string;
+  score: number | null;
+};
+
+function InterviewRow({ interview }: { interview: PastInterview }) {
+  const date = new Date(interview.createdAt);
+  const dateLabel = Number.isNaN(date.getTime())
+    ? ""
+    : date.toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+  return (
+    <Link
+      to={`/result?interviewId=${interview.id}`}
+      className="ln-lift group flex items-center gap-4 rounded-2xl border border-border bg-card p-5 transition-colors hover:border-primary/40"
+    >
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-ink-subtle group-hover:text-foreground">
+        {interview.type === "PRACTICE" ? (
+          <Dumbbell className="size-4" />
+        ) : (
+          <MessagesSquare className="size-4" />
+        )}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <h3 className="truncate text-sm font-semibold text-foreground group-hover:text-primary">
+            {interview.jobRole}
+          </h3>
+          <Badge
+            variant={interview.type === "PRACTICE" ? "secondary" : "outline"}
+          >
+            {interview.type === "PRACTICE" ? "Practice" : "Interview"}
+          </Badge>
+        </div>
+        <p className="truncate text-xs text-ink-tertiary">
+          {LEVEL_LABEL[interview.experience]}
+          {dateLabel ? ` · ${dateLabel}` : ""}
+        </p>
+      </div>
+      <div className="shrink-0 text-right">
+        {interview.score != null ? (
+          <p className="ln-mono text-lg font-semibold tabular-nums text-foreground">
+            {Math.round(interview.score)}
+          </p>
+        ) : (
+          <p className="text-xs text-ink-tertiary">
+            {interview.status === "COMPLETED" ? "Scoring…" : "No score"}
+          </p>
+        )}
+      </div>
+      <ArrowRight className="size-4 shrink-0 text-ink-tertiary transition-colors group-hover:text-primary" />
+    </Link>
+  );
+}
+
 export function Interviews() {
   const startInterview = useStartInterview();
+  const [interviews, setInterviews] = useState<PastInterview[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    axios
+      .get(`${BACKEND_URL}/interview/list`, { withCredentials: true })
+      .then((res) => {
+        if (!cancelled) setInterviews(res.data?.data?.interviews ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setInterviews([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div className="flex flex-col gap-8">
       <SectionHeader
@@ -184,17 +475,30 @@ export function Interviews() {
           </Button>
         }
       />
-      <EmptyState
-        icon={MessagesSquare}
-        title="No interviews yet"
-        description="Once you complete an interview, it lands here with the full transcript and a detailed breakdown you can revisit anytime."
-        action={
-          <Button variant="outline" onClick={startInterview}>
-            Start your first interview
-            <ArrowRight className="size-4" />
-          </Button>
-        }
-      />
+      {loading ? (
+        <div className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-card px-6 py-20 text-sm text-ink-subtle">
+          <Loader2 className="size-4 animate-spin" />
+          Loading interviews…
+        </div>
+      ) : interviews.length === 0 ? (
+        <EmptyState
+          icon={MessagesSquare}
+          title="No interviews yet"
+          description="Once you complete an interview, it lands here with the full transcript and a detailed breakdown you can revisit anytime."
+          action={
+            <Button variant="outline" onClick={startInterview}>
+              Start your first interview
+              <ArrowRight className="size-4" />
+            </Button>
+          }
+        />
+      ) : (
+        <div className="flex flex-col gap-3">
+          {interviews.map((interview) => (
+            <InterviewRow key={interview.id} interview={interview} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

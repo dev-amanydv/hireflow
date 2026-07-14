@@ -1,6 +1,7 @@
 import {
   BarChart3,
   Briefcase,
+  Dumbbell,
   FileText,
   LayoutGrid,
   LogOut,
@@ -44,6 +45,7 @@ export const NAV_GROUPS: NavGroup[] = [
     heading: "Workspace",
     items: [
       { to: "/dashboard/overview", label: "Overview", icon: LayoutGrid },
+      { to: "/dashboard/practice", label: "Practice", icon: Dumbbell },
       { to: "/dashboard/jobs", label: "Jobs", icon: Briefcase },
       {
         to: "/dashboard/interviews",

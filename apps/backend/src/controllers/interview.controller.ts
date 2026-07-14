@@ -2,7 +2,7 @@ import z from "zod";
 import type { NextFunction, Request, Response } from "express";
 import { AppError } from "../utils/AppError";
 import { prisma } from "../../prisma/db";
-import { resumeUploadQueue } from "../queues/queue";
+import { resumeUploadQueue, enqueueInterviewFeedback } from "../queues/queue";
 import path from "path";
 import { getResumeSummary, summarySchema } from "../services/openai";
 import { Prisma } from "../generated/prisma/client";
@@ -12,11 +12,22 @@ import {
   RoomConfiguration,
   RoomAgentDispatch,
 } from "livekit-server-sdk";
+import {
+  buildSkillFocus,
+  getSkill,
+  listSkills,
+  type Difficulty,
+} from "../data/skillCatalog";
 
 const AGENT_NAME = "my-agent";
 
 const roleDetailsSchema = z.object({
   role: z.string().min(1),
+  experience: z.literal(["beginner", "junior", "mid", "senior", "staff"]),
+});
+
+const practiceDetailsSchema = z.object({
+  skill: z.string().min(1),
   experience: z.literal(["beginner", "junior", "mid", "senior", "staff"]),
 });
 
@@ -47,6 +58,48 @@ export const handleRoleDetails = async (
   res.status(201).json({
     success: true,
     message: "Role Details Saved",
+    data: {
+      interview,
+    },
+  });
+};
+
+// Returns the curated skill catalog for the practice picker UI.
+export const listPracticeSkills = async (_req: Request, res: Response) => {
+  res.status(200).json({
+    success: true,
+    message: "Practice skills fetched",
+    data: { skills: listSkills() },
+  });
+};
+
+// Creates a resume-less, skill-focused practice interview. Mirrors handleRoleDetails
+// but branches on a curated skill instead of a free-text role + resume upload.
+export const handlePracticeDetails = async (req: Request, res: Response) => {
+  const userId = req.userId;
+  if (!userId) throw new AppError(404, "Unauthorised");
+  const { success, data } = practiceDetailsSchema.safeParse(req.body);
+  if (!success) throw new AppError(401, "PracticeDetailsRequired");
+
+  const skill = getSkill(data.skill);
+  if (!skill) throw new AppError(400, "UnknownSkill");
+
+  const interview = await prisma.interview.create({
+    data: {
+      type: "PRACTICE",
+      skill: skill.id,
+      jobRole: skill.label,
+      experience: data.experience,
+      userId: userId,
+    },
+    select: {
+      id: true,
+    },
+  });
+  if (!interview) throw new AppError(504, "Internal Server Error");
+  res.status(201).json({
+    success: true,
+    message: "Practice Interview Created",
     data: {
       interview,
     },
@@ -234,7 +287,14 @@ export const generateLivekitToken = async (req: Request, res: Response) => {
 
   const interview = await prisma.interview.findFirst({
     where: { id: interviewId, userId },
-    select: { id: true, summary: true, jobRole: true, experience: true },
+    select: {
+      id: true,
+      summary: true,
+      jobRole: true,
+      experience: true,
+      type: true,
+      skill: true,
+    },
   });
   if (!interview) throw new AppError(404, "Interview not found");
 
@@ -243,13 +303,21 @@ export const generateLivekitToken = async (req: Request, res: Response) => {
   const roomName = `interview-${interviewId}`;
   const participantIdentity = `${userId}-${interviewId}`;
   const participantName = user?.email?.split("@")[0] ?? "candidate";
+  // Practice interviews have no resume summary; the agent is instead grounded in a
+  // curated skill focus block rendered from the catalog for the chosen difficulty.
+  const skillFocus =
+    interview.type === "PRACTICE" && interview.skill
+      ? buildSkillFocus(interview.skill, interview.experience as Difficulty)
+      : null;
   const context = {
     userId,
     interviewId,
     email: user?.email ?? "",
+    type: interview.type,
     jobRole: interview.jobRole,
     experience: interview.experience,
     summary: interview.summary,
+    skillFocus,
   };
 
   const at = new AccessToken(
@@ -322,5 +390,85 @@ export const completeInterview = async (req: Request, res: Response) => {
     data: { status: "COMPLETED", endAt: new Date() },
   });
 
+  // Kick off the async scorecard pass so it never blocks the agent's shutdown callback.
+  await enqueueInterviewFeedback(interviewId).catch((err) =>
+    console.error("Failed to enqueue interview feedback", err),
+  );
+
   res.status(200).json({ success: true, message: "Interview completed", data: null });
+};
+
+// Lists the signed-in user's interviews for the "Past interviews" dashboard section.
+export const listInterviews = async (req: Request, res: Response) => {
+  const userId = req.userId;
+  if (!userId) throw new AppError(401, "Unauthorised");
+
+  const interviews = await prisma.interview.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      type: true,
+      skill: true,
+      jobRole: true,
+      experience: true,
+      status: true,
+      createdAt: true,
+      result: { select: { score: true } },
+    },
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "Interviews fetched",
+    data: {
+      interviews: interviews.map((i) => ({
+        id: i.id,
+        type: i.type,
+        skill: i.skill,
+        jobRole: i.jobRole,
+        experience: i.experience,
+        status: i.status,
+        createdAt: i.createdAt,
+        score: i.result?.score ?? null,
+      })),
+    },
+  });
+};
+
+// Polled by the result page while the async feedback job runs.
+export const getInterviewResult = async (req: Request, res: Response) => {
+  const userId = req.userId;
+  if (!userId) throw new AppError(401, "Unauthorised");
+
+  const interviewId = req.params.interviewId as string;
+  if (!interviewId) throw new AppError(400, "interviewId required");
+
+  const interview = await prisma.interview.findFirst({
+    where: { id: interviewId, userId },
+    select: {
+      id: true,
+      status: true,
+      type: true,
+      skill: true,
+      jobRole: true,
+      experience: true,
+      result: { select: { score: true, report: true } },
+    },
+  });
+  if (!interview) throw new AppError(404, "Interview not found");
+
+  res.status(200).json({
+    success: true,
+    message: "Interview result fetched",
+    data: {
+      status: interview.status,
+      type: interview.type,
+      skill: interview.skill,
+      jobRole: interview.jobRole,
+      experience: interview.experience,
+      ready: Boolean(interview.result),
+      result: interview.result ?? null,
+    },
+  });
 };

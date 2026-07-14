@@ -46,6 +46,24 @@ export const resumeParseQueue = new Queue('resume-parse', {
     }
 });
 
+export const interviewFeedbackQueue = new Queue('interview-feedback', {
+    connection: connection,
+    defaultJobOptions: {
+        attempts: 3,
+        backoff: { type: "exponential", delay: 3_000 },
+        removeOnComplete: { age: 3_600 },
+        removeOnFail: { age: 24 * 3_600 }
+    }
+});
+
+export async function enqueueInterviewFeedback(interviewId: string) {
+    return interviewFeedbackQueue.add(
+        'score-interview',
+        { interviewId },
+        { jobId: `interview-feedback-${interviewId}` }
+    );
+}
+
 export const jobsIngestQueue = new Queue('jobs-ingest', {
     connection: connection,
     defaultJobOptions: {

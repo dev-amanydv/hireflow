@@ -15,6 +15,8 @@ import { Prisma } from "../generated/prisma/client";
 import { ingestJobs } from "../services/jobs/ingest";
 import { getResumeSummary } from "../services/openai";
 import { analyzeResume, type ParsedSummary } from "../services/ats";
+import { getInterviewFeedback, type TranscriptTurn } from "../services/feedback";
+import type { Difficulty } from "../data/skillCatalog";
 
 export const connection = new IORedis(process.env.REDIS_URL!, { maxRetriesPerRequest: null });
 
@@ -244,6 +246,54 @@ export function startResumeAnalysisParserWorker() {
             return;
         }
     }, { connection });
+}
+
+export function startInterviewFeedbackWorker() {
+    const w = new Worker('interview-feedback', async job => {
+        const { interviewId } = job.data as { interviewId: string };
+
+        const interview = await prisma.interview.findUnique({
+            where: { id: interviewId },
+            select: { id: true, jobRole: true, skill: true, experience: true, resultId: true }
+        });
+        if (!interview) return;
+        // A Result already linked means feedback was generated on a prior attempt.
+        if (interview.resultId) return;
+
+        const messages = await prisma.message.findMany({
+            where: { interviewId },
+            orderBy: { id: 'asc' },
+            select: { role: true, content: true }
+        });
+
+        const feedback = await getInterviewFeedback({
+            transcript: messages as TranscriptTurn[],
+            skillId: interview.skill,
+            jobRole: interview.jobRole,
+            experience: interview.experience as Difficulty
+        });
+        if (!feedback) throw new Error(`Feedback generation returned null for ${interviewId}`);
+
+        // Create the Result and link it back to the interview in one transaction.
+        await prisma.$transaction(async (tx) => {
+            const result = await tx.result.create({
+                data: {
+                    score: feedback.overall,
+                    report: feedback as unknown as Prisma.InputJsonValue
+                }
+            });
+            await tx.interview.update({
+                where: { id: interviewId },
+                data: { resultId: result.id }
+            });
+        });
+    }, { connection });
+
+    w.on('failed', (job, err) => {
+        console.log(`interview-feedback ${job?.id} failed: ${err.message}`);
+    });
+
+    return w;
 }
 
 export function startResumeAnalysisScoreWorker() {

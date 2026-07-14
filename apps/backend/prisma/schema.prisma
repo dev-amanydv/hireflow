@@ -38,6 +38,11 @@ enum MessageRole {
   Assistant
 }
 
+enum InterviewType {
+  REAL
+  PRACTICE
+}
+
 enum AnalysisStatus {
   UPLOADING
   PARSING
@@ -91,6 +96,8 @@ model Interview {
   endAt     DateTime?
   summary   String?
   status    InterviewStatus @default(SCHEDULED)
+  type      InterviewType   @default(REAL)
+  skill     String?
   experience  Experience    @default(beginner)
   resultId  String?          @unique
   result    Result?          @relation(fields: [resultId], references: [id])
@@ -130,6 +137,7 @@ model Message {
 model Result {
   id        String          @id @default(uuid())
   score     Float
+  report    Json?
   interview Interview?
   createdAt DateTime        @default(now())
   updatedAt DateTime        @default(now())
