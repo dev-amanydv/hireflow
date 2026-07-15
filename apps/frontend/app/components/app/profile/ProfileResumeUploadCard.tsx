@@ -82,3 +82,29 @@ export function ProfileResumeUploadCard({
     </div>
   );
 }
+
+export function ProfileResumeUploadCardGuest({ onSignIn }: { onSignIn: () => void }) {
+  return (
+    <div className="ln-lift flex h-full flex-col rounded-2xl border border-border bg-card p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <span className="ln-eyebrow">Profile</span>
+          <h3 className="mt-1 text-sm font-semibold text-foreground">Add your resume</h3>
+        </div>
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <FileUp className="size-4" />
+        </span>
+      </div>
+
+      <p className="mt-3 flex-1 text-xs leading-relaxed text-ink-subtle">
+        Sign in to upload your resume and auto-fill your profile with your skills, experience,
+        and education.
+      </p>
+
+      <Button size="sm" className="mt-4 gap-1.5 self-start" onClick={onSignIn}>
+        <Upload className="size-3.5" />
+        Sign in to upload
+      </Button>
+    </div>
+  );
+}

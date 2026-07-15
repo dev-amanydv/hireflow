@@ -13,7 +13,7 @@ import { ResumeInsightCard, ResumeInsightCardSkeleton } from "./ResumeInsightCar
 import { ConnectedAccounts, ConnectedAccountsSkeleton } from "./ConnectedAccounts";
 import { PracticeSummary, PracticeSummarySkeleton } from "./PracticeSummary";
 import { PublicInterviewCard, PublicInterviewCardSkeleton } from "./PublicInterviewCard";
-import { ProfileResumeUploadCard } from "./ProfileResumeUploadCard";
+import { ProfileResumeUploadCard, ProfileResumeUploadCardGuest } from "./ProfileResumeUploadCard";
 import { ProfileSummaryCard, ProfileSummaryCardSkeleton } from "./ProfileSummaryCard";
 import { EditProfileDialog, type EditableProfileFields } from "./EditProfileDialog";
 import type { MyInterviewCard, MyProfileData } from "./types";
@@ -40,7 +40,11 @@ export function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadProfile = useCallback(() => {
-    if (!user) return;
+    if (!user) {
+      setProfile(null);
+      setProfileLoading(false);
+      return;
+    }
     setProfileLoading(true);
     axios
       .get(`${BACKEND_URL}/profile/me`, { withCredentials: true })
@@ -94,7 +98,11 @@ export function ProfilePage() {
   }, [profile?.resumeStatus]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setInterviews([]);
+      setInterviewsLoading(false);
+      return;
+    }
     let cancelled = false;
     axios
       .get(`${BACKEND_URL}/interview/list`, { withCredentials: true })
@@ -146,24 +154,9 @@ export function ProfilePage() {
     setInterviews((prev) => prev.map((i) => (i.id === id ? { ...i, isPublic: next } : i)));
   };
 
-  if (!user) {
-    return (
-      <div className="flex flex-col gap-8">
-        <EmptyState
-          icon={Sparkles}
-          title="You're not signed in"
-          description="Sign in to build your profile, track your scores, and showcase your interviews."
-          action={
-            <Button variant="outline" onClick={() => openAuthModal({ mode: "signin" })}>
-              Sign in
-            </Button>
-          }
-        />
-      </div>
-    );
-  }
-
-  const displayName = profile?.displayName || profile?.username || user.email.split("@")[0]!;
+  const displayName = user
+    ? profile?.displayName || profile?.username || user.email.split("@")[0]!
+    : "Your profile";
 
   return (
     <div className="flex flex-col gap-6">
@@ -180,7 +173,27 @@ export function ProfilePage() {
         )}
       </div>
 
-      {profileLoading || !profile ? (
+      {!user && (
+        <div className="ln-lift flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-muted/40 px-5 py-3.5">
+          <p className="text-sm text-ink-subtle">
+            This is a preview. Sign in to build your real profile, track your scores, and
+            showcase your interviews.
+          </p>
+          <Button size="sm" onClick={() => openAuthModal({ mode: "signin" })}>
+            Sign in
+          </Button>
+        </div>
+      )}
+
+      {!user ? (
+        <ProfileHero
+          displayName={displayName}
+          username={null}
+          bio="Sign in to add a bio, avatar, and resume."
+          avatarUrl={null}
+          isOwner={false}
+        />
+      ) : profileLoading || !profile ? (
         <ProfileHeroSkeleton />
       ) : (
         <ProfileHero
@@ -209,7 +222,17 @@ export function ProfilePage() {
         }}
       />
 
-      {profileLoading || !profile ? (
+      {!user ? (
+        <PerformancePanel
+          stats={{
+            totalInterviews: 0,
+            minutesPracticed: 0,
+            avgScore: null,
+            bestScore: null,
+            currentStreak: 0,
+          }}
+        />
+      ) : profileLoading || !profile ? (
         <PerformancePanelSkeleton />
       ) : (
         <PerformancePanel stats={profile.stats} />
@@ -217,27 +240,33 @@ export function ProfilePage() {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="lg:col-span-1">
-          {profileLoading || !profile ? (
+          {!user ? (
+            <ResumeInsightCard resume={null} />
+          ) : profileLoading || !profile ? (
             <ResumeInsightCardSkeleton />
           ) : (
             <ResumeInsightCard resume={profile.resume} />
           )}
         </div>
         <div className="lg:col-span-2">
-          {profileLoading ? <ConnectedAccountsSkeleton /> : <ConnectedAccounts />}
+          {user && profileLoading ? <ConnectedAccountsSkeleton /> : <ConnectedAccounts />}
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="lg:col-span-1">
-          {profileLoading || !profile ? (
+          {!user ? (
+            <ProfileResumeUploadCardGuest onSignIn={() => openAuthModal({ mode: "signin" })} />
+          ) : profileLoading || !profile ? (
             <ResumeInsightCardSkeleton />
           ) : (
             <ProfileResumeUploadCard profile={profile} onUploaded={loadProfile} />
           )}
         </div>
         <div className="lg:col-span-2">
-          {profileLoading || !profile ? (
+          {!user ? (
+            <ProfileSummaryCard summary={null} />
+          ) : profileLoading || !profile ? (
             <ProfileSummaryCardSkeleton />
           ) : (
             <ProfileSummaryCard summary={profile.summary} />
@@ -245,7 +274,14 @@ export function ProfilePage() {
         </div>
       </div>
 
-      {profileLoading || !profile ? (
+      {!user ? (
+        <PracticeSummary
+          weeklyPractice={[]}
+          scoreTrend={[]}
+          typeDistribution={[]}
+          skillDistribution={[]}
+        />
+      ) : profileLoading || !profile ? (
         <PracticeSummarySkeleton />
       ) : (
         <PracticeSummary
@@ -314,14 +350,16 @@ export function ProfilePage() {
       )}
 
       {/* Floating quick-edit action, always reachable regardless of scroll position. */}
-      <button
-        type="button"
-        onClick={() => setEditOpen(true)}
-        aria-label="Edit profile"
-        className="fixed bottom-6 right-6 z-40 flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2"
-      >
-        <PenLine className="size-5" />
-      </button>
+      {user && (
+        <button
+          type="button"
+          onClick={() => setEditOpen(true)}
+          aria-label="Edit profile"
+          className="fixed bottom-6 right-6 z-40 flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2"
+        >
+          <PenLine className="size-5" />
+        </button>
+      )}
     </div>
   );
 }

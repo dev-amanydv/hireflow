@@ -465,6 +465,7 @@ const FEATURED_SKILL_IDS = ["react", "nodejs", "javascript"];
 
 export function Overview() {
   const user = useAuth((s) => s.user);
+  const openAuthModal = useAuth((s) => s.openAuthModal);
 
   const [dashboard, setDashboard] = useState<DashboardOverviewData | null>(
     null,
@@ -485,6 +486,11 @@ export function Overview() {
     useState(true);
 
   useEffect(() => {
+    if (!user) {
+      setDashboard(null);
+      setDashboardLoading(false);
+      return;
+    }
     let cancelled = false;
     axios
       .get(`${BACKEND_URL}/dashboard`, { withCredentials: true })
@@ -500,7 +506,7 @@ export function Overview() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     let cancelled = false;
@@ -551,19 +557,23 @@ export function Overview() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([
-      axios.get(`${BACKEND_URL}/jobs`, {
-        params: { page: 1, pageSize: 6 },
-        withCredentials: true,
-      }),
-      axios
-        .get(`${BACKEND_URL}/jobs/saved`, { withCredentials: true })
-        .catch(() => ({ data: { data: { jobs: [] } } })),
-    ])
+    const jobsRequest = axios.get(`${BACKEND_URL}/jobs`, {
+      params: { page: 1, pageSize: 6 },
+      withCredentials: true,
+    });
+    const request = user
+      ? Promise.all([
+          jobsRequest,
+          axios
+            .get(`${BACKEND_URL}/jobs/saved`, { withCredentials: true })
+            .catch(() => ({ data: { data: { jobs: [] } } })),
+        ])
+      : jobsRequest.then((jobsRes) => [jobsRes, null] as const);
+    request
       .then(([jobsRes, savedRes]) => {
         if (cancelled) return;
         setJobs(jobsRes.data?.data?.jobs ?? []);
-        const savedList: Job[] = savedRes.data?.data?.jobs ?? [];
+        const savedList: Job[] = savedRes?.data?.data?.jobs ?? [];
         setSavedIds(new Set(savedList.map((j) => j.id)));
       })
       .catch(() => {
@@ -575,9 +585,9 @@ export function Overview() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [user]);
 
-  const toggleSave = (job: Job) => {
+  const saveJob = (job: Job) => {
     const wasSaved = savedIds.has(job.id);
     setSavedIds((prev) => {
       const next = new Set(prev);
@@ -605,6 +615,14 @@ export function Overview() {
         });
         toast.error("Couldn't update saved jobs. Please try again.");
       });
+  };
+
+  const toggleSave = (job: Job) => {
+    if (!user) {
+      openAuthModal({ mode: "signin", onSuccess: () => saveJob(job) });
+      return;
+    }
+    saveJob(job);
   };
 
   const greetingName = user?.email ? user.email.split("@")[0] : null;
@@ -1012,6 +1030,8 @@ function PracticeDetailSkeleton() {
 export function PracticeSkillDetail() {
   const { skillId } = useParams();
   const navigate = useNavigate();
+  const user = useAuth((s) => s.user);
+  const openAuthModal = useAuth((s) => s.openAuthModal);
   const [skill, setSkill] = useState<SkillDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -1057,6 +1077,14 @@ export function PracticeSkillDetail() {
       toast.error("Couldn't start the practice interview. Please try again.");
       setStarting(false);
     }
+  };
+
+  const handleStartClick = () => {
+    if (!user) {
+      openAuthModal({ mode: "signup", onSuccess: () => startPractice() });
+      return;
+    }
+    startPractice();
   };
 
   const backLink = (
@@ -1253,7 +1281,7 @@ export function PracticeSkillDetail() {
             size="lg"
             className="mt-5 w-full gap-2 transition-transform duration-150 ease-out active:scale-[0.98]"
             disabled={starting}
-            onClick={startPractice}
+            onClick={handleStartClick}
           >
             {starting ? (
               <>
@@ -1343,11 +1371,18 @@ function InterviewRow({ interview }: { interview: PastInterview }) {
 }
 
 export function Interviews() {
+  const user = useAuth((s) => s.user);
+  const openAuthModal = useAuth((s) => s.openAuthModal);
   const startInterview = useStartInterview();
   const [interviews, setInterviews] = useState<PastInterview[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) {
+      setInterviews([]);
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     axios
       .get(`${BACKEND_URL}/interview/list`, { withCredentials: true })
@@ -1363,7 +1398,7 @@ export function Interviews() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [user]);
 
   return (
     <div className="flex flex-col gap-8">
@@ -1378,7 +1413,19 @@ export function Interviews() {
           </Button>
         }
       />
-      {loading ? (
+      {!user ? (
+        <EmptyState
+          icon={MessagesSquare}
+          title="Sign in to see your past interviews"
+          description="Once you're signed in, every completed session — transcript, score, and recording — lands here."
+          action={
+            <Button variant="outline" onClick={() => openAuthModal({ mode: "signin" })}>
+              Sign in
+              <ArrowRight className="size-4" />
+            </Button>
+          }
+        />
+      ) : loading ? (
         <div className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-card px-6 py-20 text-sm text-ink-subtle">
           <Loader2 className="size-4 animate-spin" />
           Loading interviews…
@@ -1773,6 +1820,8 @@ function FilterSelect({
 }
 
 export function Jobs() {
+  const user = useAuth((s) => s.user);
+  const openAuthModal = useAuth((s) => s.openAuthModal);
   const [view, setView] = useState<"all" | "saved">("all");
 
   const [query, setQuery] = useState("");
@@ -1841,6 +1890,13 @@ export function Jobs() {
   // Saved jobs load once — they drive both the "Saved" view and each card's
   // bookmark state in the "All" view.
   useEffect(() => {
+    if (!user) {
+      setSavedJobs([]);
+      setSavedIds(new Set());
+      setSavedError(false);
+      setSavedLoading(false);
+      return;
+    }
     let cancelled = false;
     axios
       .get(`${BACKEND_URL}/jobs/saved`, { withCredentials: true })
@@ -1859,9 +1915,9 @@ export function Jobs() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [user]);
 
-  const toggleSave = (job: Job) => {
+  const saveJob = (job: Job) => {
     const wasSaved = savedIds.has(job.id);
 
     // Optimistic update.
@@ -1908,6 +1964,14 @@ export function Jobs() {
         );
         toast.error("Couldn't update saved jobs. Please try again.");
       });
+  };
+
+  const toggleSave = (job: Job) => {
+    if (!user) {
+      openAuthModal({ mode: "signin", onSuccess: () => saveJob(job) });
+      return;
+    }
+    saveJob(job);
   };
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -2001,7 +2065,18 @@ export function Jobs() {
       </div>
 
       {view === "saved" ? (
-        savedLoading ? (
+        !user ? (
+          <EmptyState
+            icon={Bookmark}
+            title="Sign in to save jobs"
+            description="Create an account to bookmark roles you like and pick up where you left off."
+            action={
+              <Button variant="outline" onClick={() => openAuthModal({ mode: "signin" })}>
+                Sign in
+              </Button>
+            }
+          />
+        ) : savedLoading ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <JobCardSkeleton key={i} />

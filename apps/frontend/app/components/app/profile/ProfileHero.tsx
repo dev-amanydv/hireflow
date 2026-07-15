@@ -28,7 +28,7 @@ export function ProfileHero({
   email?: string;
   bio: string | null;
   avatarUrl: string | null;
-  joinedAt: string;
+  joinedAt?: string;
   currentStreak?: number;
   isOwner: boolean;
   onEditProfile?: () => void;
@@ -90,7 +90,7 @@ export function ProfileHero({
                   {email}
                 </span>
               )}
-              <span>Joined {formatJoined(joinedAt)}</span>
+              {joinedAt && <span>Joined {formatJoined(joinedAt)}</span>}
               {typeof currentStreak === "number" && currentStreak > 0 && (
                 <span className="inline-flex items-center gap-1.5 text-[var(--success)]">
                   <Flame className="size-3.5" />

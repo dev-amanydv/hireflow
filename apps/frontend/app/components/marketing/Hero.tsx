@@ -52,7 +52,7 @@ export default function Hero() {
               onClick={() => navigate("/dashboard/overview")}
               className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-brand-hover"
             >
-              Continue
+              Start practicing free
               <ArrowRight className="size-4" />
             </button>
           </div>
