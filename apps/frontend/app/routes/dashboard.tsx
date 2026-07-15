@@ -25,7 +25,7 @@ export default function Dashboard() {
       <div className="flex min-w-0 flex-1 flex-col">
         <DashboardTopbar />
 
-        <main className="flex-1 px-5 py-10 sm:px-8 lg:px-12 lg:py-14">
+        <main className="flex-1 px-5 py-3 sm:px-8 lg:px-12 lg:py-8">
           <div className="mx-auto max-w-5xl">
             <Outlet />
           </div>

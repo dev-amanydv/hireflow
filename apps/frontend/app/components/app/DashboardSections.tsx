@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import axios from "axios";
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ import {
   Database,
   Dumbbell,
   FileText,
+  Globe,
   Hexagon,
   ListChecks,
   Loader2,
@@ -35,17 +36,22 @@ import {
   TrendingDown,
   TrendingUp,
   Trophy,
-  User,
   Zap,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import EmptyState from "./EmptyState";
 import ResumeAnalyzer from "./resume-analyzer/ResumeAnalyzer";
 import type { RecordingStatus } from "./RecordingPlayer";
+import {
+  PublicInterviewFeedCard,
+  PublicInterviewFeedCardSkeleton,
+  formatDuration,
+  type PublicInterviewFeedItem,
+} from "./PublicInterviewFeedCard";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { Input } from "~/components/ui/input";
-import { useAuth } from "~/store/store";
+import { useAuth, usePageEyebrow } from "~/store/store";
 import { useStartInterview } from "~/lib/useStartInterview";
 import { BACKEND_URL } from "~/lib/config";
 import { cn } from "~/lib/utils";
@@ -91,17 +97,32 @@ const PRACTICE_LEVELS: {
 ];
 
 // Per-skill identity: a distinct icon + a cohesive jewel-tone accent so the grid
-// reads as a considered set rather than eight identical tiles. Accents are
-// mid-lightness, restrained-chroma oklch — variety without breaking the theme.
+// reads as a considered set rather than eight identical tiles. Accents are tuned
+// to the dominant hue of each skill's hero art (SKILL_BG) so the icon chip,
+// border wash, and background image read as one piece rather than fighting.
 const SKILL_META: Record<string, { icon: LucideIcon; accent: string }> = {
-  react: { icon: Atom, accent: "oklch(0.68 0.13 220)" },
-  nodejs: { icon: Hexagon, accent: "oklch(0.64 0.14 150)" },
-  "distributed-systems": { icon: Network, accent: "oklch(0.62 0.15 285)" },
-  "system-design": { icon: Blocks, accent: "oklch(0.72 0.12 70)" },
-  "sql-databases": { icon: Database, accent: "oklch(0.66 0.12 195)" },
-  javascript: { icon: Braces, accent: "oklch(0.74 0.13 95)" },
-  python: { icon: Terminal, accent: "oklch(0.62 0.14 255)" },
-  dsa: { icon: Binary, accent: "oklch(0.65 0.15 12)" },
+  react: { icon: Atom, accent: "oklch(0.72 0.13 220)" },
+  nodejs: { icon: Hexagon, accent: "oklch(0.68 0.15 145)" },
+  "distributed-systems": { icon: Network, accent: "oklch(0.55 0.15 300)" },
+  "system-design": { icon: Blocks, accent: "oklch(0.6 0.17 265)" },
+  "sql-databases": { icon: Database, accent: "oklch(0.62 0.18 292)" },
+  javascript: { icon: Braces, accent: "oklch(0.55 0.18 255)" },
+  python: { icon: Terminal, accent: "oklch(0.75 0.15 85)" },
+  dsa: { icon: Binary, accent: "oklch(0.6 0.11 185)" },
+};
+
+// Hero art for each skill card — dropped in /public as `<slug>-light-mode.png`
+// / `<slug>-dark-mode.png`. `javascript` renders the TS art since its catalog
+// label is "JavaScript / TypeScript".
+const SKILL_BG: Record<string, string> = {
+  react: "react",
+  nodejs: "nodejs",
+  "distributed-systems": "distributedsystem",
+  "system-design": "systemdesign",
+  "sql-databases": "sql",
+  javascript: "typescript",
+  python: "python",
+  dsa: "dsa",
 };
 
 const skillMeta = (id: string) =>
@@ -115,25 +136,26 @@ const LEVEL_LABEL: Record<Difficulty, string> = {
   staff: "Staff",
 };
 
-function SectionHeader({
+export function SectionHeader({
   eyebrow,
-  title,
   description,
   action,
 }: {
   eyebrow: string;
-  title: string;
   description?: string;
   action?: React.ReactNode;
 }) {
+  const setPageEyebrow = usePageEyebrow((s) => s.setEyebrow);
+  useEffect(() => {
+    setPageEyebrow(eyebrow);
+    return () => setPageEyebrow(null);
+  }, [eyebrow, setPageEyebrow]);
+
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="ln-eyebrow">{eyebrow}</span>
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <span className="ln-eyebrow md:hidden">{eyebrow}</span>
+      <div className="flex flex-wrap items-end justify-between gap-0">
         <div>
-          <h1 className="ln-display-md text-foreground text-balance">
-            {title}
-          </h1>
           {description && (
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink-subtle">
               {description}
@@ -287,6 +309,7 @@ function RecordingRow({ interview }: { interview: PastInterview }) {
   const status = interview.recordingStatus ?? "NONE";
   const ready = status === "READY";
   const processing = status === "PROCESSING";
+  const duration = formatDuration(interview.recordingDurationMs);
 
   return (
     <Link
@@ -314,54 +337,16 @@ function RecordingRow({ interview }: { interview: PastInterview }) {
         <p className="truncate text-[11px] text-ink-tertiary">
           {LEVEL_LABEL[interview.experience]}
           {dateLabel ? ` · ${dateLabel}` : ""}
-          {processing ? " · Preparing" : ready ? "" : " · No recording"}
+          {processing
+            ? " · Preparing"
+            : ready
+              ? duration
+                ? ` · ${duration}`
+                : ""
+              : " · No recording"}
         </p>
       </div>
     </Link>
-  );
-}
-
-// Replaces the old "Continue" card: a compact replay shelf of the user's most recent
-// sessions, each linking to its recording + report.
-function RecentRecordings({ interviews }: { interviews: PastInterview[] }) {
-  const recent = interviews.slice(0, 4);
-  return (
-    <div className="ln-lift ln-rise flex h-full flex-col rounded-2xl border border-border bg-card p-5">
-      <div className="flex items-center justify-between">
-        <div className="flex flex-col">
-          <span className="ln-eyebrow">Replay</span>
-          <h3 className="mt-1 text-sm font-semibold text-foreground">
-            Recent recordings
-          </h3>
-        </div>
-        <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          <Mic className="size-4" />
-        </span>
-      </div>
-
-      {recent.length > 0 ? (
-        <div className="mt-3 flex flex-1 flex-col">
-          {recent.map((interview) => (
-            <RecordingRow key={interview.id} interview={interview} />
-          ))}
-        </div>
-      ) : (
-        <div className="mt-3 flex flex-1 flex-col justify-center">
-          <p className="text-xs leading-relaxed text-ink-subtle">
-            Every interview is recorded. Finish a session and replay it here to
-            hear exactly how you answered.
-          </p>
-        </div>
-      )}
-
-      <Link
-        to="/dashboard/interviews"
-        className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
-      >
-        All interviews
-        <ArrowRight className="size-3.5" />
-      </Link>
-    </div>
   );
 }
 
@@ -490,6 +475,7 @@ const FEATURED_SKILL_IDS = ["react", "nodejs", "javascript"];
 
 export function Overview() {
   const user = useAuth((s) => s.user);
+  const openAuthModal = useAuth((s) => s.openAuthModal);
 
   const [dashboard, setDashboard] = useState<DashboardOverviewData | null>(
     null,
@@ -503,7 +489,18 @@ export function Overview() {
   const [jobsLoading, setJobsLoading] = useState(true);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
 
+  const [publicInterviews, setPublicInterviews] = useState<
+    PublicInterviewFeedItem[]
+  >([]);
+  const [publicInterviewsLoading, setPublicInterviewsLoading] =
+    useState(true);
+
   useEffect(() => {
+    if (!user) {
+      setDashboard(null);
+      setDashboardLoading(false);
+      return;
+    }
     let cancelled = false;
     axios
       .get(`${BACKEND_URL}/dashboard`, { withCredentials: true })
@@ -515,6 +512,28 @@ export function Overview() {
       })
       .finally(() => {
         if (!cancelled) setDashboardLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  useEffect(() => {
+    let cancelled = false;
+    axios
+      .get(`${BACKEND_URL}/interview/public`, {
+        params: { limit: 8 },
+        withCredentials: true,
+      })
+      .then((res) => {
+        if (!cancelled)
+          setPublicInterviews(res.data?.data?.interviews ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setPublicInterviews([]);
+      })
+      .finally(() => {
+        if (!cancelled) setPublicInterviewsLoading(false);
       });
     return () => {
       cancelled = true;
@@ -548,19 +567,23 @@ export function Overview() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([
-      axios.get(`${BACKEND_URL}/jobs`, {
-        params: { page: 1, pageSize: 6 },
-        withCredentials: true,
-      }),
-      axios
-        .get(`${BACKEND_URL}/jobs/saved`, { withCredentials: true })
-        .catch(() => ({ data: { data: { jobs: [] } } })),
-    ])
+    const jobsRequest = axios.get(`${BACKEND_URL}/jobs`, {
+      params: { page: 1, pageSize: 6 },
+      withCredentials: true,
+    });
+    const request = user
+      ? Promise.all([
+          jobsRequest,
+          axios
+            .get(`${BACKEND_URL}/jobs/saved`, { withCredentials: true })
+            .catch(() => ({ data: { data: { jobs: [] } } })),
+        ])
+      : jobsRequest.then((jobsRes) => [jobsRes, null] as const);
+    request
       .then(([jobsRes, savedRes]) => {
         if (cancelled) return;
         setJobs(jobsRes.data?.data?.jobs ?? []);
-        const savedList: Job[] = savedRes.data?.data?.jobs ?? [];
+        const savedList: Job[] = savedRes?.data?.data?.jobs ?? [];
         setSavedIds(new Set(savedList.map((j) => j.id)));
       })
       .catch(() => {
@@ -572,9 +595,9 @@ export function Overview() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [user]);
 
-  const toggleSave = (job: Job) => {
+  const saveJob = (job: Job) => {
     const wasSaved = savedIds.has(job.id);
     setSavedIds((prev) => {
       const next = new Set(prev);
@@ -604,91 +627,30 @@ export function Overview() {
       });
   };
 
+  const toggleSave = (job: Job) => {
+    if (!user) {
+      openAuthModal({ mode: "signin", onSuccess: () => saveJob(job) });
+      return;
+    }
+    saveJob(job);
+  };
+
   const greetingName = user?.email ? user.email.split("@")[0] : null;
 
   return (
     <div className="flex flex-col gap-8">
       <SectionHeader
         eyebrow="Workspace"
-        title={greetingName ? `Welcome back, ${greetingName}` : "Welcome back"}
         description="Your interview activity at a glance. Start a session and your progress builds up here."
       />
 
       <StartInterviewHero />
 
-      {dashboardLoading ? (
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <KpiCardSkeleton key={i} />
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <KpiCard
-            icon={MessagesSquare}
-            accent="oklch(0.62 0.15 285)"
-            label="Total Interviews"
-            value={String(dashboard?.totalInterviews ?? 0)}
-            hint={
-              dashboard && dashboard.totalInterviews > 0
-                ? "Across practice & real"
-                : "No sessions yet"
-            }
-          />
-          <KpiCard
-            icon={Clock}
-            accent="oklch(0.66 0.12 195)"
-            label="Minutes Practiced"
-            value={formatMinutes(dashboard?.minutesPracticed ?? 0)}
-            hint="Time in live interviews"
-          />
-          <KpiCard
-            icon={Trophy}
-            accent="oklch(0.72 0.12 70)"
-            label="Best / Avg Score"
-            value={
-              dashboard?.bestScore != null
-                ? `${Math.round(dashboard.bestScore)}`
-                : "—"
-            }
-            hint={
-              dashboard?.lastScoreDelta != null
-                ? `${dashboard.lastScoreDelta >= 0 ? "+" : ""}${Math.round(
-                    dashboard.lastScoreDelta,
-                  )} from last · avg ${
-                    dashboard.avgScore != null
-                      ? Math.round(dashboard.avgScore)
-                      : "—"
-                  }`
-                : dashboard?.avgScore != null
-                  ? `Avg ${Math.round(dashboard.avgScore)}`
-                  : "Awaiting first result"
-            }
-            hintTone={
-              dashboard?.lastScoreDelta == null
-                ? "neutral"
-                : dashboard.lastScoreDelta > 0
-                  ? "up"
-                  : dashboard.lastScoreDelta < 0
-                    ? "down"
-                    : "neutral"
-            }
-          />
-          <KpiCard
-            icon={Bookmark}
-            accent="oklch(0.64 0.14 150)"
-            label="Jobs Saved"
-            value={String(dashboard?.savedJobs ?? 0)}
-            hint="From the job board"
-          />
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="flex flex-col gap-4 lg:col-span-2">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start">
+        <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-foreground">
-              Recent interviews
+              Recent recordings
             </h2>
             <Link
               to="/dashboard/interviews"
@@ -699,35 +661,71 @@ export function Overview() {
             </Link>
           </div>
           {dashboardLoading ? (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-3">
               {Array.from({ length: 3 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="ln-lift rounded-2xl border border-border bg-card p-5"
-                >
-                  <div className="skeleton-shimmer h-4 w-32 rounded bg-muted" />
-                  <div className="skeleton-shimmer mt-2 h-3 w-24 rounded bg-muted" />
+                <div key={i} className="flex items-center gap-3 p-2">
+                  <div className="skeleton-shimmer size-8 shrink-0 rounded-lg bg-muted" />
+                  <div className="flex-1">
+                    <div className="skeleton-shimmer h-3.5 w-32 rounded bg-muted" />
+                    <div className="skeleton-shimmer mt-2 h-2.5 w-24 rounded bg-muted" />
+                  </div>
                 </div>
               ))}
             </div>
           ) : dashboard && dashboard.recent.length > 0 ? (
-            <div className="flex flex-col gap-3">
+            <div className="ln-lift flex flex-col rounded-2xl border border-border bg-card p-3">
               {dashboard.recent.map((interview) => (
-                <InterviewRow key={interview.id} interview={interview} />
+                <RecordingRow key={interview.id} interview={interview} />
               ))}
             </div>
           ) : (
             <EmptyState
-              icon={Sparkles}
-              title="No activity yet"
-              description="Once you complete a session, your interview history and scores collect here."
+              icon={Mic}
+              title="No recordings yet"
+              description="Every interview is recorded. Finish a session and replay it here to hear exactly how you answered."
             />
           )}
         </div>
 
-        {!dashboardLoading && (
-          <RecentRecordings interviews={dashboard?.recent ?? []} />
-        )}
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                <Globe className="size-4 text-primary" />
+                Public interviews
+              </h2>
+              <p className="mt-1 text-xs text-ink-subtle">
+                Recordings other candidates have chosen to share publicly.
+              </p>
+            </div>
+            <Link
+              to="/dashboard/overview/public"
+              className="inline-flex items-center gap-1 text-xs font-medium text-ink-subtle hover:text-primary"
+            >
+              View all
+              <ArrowRight className="size-3.5" />
+            </Link>
+          </div>
+          {publicInterviewsLoading ? (
+            <div className="grid grid-cols-2 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <PublicInterviewFeedCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : publicInterviews.length > 0 ? (
+            <div className="grid grid-cols-2 gap-4">
+              {publicInterviews.slice(0, 4).map((interview) => (
+                <PublicInterviewFeedCard key={interview.id} interview={interview} />
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon={Globe}
+              title="No public interviews yet"
+              description="Once candidates share a recording from their profile, it shows up here for everyone to see."
+            />
+          )}
+        </div>
       </div>
 
       <div className="flex flex-col gap-4">
@@ -826,6 +824,8 @@ type SkillDetail = PracticeSkill & {
 
 function SkillCard({ skill, index }: { skill: PracticeSkill; index: number }) {
   const { icon: Icon, accent } = skillMeta(skill.id);
+  const bgSlug = SKILL_BG[skill.id];
+
   return (
     <Link
       to={`/dashboard/practice/${skill.id}`}
@@ -834,43 +834,60 @@ function SkillCard({ skill, index }: { skill: PracticeSkill; index: number }) {
         animationDelay: `${Math.min(index, 8) * 45}ms`,
       }}
       className={cn(
-        "ln-lift ln-rise group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card p-5 text-left",
+        "ln-lift ln-rise group relative isolate flex min-h-[190px] flex-col justify-between overflow-hidden rounded-2xl border bg-card p-5 text-left",
+        "border-[color-mix(in_oklab,var(--accent)_25%,var(--border))]",
         "transition-[transform,border-color] duration-200 ease-out",
-        "hover:-translate-y-0.5 hover:border-[color-mix(in_oklab,var(--accent)_45%,var(--border))]",
+        "hover:-translate-y-0.5 hover:border-[color-mix(in_oklab,var(--accent)_55%,var(--border))]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--accent)_55%,transparent)]",
         "active:translate-y-0 active:scale-[0.99]",
       )}
     >
-      {/* Accent wash — atmosphere that only surfaces on hover. */}
+      {/* Hero art — theme-swapped, cropped to the right edge, tinted with a
+          card-color scrim so it reads as this app's card and not a pasted image. */}
+      {bgSlug && (
+        <>
+          <img
+            src={`/${bgSlug}-light-mode.png`}
+            alt=""
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -z-20 size-full scale-105 object-cover object-right transition-transform duration-500 ease-out group-hover:scale-110 dark:hidden"
+          />
+          <img
+            src={`/${bgSlug}-dark-mode.png`}
+            alt=""
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -z-20 hidden size-full scale-105 object-cover object-right transition-transform duration-500 ease-out group-hover:scale-110 dark:block"
+          />
+        </>
+      )}
       <span
         aria-hidden
-        className="pointer-events-none absolute -right-8 -top-8 size-28 rounded-full opacity-0 blur-2xl transition-opacity duration-300 ease-out group-hover:opacity-100"
-        style={{
-          background:
-            "radial-gradient(circle, color-mix(in oklab, var(--accent) 45%, transparent), transparent 70%)",
-        }}
+        className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-r from-card via-card/80 to-card/10"
       />
 
-      <span
-        className="flex size-11 items-center justify-center rounded-xl text-[var(--accent)] ring-1 ring-[color-mix(in_oklab,var(--accent)_22%,transparent)] transition-transform duration-200 ease-out group-hover:scale-[1.06]"
-        style={{
-          background: "color-mix(in oklab, var(--accent) 13%, var(--card))",
-        }}
-      >
-        <Icon className="size-5" />
-      </span>
+      <div className="relative flex items-center gap-3">
+        <span
+          className="flex size-10 shrink-0 items-center justify-center rounded-xl text-[var(--accent)] ring-1 ring-[color-mix(in_oklab,var(--accent)_35%,transparent)] transition-transform duration-200 ease-out group-hover:scale-[1.06]"
+          style={{
+            background: "color-mix(in oklab, var(--accent) 16%, var(--card))",
+          }}
+        >
+          <Icon className="size-5" />
+        </span>
+        <h3 className="text-[15px] font-semibold tracking-tight text-foreground">
+          {skill.label}
+        </h3>
+      </div>
 
-      <h3 className="mt-4 text-[15px] font-semibold tracking-tight text-foreground">
-        {skill.label}
-      </h3>
-      <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-ink-subtle">
-        {skill.blurb}
-      </p>
-
-      <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-ink-tertiary transition-colors duration-200 group-hover:text-[var(--accent)]">
-        View details
-        <ArrowRight className="size-3.5 transition-transform duration-200 ease-out group-hover:translate-x-1" />
-      </span>
+      <div className="relative">
+        <p className="line-clamp-2 max-w-[62%] text-xs leading-relaxed text-ink-subtle">
+          {skill.blurb}
+        </p>
+        <span className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition-colors duration-200 group-hover:bg-brand-hover">
+          View details
+          <ArrowRight className="size-3.5 transition-transform duration-200 ease-out group-hover:translate-x-1" />
+        </span>
+      </div>
     </Link>
   );
 }
@@ -934,12 +951,16 @@ function DifficultySelector({
 
 function SkillCardSkeleton() {
   return (
-    <div className="ln-lift rounded-2xl border border-border bg-card p-5">
-      <div className="skeleton-shimmer size-11 rounded-xl bg-muted" />
-      <div className="skeleton-shimmer mt-4 h-4 w-24 rounded bg-muted" />
-      <div className="skeleton-shimmer mt-2.5 h-3 w-full rounded bg-muted" />
-      <div className="skeleton-shimmer mt-1.5 h-3 w-2/3 rounded bg-muted" />
-      <div className="skeleton-shimmer mt-4 h-3 w-20 rounded bg-muted" />
+    <div className="ln-lift flex min-h-[190px] flex-col justify-between rounded-2xl border border-border bg-card p-5">
+      <div className="flex items-center gap-3">
+        <div className="skeleton-shimmer size-10 rounded-xl bg-muted" />
+        <div className="skeleton-shimmer h-4 w-28 rounded bg-muted" />
+      </div>
+      <div>
+        <div className="skeleton-shimmer h-3 w-full max-w-[62%] rounded bg-muted" />
+        <div className="skeleton-shimmer mt-1.5 h-3 w-1/3 max-w-[62%] rounded bg-muted" />
+        <div className="skeleton-shimmer mt-4 h-8 w-28 rounded-lg bg-muted" />
+      </div>
     </div>
   );
 }
@@ -978,7 +999,7 @@ export function Practice() {
       />
 
       {loading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {Array.from({ length: 6 }).map((_, i) => (
             <SkillCardSkeleton key={i} />
           ))}
@@ -990,7 +1011,7 @@ export function Practice() {
           description="Something went wrong fetching practice skills. Please try again in a moment."
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {skills.map((skill, i) => (
             <SkillCard key={skill.id} skill={skill} index={i} />
           ))}
@@ -1033,6 +1054,8 @@ function PracticeDetailSkeleton() {
 export function PracticeSkillDetail() {
   const { skillId } = useParams();
   const navigate = useNavigate();
+  const user = useAuth((s) => s.user);
+  const openAuthModal = useAuth((s) => s.openAuthModal);
   const [skill, setSkill] = useState<SkillDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -1078,6 +1101,14 @@ export function PracticeSkillDetail() {
       toast.error("Couldn't start the practice interview. Please try again.");
       setStarting(false);
     }
+  };
+
+  const handleStartClick = () => {
+    if (!user) {
+      openAuthModal({ mode: "signup", onSuccess: () => startPractice() });
+      return;
+    }
+    startPractice();
   };
 
   const backLink = (
@@ -1274,7 +1305,7 @@ export function PracticeSkillDetail() {
             size="lg"
             className="mt-5 w-full gap-2 transition-transform duration-150 ease-out active:scale-[0.98]"
             disabled={starting}
-            onClick={startPractice}
+            onClick={handleStartClick}
           >
             {starting ? (
               <>
@@ -1306,6 +1337,7 @@ type PastInterview = {
   status: "SCHEDULED" | "ONGOING" | "COMPLETED";
   createdAt: string;
   recordingStatus?: RecordingStatus;
+  recordingDurationMs?: number | null;
   score: number | null;
 };
 
@@ -1363,11 +1395,18 @@ function InterviewRow({ interview }: { interview: PastInterview }) {
 }
 
 export function Interviews() {
+  const user = useAuth((s) => s.user);
+  const openAuthModal = useAuth((s) => s.openAuthModal);
   const startInterview = useStartInterview();
   const [interviews, setInterviews] = useState<PastInterview[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) {
+      setInterviews([]);
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     axios
       .get(`${BACKEND_URL}/interview/list`, { withCredentials: true })
@@ -1383,7 +1422,7 @@ export function Interviews() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [user]);
 
   return (
     <div className="flex flex-col gap-8">
@@ -1398,7 +1437,19 @@ export function Interviews() {
           </Button>
         }
       />
-      {loading ? (
+      {!user ? (
+        <EmptyState
+          icon={MessagesSquare}
+          title="Sign in to see your past interviews"
+          description="Once you're signed in, every completed session — transcript, score, and recording — lands here."
+          action={
+            <Button variant="outline" onClick={() => openAuthModal({ mode: "signin" })}>
+              Sign in
+              <ArrowRight className="size-4" />
+            </Button>
+          }
+        />
+      ) : loading ? (
         <div className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-card px-6 py-20 text-sm text-ink-subtle">
           <Loader2 className="size-4 animate-spin" />
           Loading interviews…
@@ -1443,61 +1494,6 @@ export function Insights() {
         title="Not enough data yet"
         description="Complete a few interviews and QuickHire charts your score trend, strengths by topic, and areas to focus on next."
       />
-    </div>
-  );
-}
-
-export function Profile() {
-  const user = useAuth((s) => s.user);
-  const openAuthModal = useAuth((s) => s.openAuthModal);
-
-  return (
-    <div className="flex flex-col gap-8">
-      <SectionHeader
-        eyebrow="Account"
-        title="Profile"
-        description="Your account details and connected sources."
-      />
-      {user ? (
-        <div className="ln-lift max-w-2xl rounded-2xl border border-border bg-card p-6">
-          <div className="flex items-center gap-4">
-            <div className="flex size-14 items-center justify-center rounded-full bg-primary/10 text-lg font-semibold text-primary">
-              {user.email.slice(0, 1).toUpperCase()}
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-base font-semibold text-foreground">
-                {user.email.split("@")[0]}
-              </p>
-              <p className="truncate text-sm text-ink-subtle">{user.email}</p>
-            </div>
-          </div>
-          <div className="mt-6 grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2">
-            <div className="bg-card p-4">
-              <p className="text-xs text-ink-tertiary">Connected GitHub</p>
-              <p className="mt-1 text-sm text-ink-subtle">Not connected</p>
-            </div>
-            <div className="bg-card p-4">
-              <p className="text-xs text-ink-tertiary">Connected LinkedIn</p>
-              <p className="mt-1 text-sm text-ink-subtle">Not connected</p>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <EmptyState
-          icon={User}
-          title="You're not signed in"
-          description="Sign in to save your interview history, track your scores, and connect your GitHub and LinkedIn."
-          action={
-            <Button
-              variant="outline"
-              onClick={() => openAuthModal({ mode: "signin" })}
-            >
-              Sign in
-              <ArrowRight className="size-4" />
-            </Button>
-          }
-        />
-      )}
     </div>
   );
 }
@@ -1557,16 +1553,9 @@ const PAGE_SIZE = 20;
 // A stable jewel-tone accent per company, drawn from the same restrained oklch
 // family as the practice-skill accents — so the grid reads as a considered set,
 // and a given company keeps its color across renders and pages.
-const JOB_ACCENTS = [
-  "oklch(0.68 0.13 220)",
-  "oklch(0.64 0.14 150)",
-  "oklch(0.62 0.15 285)",
-  "oklch(0.72 0.12 70)",
-  "oklch(0.66 0.12 195)",
-  "oklch(0.74 0.13 95)",
-  "oklch(0.62 0.14 255)",
-  "oklch(0.65 0.15 12)",
-] as const;
+const JOB_ACCENT = "oklch(0.84 0.04 278)";
+
+const JOB_ACCENTS = Array(8).fill(JOB_ACCENT) as readonly string[];
 
 function jobAccent(company: string): string {
   let hash = 0;
@@ -1848,6 +1837,8 @@ function FilterSelect({
 }
 
 export function Jobs() {
+  const user = useAuth((s) => s.user);
+  const openAuthModal = useAuth((s) => s.openAuthModal);
   const [view, setView] = useState<"all" | "saved">("all");
 
   const [query, setQuery] = useState("");
@@ -1916,6 +1907,13 @@ export function Jobs() {
   // Saved jobs load once — they drive both the "Saved" view and each card's
   // bookmark state in the "All" view.
   useEffect(() => {
+    if (!user) {
+      setSavedJobs([]);
+      setSavedIds(new Set());
+      setSavedError(false);
+      setSavedLoading(false);
+      return;
+    }
     let cancelled = false;
     axios
       .get(`${BACKEND_URL}/jobs/saved`, { withCredentials: true })
@@ -1934,9 +1932,9 @@ export function Jobs() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [user]);
 
-  const toggleSave = (job: Job) => {
+  const saveJob = (job: Job) => {
     const wasSaved = savedIds.has(job.id);
 
     // Optimistic update.
@@ -1983,6 +1981,14 @@ export function Jobs() {
         );
         toast.error("Couldn't update saved jobs. Please try again.");
       });
+  };
+
+  const toggleSave = (job: Job) => {
+    if (!user) {
+      openAuthModal({ mode: "signin", onSuccess: () => saveJob(job) });
+      return;
+    }
+    saveJob(job);
   };
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -2076,7 +2082,18 @@ export function Jobs() {
       </div>
 
       {view === "saved" ? (
-        savedLoading ? (
+        !user ? (
+          <EmptyState
+            icon={Bookmark}
+            title="Sign in to save jobs"
+            description="Create an account to bookmark roles you like and pick up where you left off."
+            action={
+              <Button variant="outline" onClick={() => openAuthModal({ mode: "signin" })}>
+                Sign in
+              </Button>
+            }
+          />
+        ) : savedLoading ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <JobCardSkeleton key={i} />

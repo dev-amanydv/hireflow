@@ -23,6 +23,16 @@ interface AuthState {
     closeAuthModal: () => void,
 }
 
+interface PageEyebrowState {
+    eyebrow: string | null,
+    setEyebrow: (value: string | null) => void,
+}
+
+export const usePageEyebrow = create<PageEyebrowState>()((set) => ({
+    eyebrow: null,
+    setEyebrow: (value) => set({ eyebrow: value }),
+}));
+
 export const useAuth = create<AuthState>()((set) => ({
     user: null,
     addUser: (value: User) => set({ user: value }),

@@ -23,6 +23,18 @@ export default function Interview() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
+  // Theme is normally scoped to a `.dark` wrapper div (see app/lib/theme.tsx), not
+  // `<html>`, so Radix portals (dialogs, dropdowns) render to document.body outside
+  // that scope and pick up light-theme tokens. This route is permanently dark-locked,
+  // so mirror the class onto <html> for the lifetime of the page — fixes portalled
+  // content (e.g. the end-call confirmation dialog) without affecting other routes.
+  useEffect(() => {
+    document.documentElement.classList.add("dark");
+    return () => {
+      document.documentElement.classList.remove("dark");
+    };
+  }, []);
+
   if (!mounted || !id) return <Preparing />;
 
   return (

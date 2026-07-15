@@ -1,11 +1,8 @@
 import { ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router";
-import { useAuth } from "~/store/store";
 
 export default function CTABanner() {
   const navigate = useNavigate();
-  const user = useAuth((s) => s.user);
-  const openAuthModal = useAuth((s) => s.openAuthModal);
 
   return (
     <section className="mx-auto max-w-6xl px-5 py-24 sm:px-8">
@@ -28,7 +25,7 @@ export default function CTABanner() {
           </p>
           <button
             type="button"
-            onClick={() => (user ? navigate("/start") : navigate("/dashboard"))}
+            onClick={() => navigate("/dashboard/overview")}
             className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-brand-hover"
           >
             Start practicing free

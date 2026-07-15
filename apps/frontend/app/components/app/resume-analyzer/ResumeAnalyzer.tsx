@@ -186,6 +186,11 @@ export default function ResumeAnalyzer() {
             requireInterviewId={false}
             accept=".pdf"
             hint="PDF only (max. 5MB)"
+            sampleResume={{
+              url: "/aman_yadav_resume.pdf",
+              fileName: "Aman Yadav - Resume.pdf",
+              label: "No resume on hand?",
+            }}
             onUploaded={(data) => {
               const id = (data as { id?: string } | undefined)?.id;
               if (!id) {

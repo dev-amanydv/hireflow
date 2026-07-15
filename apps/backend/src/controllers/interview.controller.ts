@@ -299,8 +299,28 @@ export const generateLivekitToken = async (req: Request, res: Response) => {
   const interviewId = req.params.interviewId as string;
   if (!interviewId) throw new AppError(400, "interviewId required");
 
-  const interview = await prisma.interview.findFirst({
-    where: { id: interviewId, userId },
+  // Atomically claim the interview: only the request that actually flips it out of
+  // SCHEDULED gets to mint a token. This is race-free against concurrent duplicate
+  // calls (e.g. React StrictMode double-invoking effects in dev, multiple tabs) as
+  // well as a refresh/revisit after the interview already moved past SCHEDULED —
+  // unlike a read-then-write check, two simultaneous requests can't both pass.
+  const claim = await prisma.interview.updateMany({
+    where: { id: interviewId, userId, status: "SCHEDULED" },
+    // The agent records every session and uploads the audio on shutdown; mark it
+    // processing up front so the UI can show a "recording is being prepared" state.
+    data: { status: "ONGOING", startAt: new Date(), recordingStatus: "PROCESSING" },
+  });
+  if (claim.count === 0) {
+    const exists = await prisma.interview.findFirst({
+      where: { id: interviewId, userId },
+      select: { id: true },
+    });
+    if (!exists) throw new AppError(404, "Interview not found");
+    throw new AppError(409, "InterviewAlreadyStarted");
+  }
+
+  const interview = await prisma.interview.findUniqueOrThrow({
+    where: { id: interviewId },
     select: {
       id: true,
       summary: true,
@@ -310,7 +330,6 @@ export const generateLivekitToken = async (req: Request, res: Response) => {
       skill: true,
     },
   });
-  if (!interview) throw new AppError(404, "Interview not found");
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
 
@@ -358,13 +377,6 @@ export const generateLivekitToken = async (req: Request, res: Response) => {
   });
 
   const participantToken = await at.toJwt();
-
-  await prisma.interview.update({
-    where: { id: interviewId },
-    // The agent records every session and uploads the audio on shutdown; mark it
-    // processing up front so the UI can show a "recording is being prepared" state.
-    data: { status: "ONGOING", startAt: new Date(), recordingStatus: "PROCESSING" },
-  });
 
   res.status(201).json({
     server_url: process.env.LIVEKIT_URL,
@@ -431,6 +443,8 @@ export const listInterviews = async (req: Request, res: Response) => {
       status: true,
       createdAt: true,
       recordingStatus: true,
+      recordingDurationMs: true,
+      isPublic: true,
       result: { select: { score: true } },
     },
   });
@@ -448,9 +462,65 @@ export const listInterviews = async (req: Request, res: Response) => {
         status: i.status,
         createdAt: i.createdAt,
         recordingStatus: i.recordingStatus,
+        recordingDurationMs: i.recordingDurationMs,
+        isPublic: i.isPublic,
         score: i.result?.score ?? null,
       })),
     },
+  });
+};
+
+// Cross-user feed for the dashboard's "Public interviews" section — any interview
+// any user has opted into sharing, newest first. Only READY recordings qualify
+// since the feed is built around the thumbnail/audio-visualization card.
+export const listPublicInterviews = async (req: Request, res: Response) => {
+  const limit = Math.min(Number(req.query.limit) || 12, 48);
+  const cursor = typeof req.query.cursor === "string" ? req.query.cursor : undefined;
+
+  const interviews = await prisma.interview.findMany({
+    where: { isPublic: true, recordingStatus: "READY" },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    take: limit,
+    select: {
+      id: true,
+      jobRole: true,
+      skill: true,
+      experience: true,
+      type: true,
+      createdAt: true,
+      recordingStatus: true,
+      recordingDurationMs: true,
+      user: { select: { username: true, displayName: true, avatarKey: true } },
+    },
+  });
+
+  const withAvatars = await Promise.all(
+    interviews
+      .filter((i) => i.user.username)
+      .map(async (i) => ({
+        id: i.id,
+        jobRole: i.jobRole,
+        skill: i.skill,
+        experience: i.experience,
+        type: i.type,
+        createdAt: i.createdAt,
+        recordingStatus: i.recordingStatus,
+        recordingDurationMs: i.recordingDurationMs,
+        username: i.user.username as string,
+        displayName: i.user.displayName,
+        avatarUrl: i.user.avatarKey
+          ? await getPresignedGetUrl(i.user.avatarKey, { expiresIn: 3600 })
+          : null,
+      })),
+  );
+
+  const nextCursor = interviews.length === limit ? interviews[interviews.length - 1]!.id : null;
+
+  res.status(200).json({
+    success: true,
+    message: "Public interviews fetched",
+    data: { interviews: withAvatars, nextCursor },
   });
 };
 
@@ -474,6 +544,7 @@ export const getInterviewResult = async (req: Request, res: Response) => {
       createdAt: true,
       recordingStatus: true,
       recordingDurationMs: true,
+      isPublic: true,
       result: { select: { score: true, report: true } },
     },
   });
@@ -491,6 +562,7 @@ export const getInterviewResult = async (req: Request, res: Response) => {
       createdAt: interview.createdAt,
       recordingStatus: interview.recordingStatus,
       recordingDurationMs: interview.recordingDurationMs,
+      isPublic: interview.isPublic,
       ready: Boolean(interview.result),
       result: interview.result ?? null,
     },
@@ -638,5 +710,35 @@ export const getInterviewRecording = async (req: Request, res: Response) => {
       url,
       durationMs: interview.recordingDurationMs,
     },
+  });
+};
+
+const visibilitySchema = z.object({ isPublic: z.boolean() });
+
+// Owner-only toggle so an interview can be showcased on the public /u/:username
+// profile. Public viewers only ever see interviews with isPublic === true.
+export const setInterviewVisibility = async (req: Request, res: Response) => {
+  const userId = req.userId;
+  if (!userId) throw new AppError(401, "Unauthorised");
+
+  const interviewId = req.params.interviewId as string;
+  const { success, data } = visibilitySchema.safeParse(req.body);
+  if (!success) throw new AppError(400, "isPublic (boolean) is required");
+
+  const interview = await prisma.interview.findFirst({
+    where: { id: interviewId, userId },
+    select: { id: true },
+  });
+  if (!interview) throw new AppError(404, "Interview not found");
+
+  await prisma.interview.update({
+    where: { id: interviewId },
+    data: { isPublic: data.isPublic },
+  });
+
+  res.status(200).json({
+    success: true,
+    message: data.isPublic ? "Interview is now public" : "Interview is now private",
+    data: { isPublic: data.isPublic },
   });
 };

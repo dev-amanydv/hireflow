@@ -5,8 +5,10 @@ const mockPrisma = vi.hoisted(() => ({
   interview: {
     create: vi.fn(),
     findUnique: vi.fn(),
+    findUniqueOrThrow: vi.fn(),
     findFirst: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
   },
   resume: {
     findUnique: vi.fn(),
@@ -482,6 +484,7 @@ describe("generateLivekitToken", () => {
   });
 
   test("interview not owned by user -> throws 404 Interview not found", async () => {
+    mockPrisma.interview.updateMany.mockResolvedValue({ count: 0 });
     mockPrisma.interview.findFirst.mockResolvedValue(null);
     const req = fakeReq({ userId: "user-1", params: { interviewId: "interview-1" } });
     await expect(generateLivekitToken(req, fakeRes())).rejects.toMatchObject({
@@ -490,8 +493,9 @@ describe("generateLivekitToken", () => {
     });
   });
 
-  test("happy path -> grants room access, dispatches the agent, marks interview ONGOING", async () => {
-    mockPrisma.interview.findFirst.mockResolvedValue({
+  test("happy path -> atomically claims the interview, grants room access, dispatches the agent", async () => {
+    mockPrisma.interview.updateMany.mockResolvedValue({ count: 1 });
+    mockPrisma.interview.findUniqueOrThrow.mockResolvedValue({
       id: "interview-1",
       summary: null,
       jobRole: "Backend Engineer",
@@ -503,18 +507,30 @@ describe("generateLivekitToken", () => {
 
     await generateLivekitToken(req, res);
 
+    expect(mockPrisma.interview.updateMany).toHaveBeenCalledWith({
+      where: { id: "interview-1", userId: "user-1", status: "SCHEDULED" },
+      data: expect.objectContaining({ status: "ONGOING" }),
+    });
     expect(mockLivekit.__addGrant).toHaveBeenCalledWith(
       expect.objectContaining({ roomJoin: true, room: "interview-interview-1" }),
     );
     expect(mockLivekit.__toJwt).toHaveBeenCalled();
-    expect(mockPrisma.interview.update).toHaveBeenCalledWith({
-      where: { id: "interview-1" },
-      data: expect.objectContaining({ status: "ONGOING" }),
-    });
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({ participant_token: "signed.jwt.token" }),
     );
+  });
+
+  test("interview already started (claim loses the race, e.g. a concurrent duplicate request already won it) -> throws 409, no token minted", async () => {
+    mockPrisma.interview.updateMany.mockResolvedValue({ count: 0 });
+    mockPrisma.interview.findFirst.mockResolvedValue({ id: "interview-1" });
+    const req = fakeReq({ userId: "user-1", params: { interviewId: "interview-1" } });
+
+    await expect(generateLivekitToken(req, fakeRes())).rejects.toMatchObject({
+      statusCode: 409,
+      message: "InterviewAlreadyStarted",
+    });
+    expect(mockLivekit.__toJwt).not.toHaveBeenCalled();
   });
 });
 

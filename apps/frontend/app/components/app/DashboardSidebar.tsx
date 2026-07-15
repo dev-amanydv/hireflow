@@ -53,14 +53,12 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: MessagesSquare,
       },
       { to: "/dashboard/resume", label: "Analyze resume", icon: FileText },
-      { to: "/dashboard/insights", label: "Insights", icon: BarChart3 },
     ],
   },
   {
     heading: "Account",
     items: [
       { to: "/dashboard/profile", label: "Profile", icon: User },
-      { to: "/dashboard/settings", label: "Settings", icon: Settings },
     ],
   },
 ];

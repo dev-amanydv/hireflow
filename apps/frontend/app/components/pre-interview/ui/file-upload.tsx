@@ -2,11 +2,15 @@ import { useRef, useState, type ChangeEvent } from "react";
 import axios from "axios";
 import {
   CheckCircle2,
+  FileText,
+  Loader2,
   RotateCw,
+  Sparkles,
   Trash2,
   UploadCloud,
   XCircle,
 } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "~/lib/utils";
 import { BACKEND_URL } from "~/lib/config";
 
@@ -175,6 +179,12 @@ function FileRow({
   );
 }
 
+export interface SampleResume {
+  url: string;
+  fileName: string;
+  label?: string;
+}
+
 export function InputFile({
   interviewId,
   accept = DEFAULT_ACCEPT,
@@ -185,6 +195,7 @@ export function InputFile({
   uploadUrl = `${BACKEND_URL}/interview/pre/resume`,
   requireInterviewId = true,
   onUploaded,
+  sampleResume,
 }: {
   interviewId?: string;
   accept?: string;
@@ -195,9 +206,11 @@ export function InputFile({
   uploadUrl?: string;
   requireInterviewId?: boolean;
   onUploaded?: (data: unknown) => void;
+  sampleResume?: SampleResume;
 }) {
   const [dragging, setDragging] = useState(false);
   const [file, setFile] = useState<UploadItem | null>(null);
+  const [sampleLoading, setSampleLoading] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const rawFile = useRef<File | null>(null);
@@ -300,6 +313,24 @@ export function InputFile({
 
   const openPicker = () => inputRef.current?.click();
 
+  const loadSample = async () => {
+    if (!sampleResume || sampleLoading) return;
+    setSampleLoading(true);
+    try {
+      const res = await fetch(sampleResume.url);
+      if (!res.ok) throw new Error("Failed to fetch sample resume");
+      const blob = await res.blob();
+      const sampleFile = new File([blob], sampleResume.fileName, {
+        type: blob.type || "application/pdf",
+      });
+      await addFile(sampleFile);
+    } catch {
+      toast.error("Couldn't load the sample resume. Please try again.");
+    } finally {
+      setSampleLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-3">
       <div
@@ -341,6 +372,35 @@ export function InputFile({
             className="hidden"
           />
       </div>
+
+      {!file && sampleResume && (
+        <button
+          type="button"
+          onClick={loadSample}
+          disabled={sampleLoading}
+          className="group flex items-center justify-between gap-3 rounded-2xl border border-border/70 border-dashed bg-muted/20 px-4 py-3 text-left transition-colors hover:border-foreground/30 hover:bg-muted/40 disabled:cursor-wait disabled:opacity-70"
+        >
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border bg-background text-foreground/70">
+              {sampleLoading ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <FileText className="size-4" />
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-foreground">
+                {sampleResume.label ?? "Don't have a resume handy?"}
+              </p>
+              <p className="text-xs text-muted-foreground">Use our sample PDF to try this out</p>
+            </div>
+          </div>
+          <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-foreground underline underline-offset-2 group-hover:no-underline">
+            <Sparkles className="size-3.5" />
+            {sampleLoading ? "Loading…" : "Use sample"}
+          </span>
+        </button>
+      )}
 
       {file && (
         <div className="flex flex-col gap-3">

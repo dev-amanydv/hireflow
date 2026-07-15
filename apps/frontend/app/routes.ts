@@ -5,6 +5,7 @@ export default [
     route("dashboard", "routes/dashboard.tsx", [
         index("routes/dashboard/index.tsx"),
         route("overview", "routes/dashboard/overview.tsx"),
+        route("overview/public", "routes/dashboard/overview-public.tsx"),
         route("practice", "routes/dashboard/practice.tsx"),
         route("practice/:skillId", "routes/dashboard/practice-detail.tsx"),
         route("jobs", "routes/dashboard/jobs.tsx"),
@@ -18,4 +19,6 @@ export default [
     route("start", "routes/start.tsx"),
     route("interview/:id", "routes/interview.tsx"),
     route("result", "routes/result.tsx"),
+    route("u/:username", "routes/profile-public.tsx"),
+    route("u/:username/i/:interviewId", "routes/public-interview.tsx"),
 ] satisfies RouteConfig;

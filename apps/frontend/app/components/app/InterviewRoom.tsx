@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import axios from "axios";
 import { TokenSource, ConnectionState } from "livekit-client";
 import {
@@ -14,6 +14,7 @@ import {
   LayoutGrid,
   Loader2,
   MessageSquareText,
+  OctagonAlert,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { BACKEND_URL } from "~/lib/config";
@@ -49,6 +50,31 @@ function RoomShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+function InterruptedShell() {
+  return (
+    <RoomShell>
+      <div className="flex size-12 items-center justify-center rounded-full border border-destructive/30 bg-destructive/10">
+        <OctagonAlert className="size-5 text-destructive" />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <p className="text-base font-medium text-foreground">
+          Interview interrupted
+        </p>
+        <p className="max-w-sm text-sm text-ink-subtle">
+          This interview has already ended, or the connection was
+          interrupted by a page refresh. Start a new interview to continue.
+        </p>
+      </div>
+      <Link
+        to="/start"
+        className="mt-1 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-brand-hover"
+      >
+        Start a new interview
+      </Link>
+    </RoomShell>
+  );
+}
+
 export default function InterviewRoom({
   interviewId,
 }: {
@@ -56,9 +82,22 @@ export default function InterviewRoom({
 }) {
   const [creds, setCreds] = useState<TokenResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [interrupted, setInterrupted] = useState(false);
+  // get-token is a one-shot claim on the backend (SCHEDULED -> ONGOING), not
+  // idempotent — firing it twice makes the second call look like a stale
+  // reconnect. React's StrictMode double-invokes effects in dev, so guard
+  // against requesting the same interviewId more than once per mount.
+  const requestedForRef = useRef<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
+    if (requestedForRef.current === interviewId) return;
+    requestedForRef.current = interviewId;
+    // No cleanup-driven cancellation here: StrictMode's dev double-invoke runs this
+    // effect's cleanup immediately after the first (only) real invocation, and since
+    // we deliberately skip re-firing above, a `cancelled` flag set by that phantom
+    // cleanup would discard the one real request's result forever. Instead, validate
+    // against the ref when the response lands — it only changes on a genuine
+    // interviewId change, not StrictMode's simulated unmount.
     (async () => {
       try {
         const res = await axios.post<TokenResponse>(
@@ -66,16 +105,19 @@ export default function InterviewRoom({
           {},
           { withCredentials: true },
         );
-        if (!cancelled) setCreds(res.data);
-      } catch {
-        if (!cancelled)
+        if (requestedForRef.current === interviewId) setCreds(res.data);
+      } catch (err) {
+        if (requestedForRef.current !== interviewId) return;
+        if (axios.isAxiosError(err) && err.response?.status === 409) {
+          setInterrupted(true);
+        } else {
           setError("Could not join the interview room. Please try again.");
+        }
       }
     })();
-    return () => {
-      cancelled = true;
-    };
   }, [interviewId]);
+
+  if (interrupted) return <InterruptedShell />;
 
   if (error)
     return (

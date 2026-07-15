@@ -12,7 +12,7 @@ const PROGRESS_STEPS = [
 ] as const;
 
 const LAST_STEP = PROGRESS_STEPS.length - 1;
-const STEP_DURATION = 1600;
+const STEP_DURATION = 3500;
 
 function Bar({ className }: { className?: string }) {
   return (

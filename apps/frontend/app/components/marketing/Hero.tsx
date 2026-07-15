@@ -1,12 +1,9 @@
 import { ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router";
-import { useAuth } from "~/store/store";
 import HeroMockup from "./HeroMockup";
 
 export default function Hero() {
   const navigate = useNavigate();
-  const openAuthModal = useAuth((s) => s.openAuthModal);
-  const user = useAuth((s) => s.user);
 
   return (
     <section className="relative overflow-hidden">
@@ -52,26 +49,12 @@ export default function Hero() {
           >
             <button
               type="button"
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate("/dashboard/overview")}
               className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-brand-hover"
             >
               Start practicing free
               <ArrowRight className="size-4" />
             </button>
-            {!user && (
-              <button
-                type="button"
-                onClick={() =>
-                  openAuthModal({
-                    mode: "signin",
-                    onSuccess: () => navigate("/dashboard"),
-                  })
-                }
-                className="rounded-md border border-border bg-secondary px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-              >
-                Log in
-              </button>
-            )}
           </div>
         </div>
 
