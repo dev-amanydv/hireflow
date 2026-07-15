@@ -77,15 +77,15 @@ export function PerformancePanel({ stats }: { stats: ProfileStats }) {
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
       <StatCard
         icon={ListChecks}
-        accent="oklch(0.68 0.13 220)"
+        accent="var(--foreground)"
         label="Interviews Taken"
         value={stats.totalInterviews}
         description="Across practice and real sessions"
       />
-      <MinutesCard accent="oklch(0.64 0.14 150)" minutes={stats.minutesPracticed} />
+      <MinutesCard accent="var(--foreground)" minutes={stats.minutesPracticed} />
       <StatCard
         icon={Target}
-        accent="oklch(0.72 0.12 70)"
+        accent="var(--foreground)"
         label="Average Score"
         value={stats.avgScore}
         decimals={0}
@@ -93,7 +93,7 @@ export function PerformancePanel({ stats }: { stats: ProfileStats }) {
       />
       <StatCard
         icon={Award}
-        accent="oklch(0.66 0.12 195)"
+        accent="var(--foreground)"
         label="Best Score"
         value={stats.bestScore}
         decimals={0}
@@ -101,7 +101,7 @@ export function PerformancePanel({ stats }: { stats: ProfileStats }) {
       />
       <StatCard
         icon={Flame}
-        accent="oklch(0.65 0.15 12)"
+        accent="var(--foreground)"
         label="Practice Streak"
         value={stats.currentStreak}
         suffix={stats.currentStreak === 1 ? " day" : " days"}

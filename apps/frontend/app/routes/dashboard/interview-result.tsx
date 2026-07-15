@@ -718,26 +718,193 @@ function CenteredState({
   );
 }
 
-function AnalyzingState({ timedOut }: { timedOut: boolean }) {
+// ── Processing skeleton ─────────────────────────────────────────────────────
+// Shown while the transcript is still being scored. Mirrors the Scorecard's exact
+// layout and section labels (job role/badges/nav are already known at this point —
+// only the score and body content are pending) so the page never looks blank or
+// generic, and settles into place instead of swapping layouts once ready.
+function SkelBar({ className }: { className?: string }) {
   return (
-    <CenteredState
-      icon={<Loader2 className="size-6 animate-spin text-ink-subtle" />}
-      title={timedOut ? "Still analysing your interview" : "Analysing your interview"}
-      description={
-        timedOut
-          ? "This is taking a little longer than usual. Your report will be ready in your past interviews shortly — no need to wait here."
-          : "We're reading your transcript and putting together a detailed report. This usually takes a minute or two."
-      }
-    >
-      <div className="mt-7 flex flex-col items-center gap-4">
-        <div className="h-1 w-40 overflow-hidden rounded-full bg-foreground/10">
-          <div className="ln-indeterminate h-full w-1/3 rounded-full bg-primary/70" />
+    <div className={cn("skeleton-shimmer rounded-md bg-muted", className)} />
+  );
+}
+
+function SkeletonRail({
+  data,
+  timedOut,
+}: {
+  data: ResultData;
+  timedOut: boolean;
+}) {
+  const date = formatDate(data.createdAt);
+  return (
+    <aside className="shrink-0 lg:sticky lg:top-24 lg:w-[16.5rem]">
+      <div className="ln-lift flex flex-col gap-6 rounded-2xl border border-border bg-card p-6">
+        <div className="flex flex-col gap-2.5">
+          <span className="ln-eyebrow">Interview Report</span>
+          <h1 className="text-2xl font-semibold leading-tight tracking-tight text-foreground text-balance">
+            {data.jobRole}
+          </h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={data.type === "PRACTICE" ? "secondary" : "outline"}>
+              {data.type === "PRACTICE" ? "Practice" : "Interview"}
+            </Badge>
+            <span className="text-xs text-ink-tertiary">
+              <span className="capitalize">{data.experience}</span>
+              {date && <span> · {date}</span>}
+            </span>
+          </div>
         </div>
-        <p className="text-xs text-ink-tertiary">
-          This page updates automatically when your report is ready.
-        </p>
+
+        <div className="flex flex-col gap-3 border-t border-border pt-6">
+          <div className="flex items-center gap-2.5 text-ink-subtle">
+            <Loader2 className="size-4 animate-spin" />
+            <span className="text-sm font-medium">
+              {timedOut ? "Still scoring" : "Scoring in progress"}
+            </span>
+          </div>
+          <div className="h-1 w-full overflow-hidden rounded-full bg-foreground/10">
+            <div className="ln-indeterminate h-full w-1/3 rounded-full bg-primary/70" />
+          </div>
+          <p className="text-xs leading-relaxed text-ink-tertiary">
+            {timedOut
+              ? "This is taking longer than usual. Your report will be ready in your past interviews shortly — no need to wait here."
+              : "We're reading your transcript and putting together a detailed report. This usually takes a minute or two."}
+          </p>
+        </div>
+
+        <nav className="flex flex-col gap-0.5 border-t border-border pt-5">
+          {["Competencies", "Topic breakdown", "Strengths & growth", "Study plan"].map(
+            (label) => (
+              <span
+                key={label}
+                className="rounded-md px-2 py-1.5 text-sm text-ink-tertiary/50"
+              >
+                {label}
+              </span>
+            ),
+          )}
+        </nav>
+
+        <div className="flex flex-col gap-2 border-t border-border pt-5">
+          <Link
+            to="/dashboard/interviews"
+            className="inline-flex items-center justify-center gap-2 px-3.5 py-2 text-sm font-medium text-ink-subtle transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="size-4" />
+            Back to interviews
+          </Link>
+        </div>
       </div>
-    </CenteredState>
+    </aside>
+  );
+}
+
+function SkeletonDimensions() {
+  return (
+    <div>
+      <SectionTitle hint="Scored across every interview">Competencies</SectionTitle>
+      <div className="grid gap-x-10 gap-y-7 sm:grid-cols-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="flex flex-col gap-2.5">
+            <div className="flex items-baseline justify-between gap-3">
+              <SkelBar className="h-3.5 w-28" />
+              <SkelBar className="h-3.5 w-6" />
+            </div>
+            <SkelBar className="h-1.5 w-full rounded-full" />
+            <SkelBar className="h-3 w-4/5" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SkeletonTopics() {
+  return (
+    <div>
+      <SectionTitle>Topic breakdown</SectionTitle>
+      <div className="flex flex-col divide-y divide-border rounded-2xl border border-border bg-card px-5 sm:px-6">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="flex flex-col gap-2.5 py-4">
+            <div className="flex items-baseline justify-between gap-3">
+              <SkelBar className="h-3.5 w-36" />
+              <SkelBar className="h-3.5 w-6" />
+            </div>
+            <SkelBar className="h-1 w-full rounded-full" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SkeletonHighlights() {
+  return (
+    <div className="grid gap-x-10 gap-y-10 rounded-2xl border border-border bg-card p-7 sm:grid-cols-2 sm:p-8">
+      {["Strengths", "Where to grow"].map((title) => (
+        <div key={title} className="flex flex-col gap-4">
+          <div className="flex items-center gap-2">
+            <SkelBar className="size-6 rounded-md" />
+            <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+          </div>
+          <div className="flex flex-col gap-2.5">
+            <SkelBar className="h-3.5 w-4/5" />
+            <SkelBar className="h-3 w-full" />
+            <SkelBar className="h-3 w-11/12" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SkeletonStudyPlan() {
+  return (
+    <div>
+      <SectionTitle>Your study plan</SectionTitle>
+      <ol className="flex flex-col gap-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <li
+            key={i}
+            className="flex gap-4 rounded-xl border border-border bg-card p-5"
+          >
+            <span className="ln-mono flex size-7 shrink-0 items-center justify-center rounded-full border border-border text-xs font-semibold tabular-nums text-ink-muted">
+              {i + 1}
+            </span>
+            <div className="flex flex-1 flex-col gap-2 pt-0.5">
+              <SkelBar className="h-3.5 w-2/5" />
+              <SkelBar className="h-3 w-full" />
+            </div>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function ScorecardSkeleton({
+  data,
+  timedOut,
+}: {
+  data: ResultData;
+  timedOut: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-12 lg:flex-row-reverse lg:items-start lg:gap-14">
+      <SkeletonRail data={data} timedOut={timedOut} />
+      <div className="flex min-w-0 flex-1 flex-col gap-14">
+        <div className="flex flex-col gap-3">
+          <SkelBar className="h-7 w-3/4" />
+          <SkelBar className="h-4 w-full max-w-[52ch]" />
+          <SkelBar className="h-4 w-5/6 max-w-[46ch]" />
+        </div>
+        <SkeletonDimensions />
+        <SkeletonTopics />
+        <SkeletonHighlights />
+        <SkeletonStudyPlan />
+      </div>
+    </div>
   );
 }
 
@@ -828,8 +995,12 @@ export default function InterviewResult() {
 
       {showReport ? (
         <Scorecard data={data!} interviewId={interviewId} />
+      ) : data ? (
+        <ScorecardSkeleton data={data} timedOut={timedOut} />
       ) : (
-        <AnalyzingState timedOut={timedOut} />
+        <div className="flex justify-center py-24">
+          <Loader2 className="size-5 animate-spin text-ink-subtle" />
+        </div>
       )}
     </div>
   );

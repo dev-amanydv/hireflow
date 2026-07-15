@@ -1,10 +1,10 @@
-// A cohesive jewel-tone gradient keyed off the identity string, so the same
-// person always gets the same fallback color across sessions and devices.
+// A neutral gray gradient keyed off the identity string, so the same person
+// always gets the same fallback shade across sessions and devices.
 export function gradientFor(seed: string): string {
   let hash = 0;
   for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) | 0;
-  const hue = Math.abs(hash) % 360;
-  return `linear-gradient(135deg, oklch(0.62 0.15 ${hue}), oklch(0.5 0.16 ${(hue + 45) % 360}))`;
+  const lightness = 0.38 + (Math.abs(hash) % 10) / 100;
+  return `linear-gradient(135deg, oklch(${(lightness + 0.08).toFixed(2)} 0.015 275), oklch(${lightness.toFixed(2)} 0.015 275))`;
 }
 
 export function initialsFor(name: string): string {

@@ -138,12 +138,10 @@ const LEVEL_LABEL: Record<Difficulty, string> = {
 
 export function SectionHeader({
   eyebrow,
-  title,
   description,
   action,
 }: {
   eyebrow: string;
-  title: string;
   description?: string;
   action?: React.ReactNode;
 }) {
@@ -156,11 +154,8 @@ export function SectionHeader({
   return (
     <div className="flex flex-col gap-1.5">
       <span className="ln-eyebrow md:hidden">{eyebrow}</span>
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-0">
         <div>
-          <h1 className="ln-display-md text-foreground text-balance">
-            {title}
-          </h1>
           {description && (
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink-subtle">
               {description}
@@ -646,7 +641,6 @@ export function Overview() {
     <div className="flex flex-col gap-8">
       <SectionHeader
         eyebrow="Workspace"
-        title={greetingName ? `Welcome back, ${greetingName}` : "Welcome back"}
         description="Your interview activity at a glance. Start a session and your progress builds up here."
       />
 
@@ -1559,16 +1553,9 @@ const PAGE_SIZE = 20;
 // A stable jewel-tone accent per company, drawn from the same restrained oklch
 // family as the practice-skill accents — so the grid reads as a considered set,
 // and a given company keeps its color across renders and pages.
-const JOB_ACCENTS = [
-  "oklch(0.68 0.13 220)",
-  "oklch(0.64 0.14 150)",
-  "oklch(0.62 0.15 285)",
-  "oklch(0.72 0.12 70)",
-  "oklch(0.66 0.12 195)",
-  "oklch(0.74 0.13 95)",
-  "oklch(0.62 0.14 255)",
-  "oklch(0.65 0.15 12)",
-] as const;
+const JOB_ACCENT = "oklch(0.84 0.04 278)";
+
+const JOB_ACCENTS = Array(8).fill(JOB_ACCENT) as readonly string[];
 
 function jobAccent(company: string): string {
   let hash = 0;

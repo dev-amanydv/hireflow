@@ -20,6 +20,10 @@ export type EditableProfileFields = {
   bio: string;
 };
 
+const BIO_MAX = 280;
+const USERNAME_MAX = 24;
+const USERNAME_PATTERN = /^[a-z0-9_]{3,24}$/;
+
 export function EditProfileDialog({
   open,
   onOpenChange,
@@ -44,6 +48,8 @@ export function EditProfileDialog({
     }
   }, [open, initial.displayName, initial.username, initial.bio]);
 
+  const usernameValid = username.length === 0 || USERNAME_PATTERN.test(username);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -64,61 +70,79 @@ export function EditProfileDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          <DialogHeader>
+      <DialogContent className="gap-0 p-0 sm:max-w-md">
+        <form onSubmit={handleSubmit} className="flex flex-col">
+          <DialogHeader className="gap-1 px-6 pt-6 pb-1">
             <DialogTitle>Edit profile</DialogTitle>
             <DialogDescription>
               This information is visible on your public profile page.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="profile-display-name">Display name</Label>
-            <Input
-              id="profile-display-name"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              maxLength={80}
-              placeholder="Jane Doe"
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="profile-username">Username</Label>
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm text-ink-tertiary">@</span>
+          <div className="flex flex-col gap-5 px-6 py-5">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="profile-display-name">Display name</Label>
               <Input
-                id="profile-username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value.toLowerCase())}
-                maxLength={24}
-                pattern="[a-z0-9_]{3,24}"
-                placeholder="janedoe"
+                id="profile-display-name"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                maxLength={80}
+                placeholder="Jane Doe"
               />
             </div>
-            <p className="text-xs text-ink-tertiary">
-              3-24 characters: lowercase letters, numbers, underscore.
-            </p>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="profile-username">Username</Label>
+              <div
+                className="flex h-9 items-center gap-1 rounded-lg border border-input bg-transparent px-2.5 transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 has-[input:disabled]:cursor-not-allowed has-[input:disabled]:opacity-50"
+                data-invalid={!usernameValid || undefined}
+              >
+                <span className="text-sm text-ink-tertiary">@</span>
+                <input
+                  id="profile-username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                  maxLength={USERNAME_MAX}
+                  aria-invalid={!usernameValid}
+                  placeholder="janedoe"
+                  className="h-full min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                />
+              </div>
+              <p
+                className={
+                  usernameValid
+                    ? "text-xs text-ink-tertiary"
+                    : "text-xs text-destructive"
+                }
+              >
+                3-24 characters: lowercase letters, numbers, underscore.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="profile-bio">Bio</Label>
+                <span className="text-xs tabular-nums text-ink-tertiary">
+                  {bio.length}/{BIO_MAX}
+                </span>
+              </div>
+              <Textarea
+                id="profile-bio"
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                maxLength={BIO_MAX}
+                placeholder="What are you practicing for?"
+                rows={3}
+                className="resize-none"
+              />
+            </div>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="profile-bio">Bio</Label>
-            <Textarea
-              id="profile-bio"
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              maxLength={280}
-              placeholder="What are you practicing for?"
-              rows={3}
-            />
-          </div>
-
-          <DialogFooter>
+          <DialogFooter className="border-t border-border px-6 py-4 sm:justify-end">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={saving} className="gap-1.5">
+            <Button type="submit" disabled={saving || !usernameValid} className="gap-1.5">
               {saving && <Loader2 className="size-3.5 animate-spin" />}
               Save changes
             </Button>

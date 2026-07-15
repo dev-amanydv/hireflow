@@ -299,8 +299,28 @@ export const generateLivekitToken = async (req: Request, res: Response) => {
   const interviewId = req.params.interviewId as string;
   if (!interviewId) throw new AppError(400, "interviewId required");
 
-  const interview = await prisma.interview.findFirst({
-    where: { id: interviewId, userId },
+  // Atomically claim the interview: only the request that actually flips it out of
+  // SCHEDULED gets to mint a token. This is race-free against concurrent duplicate
+  // calls (e.g. React StrictMode double-invoking effects in dev, multiple tabs) as
+  // well as a refresh/revisit after the interview already moved past SCHEDULED —
+  // unlike a read-then-write check, two simultaneous requests can't both pass.
+  const claim = await prisma.interview.updateMany({
+    where: { id: interviewId, userId, status: "SCHEDULED" },
+    // The agent records every session and uploads the audio on shutdown; mark it
+    // processing up front so the UI can show a "recording is being prepared" state.
+    data: { status: "ONGOING", startAt: new Date(), recordingStatus: "PROCESSING" },
+  });
+  if (claim.count === 0) {
+    const exists = await prisma.interview.findFirst({
+      where: { id: interviewId, userId },
+      select: { id: true },
+    });
+    if (!exists) throw new AppError(404, "Interview not found");
+    throw new AppError(409, "InterviewAlreadyStarted");
+  }
+
+  const interview = await prisma.interview.findUniqueOrThrow({
+    where: { id: interviewId },
     select: {
       id: true,
       summary: true,
@@ -310,7 +330,6 @@ export const generateLivekitToken = async (req: Request, res: Response) => {
       skill: true,
     },
   });
-  if (!interview) throw new AppError(404, "Interview not found");
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
 
@@ -358,13 +377,6 @@ export const generateLivekitToken = async (req: Request, res: Response) => {
   });
 
   const participantToken = await at.toJwt();
-
-  await prisma.interview.update({
-    where: { id: interviewId },
-    // The agent records every session and uploads the audio on shutdown; mark it
-    // processing up front so the UI can show a "recording is being prepared" state.
-    data: { status: "ONGOING", startAt: new Date(), recordingStatus: "PROCESSING" },
-  });
 
   res.status(201).json({
     server_url: process.env.LIVEKIT_URL,

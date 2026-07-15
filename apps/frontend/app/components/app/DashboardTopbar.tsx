@@ -5,6 +5,7 @@ import { Brand } from "./Brand";
 import DashboardSidebar from "./DashboardSidebar";
 import { ThemeToggle } from "./ThemeToggle";
 import { Avatar, AvatarFallback } from "~/components/ui/avatar";
+import { Button } from "~/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,10 +25,11 @@ import { useAuth, usePageEyebrow } from "~/store/store";
 export default function DashboardTopbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const user = useAuth((s) => s.user);
+  const openAuthModal = useAuth((s) => s.openAuthModal);
   const eyebrow = usePageEyebrow((s) => s.eyebrow);
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur-md sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border bg-background/60 px-4 backdrop-blur-md sm:px-6 lg:px-8">
       <div className="flex items-center gap-2 lg:hidden">
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetTrigger asChild>
@@ -95,6 +97,20 @@ export default function DashboardTopbar() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+        )}
+        {!user && (
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => openAuthModal({ mode: "signin" })}
+            >
+              Log in
+            </Button>
+            <Button size="sm" onClick={() => openAuthModal({ mode: "signup" })}>
+              Sign up
+            </Button>
+          </div>
         )}
       </div>
     </header>

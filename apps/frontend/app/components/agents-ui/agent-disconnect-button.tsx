@@ -57,7 +57,13 @@ export function AgentDisconnectButton({
 }: AgentDisconnectButtonProps) {
   const { end } = useSessionContext();
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    onClick?.(event);
+    // A caller-provided onClick (e.g. to show a confirmation dialog) takes full
+    // control of when/whether the session ends. Only fall back to ending
+    // immediately when nobody is intercepting the click.
+    if (onClick) {
+      onClick(event);
+      return;
+    }
     if (typeof end === 'function') {
       end();
     }
