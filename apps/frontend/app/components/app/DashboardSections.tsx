@@ -97,17 +97,32 @@ const PRACTICE_LEVELS: {
 ];
 
 // Per-skill identity: a distinct icon + a cohesive jewel-tone accent so the grid
-// reads as a considered set rather than eight identical tiles. Accents are
-// mid-lightness, restrained-chroma oklch — variety without breaking the theme.
+// reads as a considered set rather than eight identical tiles. Accents are tuned
+// to the dominant hue of each skill's hero art (SKILL_BG) so the icon chip,
+// border wash, and background image read as one piece rather than fighting.
 const SKILL_META: Record<string, { icon: LucideIcon; accent: string }> = {
-  react: { icon: Atom, accent: "oklch(0.68 0.13 220)" },
-  nodejs: { icon: Hexagon, accent: "oklch(0.64 0.14 150)" },
-  "distributed-systems": { icon: Network, accent: "oklch(0.62 0.15 285)" },
-  "system-design": { icon: Blocks, accent: "oklch(0.72 0.12 70)" },
-  "sql-databases": { icon: Database, accent: "oklch(0.66 0.12 195)" },
-  javascript: { icon: Braces, accent: "oklch(0.74 0.13 95)" },
-  python: { icon: Terminal, accent: "oklch(0.62 0.14 255)" },
-  dsa: { icon: Binary, accent: "oklch(0.65 0.15 12)" },
+  react: { icon: Atom, accent: "oklch(0.72 0.13 220)" },
+  nodejs: { icon: Hexagon, accent: "oklch(0.68 0.15 145)" },
+  "distributed-systems": { icon: Network, accent: "oklch(0.55 0.15 300)" },
+  "system-design": { icon: Blocks, accent: "oklch(0.6 0.17 265)" },
+  "sql-databases": { icon: Database, accent: "oklch(0.62 0.18 292)" },
+  javascript: { icon: Braces, accent: "oklch(0.55 0.18 255)" },
+  python: { icon: Terminal, accent: "oklch(0.75 0.15 85)" },
+  dsa: { icon: Binary, accent: "oklch(0.6 0.11 185)" },
+};
+
+// Hero art for each skill card — dropped in /public as `<slug>-light-mode.png`
+// / `<slug>-dark-mode.png`. `javascript` renders the TS art since its catalog
+// label is "JavaScript / TypeScript".
+const SKILL_BG: Record<string, string> = {
+  react: "react",
+  nodejs: "nodejs",
+  "distributed-systems": "distributedsystem",
+  "system-design": "systemdesign",
+  "sql-databases": "sql",
+  javascript: "typescript",
+  python: "python",
+  dsa: "dsa",
 };
 
 const skillMeta = (id: string) =>
@@ -637,94 +652,86 @@ export function Overview() {
 
       <StartInterviewHero />
 
-      {dashboardLoading ? (
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <KpiCardSkeleton key={i} />
-          ))}
-        </div>
-      ) : (
-        null
-      )}
-
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-foreground">
-            Recent recordings
-          </h2>
-          <Link
-            to="/dashboard/interviews"
-            className="inline-flex items-center gap-1 text-xs font-medium text-ink-subtle hover:text-primary"
-          >
-            View all
-            <ArrowRight className="size-3.5" />
-          </Link>
-        </div>
-        {dashboardLoading ? (
-          <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3 p-2">
-                <div className="skeleton-shimmer size-8 shrink-0 rounded-lg bg-muted" />
-                <div className="flex-1">
-                  <div className="skeleton-shimmer h-3.5 w-32 rounded bg-muted" />
-                  <div className="skeleton-shimmer mt-2 h-2.5 w-24 rounded bg-muted" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : dashboard && dashboard.recent.length > 0 ? (
-          <div className="ln-lift flex flex-col rounded-2xl border border-border bg-card p-3">
-            {dashboard.recent.map((interview) => (
-              <RecordingRow key={interview.id} interview={interview} />
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            icon={Mic}
-            title="No recordings yet"
-            description="Every interview is recorded. Finish a session and replay it here to hear exactly how you answered."
-          />
-        )}
-      </div>
-
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-              <Globe className="size-4 text-primary" />
-              Public interviews
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-foreground">
+              Recent recordings
             </h2>
-            <p className="mt-1 text-xs text-ink-subtle">
-              Recordings other candidates have chosen to share publicly.
-            </p>
+            <Link
+              to="/dashboard/interviews"
+              className="inline-flex items-center gap-1 text-xs font-medium text-ink-subtle hover:text-primary"
+            >
+              View all
+              <ArrowRight className="size-3.5" />
+            </Link>
           </div>
-          <Link
-            to="/dashboard/overview/public"
-            className="inline-flex items-center gap-1 text-xs font-medium text-ink-subtle hover:text-primary"
-          >
-            View all
-            <ArrowRight className="size-3.5" />
-          </Link>
+          {dashboardLoading ? (
+            <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 p-2">
+                  <div className="skeleton-shimmer size-8 shrink-0 rounded-lg bg-muted" />
+                  <div className="flex-1">
+                    <div className="skeleton-shimmer h-3.5 w-32 rounded bg-muted" />
+                    <div className="skeleton-shimmer mt-2 h-2.5 w-24 rounded bg-muted" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : dashboard && dashboard.recent.length > 0 ? (
+            <div className="ln-lift flex flex-col rounded-2xl border border-border bg-card p-3">
+              {dashboard.recent.map((interview) => (
+                <RecordingRow key={interview.id} interview={interview} />
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon={Mic}
+              title="No recordings yet"
+              description="Every interview is recorded. Finish a session and replay it here to hear exactly how you answered."
+            />
+          )}
         </div>
-        {publicInterviewsLoading ? (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <PublicInterviewFeedCardSkeleton key={i} />
-            ))}
+
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                <Globe className="size-4 text-primary" />
+                Public interviews
+              </h2>
+              <p className="mt-1 text-xs text-ink-subtle">
+                Recordings other candidates have chosen to share publicly.
+              </p>
+            </div>
+            <Link
+              to="/dashboard/overview/public"
+              className="inline-flex items-center gap-1 text-xs font-medium text-ink-subtle hover:text-primary"
+            >
+              View all
+              <ArrowRight className="size-3.5" />
+            </Link>
           </div>
-        ) : publicInterviews.length > 0 ? (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {publicInterviews.map((interview) => (
-              <PublicInterviewFeedCard key={interview.id} interview={interview} />
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            icon={Globe}
-            title="No public interviews yet"
-            description="Once candidates share a recording from their profile, it shows up here for everyone to see."
-          />
-        )}
+          {publicInterviewsLoading ? (
+            <div className="grid grid-cols-2 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <PublicInterviewFeedCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : publicInterviews.length > 0 ? (
+            <div className="grid grid-cols-2 gap-4">
+              {publicInterviews.slice(0, 4).map((interview) => (
+                <PublicInterviewFeedCard key={interview.id} interview={interview} />
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon={Globe}
+              title="No public interviews yet"
+              description="Once candidates share a recording from their profile, it shows up here for everyone to see."
+            />
+          )}
+        </div>
       </div>
 
       <div className="flex flex-col gap-4">
@@ -823,6 +830,8 @@ type SkillDetail = PracticeSkill & {
 
 function SkillCard({ skill, index }: { skill: PracticeSkill; index: number }) {
   const { icon: Icon, accent } = skillMeta(skill.id);
+  const bgSlug = SKILL_BG[skill.id];
+
   return (
     <Link
       to={`/dashboard/practice/${skill.id}`}
@@ -831,43 +840,60 @@ function SkillCard({ skill, index }: { skill: PracticeSkill; index: number }) {
         animationDelay: `${Math.min(index, 8) * 45}ms`,
       }}
       className={cn(
-        "ln-lift ln-rise group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card p-5 text-left",
+        "ln-lift ln-rise group relative isolate flex min-h-[190px] flex-col justify-between overflow-hidden rounded-2xl border bg-card p-5 text-left",
+        "border-[color-mix(in_oklab,var(--accent)_25%,var(--border))]",
         "transition-[transform,border-color] duration-200 ease-out",
-        "hover:-translate-y-0.5 hover:border-[color-mix(in_oklab,var(--accent)_45%,var(--border))]",
+        "hover:-translate-y-0.5 hover:border-[color-mix(in_oklab,var(--accent)_55%,var(--border))]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklab,var(--accent)_55%,transparent)]",
         "active:translate-y-0 active:scale-[0.99]",
       )}
     >
-      {/* Accent wash — atmosphere that only surfaces on hover. */}
+      {/* Hero art — theme-swapped, cropped to the right edge, tinted with a
+          card-color scrim so it reads as this app's card and not a pasted image. */}
+      {bgSlug && (
+        <>
+          <img
+            src={`/${bgSlug}-light-mode.png`}
+            alt=""
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -z-20 size-full scale-105 object-cover object-right transition-transform duration-500 ease-out group-hover:scale-110 dark:hidden"
+          />
+          <img
+            src={`/${bgSlug}-dark-mode.png`}
+            alt=""
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -z-20 hidden size-full scale-105 object-cover object-right transition-transform duration-500 ease-out group-hover:scale-110 dark:block"
+          />
+        </>
+      )}
       <span
         aria-hidden
-        className="pointer-events-none absolute -right-8 -top-8 size-28 rounded-full opacity-0 blur-2xl transition-opacity duration-300 ease-out group-hover:opacity-100"
-        style={{
-          background:
-            "radial-gradient(circle, color-mix(in oklab, var(--accent) 45%, transparent), transparent 70%)",
-        }}
+        className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-r from-card via-card/80 to-card/10"
       />
 
-      <span
-        className="flex size-11 items-center justify-center rounded-xl text-[var(--accent)] ring-1 ring-[color-mix(in_oklab,var(--accent)_22%,transparent)] transition-transform duration-200 ease-out group-hover:scale-[1.06]"
-        style={{
-          background: "color-mix(in oklab, var(--accent) 13%, var(--card))",
-        }}
-      >
-        <Icon className="size-5" />
-      </span>
+      <div className="relative flex items-center gap-3">
+        <span
+          className="flex size-10 shrink-0 items-center justify-center rounded-xl text-[var(--accent)] ring-1 ring-[color-mix(in_oklab,var(--accent)_35%,transparent)] transition-transform duration-200 ease-out group-hover:scale-[1.06]"
+          style={{
+            background: "color-mix(in oklab, var(--accent) 16%, var(--card))",
+          }}
+        >
+          <Icon className="size-5" />
+        </span>
+        <h3 className="text-[15px] font-semibold tracking-tight text-foreground">
+          {skill.label}
+        </h3>
+      </div>
 
-      <h3 className="mt-4 text-[15px] font-semibold tracking-tight text-foreground">
-        {skill.label}
-      </h3>
-      <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-ink-subtle">
-        {skill.blurb}
-      </p>
-
-      <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-ink-tertiary transition-colors duration-200 group-hover:text-[var(--accent)]">
-        View details
-        <ArrowRight className="size-3.5 transition-transform duration-200 ease-out group-hover:translate-x-1" />
-      </span>
+      <div className="relative">
+        <p className="line-clamp-2 max-w-[62%] text-xs leading-relaxed text-ink-subtle">
+          {skill.blurb}
+        </p>
+        <span className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition-colors duration-200 group-hover:bg-brand-hover">
+          View details
+          <ArrowRight className="size-3.5 transition-transform duration-200 ease-out group-hover:translate-x-1" />
+        </span>
+      </div>
     </Link>
   );
 }
@@ -931,12 +957,16 @@ function DifficultySelector({
 
 function SkillCardSkeleton() {
   return (
-    <div className="ln-lift rounded-2xl border border-border bg-card p-5">
-      <div className="skeleton-shimmer size-11 rounded-xl bg-muted" />
-      <div className="skeleton-shimmer mt-4 h-4 w-24 rounded bg-muted" />
-      <div className="skeleton-shimmer mt-2.5 h-3 w-full rounded bg-muted" />
-      <div className="skeleton-shimmer mt-1.5 h-3 w-2/3 rounded bg-muted" />
-      <div className="skeleton-shimmer mt-4 h-3 w-20 rounded bg-muted" />
+    <div className="ln-lift flex min-h-[190px] flex-col justify-between rounded-2xl border border-border bg-card p-5">
+      <div className="flex items-center gap-3">
+        <div className="skeleton-shimmer size-10 rounded-xl bg-muted" />
+        <div className="skeleton-shimmer h-4 w-28 rounded bg-muted" />
+      </div>
+      <div>
+        <div className="skeleton-shimmer h-3 w-full max-w-[62%] rounded bg-muted" />
+        <div className="skeleton-shimmer mt-1.5 h-3 w-1/3 max-w-[62%] rounded bg-muted" />
+        <div className="skeleton-shimmer mt-4 h-8 w-28 rounded-lg bg-muted" />
+      </div>
     </div>
   );
 }
@@ -975,7 +1005,7 @@ export function Practice() {
       />
 
       {loading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {Array.from({ length: 6 }).map((_, i) => (
             <SkillCardSkeleton key={i} />
           ))}
@@ -987,7 +1017,7 @@ export function Practice() {
           description="Something went wrong fetching practice skills. Please try again in a moment."
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {skills.map((skill, i) => (
             <SkillCard key={skill.id} skill={skill} index={i} />
           ))}

@@ -160,19 +160,6 @@ export function ProfilePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Sticky, compact identity bar — sits just below the dashboard topbar (h-14)
-          and persists once the full hero scrolls past. */}
-      <div className="sticky top-14 z-30 -mx-5 -mt-10 flex items-center gap-3 border-b border-border bg-background/85 px-5 py-3 backdrop-blur-md sm:-mx-8 sm:px-8 lg:-mx-12 lg:-mt-14 lg:px-12">
-        <Avatar size="sm">
-          {profile?.avatarUrl && <AvatarImage src={profile.avatarUrl} alt={displayName} />}
-          <AvatarFallback className="text-[10px]">{initialsFor(displayName)}</AvatarFallback>
-        </Avatar>
-        <span className="truncate text-sm font-medium text-foreground">{displayName}</span>
-        {profile?.username && (
-          <span className="truncate text-xs text-ink-tertiary">@{profile.username}</span>
-        )}
-      </div>
-
       {!user && (
         <div className="ln-lift flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-muted/40 px-5 py-3.5">
           <p className="text-sm text-ink-subtle">
