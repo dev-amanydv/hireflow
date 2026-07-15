@@ -431,6 +431,8 @@ export const listInterviews = async (req: Request, res: Response) => {
       status: true,
       createdAt: true,
       recordingStatus: true,
+      recordingDurationMs: true,
+      isPublic: true,
       result: { select: { score: true } },
     },
   });
@@ -448,6 +450,8 @@ export const listInterviews = async (req: Request, res: Response) => {
         status: i.status,
         createdAt: i.createdAt,
         recordingStatus: i.recordingStatus,
+        recordingDurationMs: i.recordingDurationMs,
+        isPublic: i.isPublic,
         score: i.result?.score ?? null,
       })),
     },
@@ -474,6 +478,7 @@ export const getInterviewResult = async (req: Request, res: Response) => {
       createdAt: true,
       recordingStatus: true,
       recordingDurationMs: true,
+      isPublic: true,
       result: { select: { score: true, report: true } },
     },
   });
@@ -491,6 +496,7 @@ export const getInterviewResult = async (req: Request, res: Response) => {
       createdAt: interview.createdAt,
       recordingStatus: interview.recordingStatus,
       recordingDurationMs: interview.recordingDurationMs,
+      isPublic: interview.isPublic,
       ready: Boolean(interview.result),
       result: interview.result ?? null,
     },
@@ -638,5 +644,35 @@ export const getInterviewRecording = async (req: Request, res: Response) => {
       url,
       durationMs: interview.recordingDurationMs,
     },
+  });
+};
+
+const visibilitySchema = z.object({ isPublic: z.boolean() });
+
+// Owner-only toggle so an interview can be showcased on the public /u/:username
+// profile. Public viewers only ever see interviews with isPublic === true.
+export const setInterviewVisibility = async (req: Request, res: Response) => {
+  const userId = req.userId;
+  if (!userId) throw new AppError(401, "Unauthorised");
+
+  const interviewId = req.params.interviewId as string;
+  const { success, data } = visibilitySchema.safeParse(req.body);
+  if (!success) throw new AppError(400, "isPublic (boolean) is required");
+
+  const interview = await prisma.interview.findFirst({
+    where: { id: interviewId, userId },
+    select: { id: true },
+  });
+  if (!interview) throw new AppError(404, "Interview not found");
+
+  await prisma.interview.update({
+    where: { id: interviewId },
+    data: { isPublic: data.isPublic },
+  });
+
+  res.status(200).json({
+    success: true,
+    message: data.isPublic ? "Interview is now public" : "Interview is now private",
+    data: { isPublic: data.isPublic },
   });
 };

@@ -18,4 +18,6 @@ export default [
     route("start", "routes/start.tsx"),
     route("interview/:id", "routes/interview.tsx"),
     route("result", "routes/result.tsx"),
+    route("u/:username", "routes/profile-public.tsx"),
+    route("u/:username/i/:interviewId", "routes/public-interview.tsx"),
 ] satisfies RouteConfig;

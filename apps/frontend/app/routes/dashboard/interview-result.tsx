@@ -8,8 +8,10 @@ import {
   BarChart3,
   Check,
   Download,
+  Globe,
   Info,
   Loader2,
+  Lock,
   Quote,
   Sparkles,
   TrendingUp,
@@ -75,6 +77,7 @@ type ResultData = {
   createdAt?: string;
   recordingStatus: RecordingStatus;
   recordingDurationMs: number | null;
+  isPublic: boolean;
   ready: boolean;
   result: { score: number; report: Report | null } | null;
 };
@@ -220,6 +223,71 @@ function DownloadTranscriptButton({
   );
 }
 
+// ── Public/private visibility toggle ────────────────────────────────────────
+function VisibilityToggle({
+  interviewId,
+  initialIsPublic,
+}: {
+  interviewId: string;
+  initialIsPublic: boolean;
+}) {
+  const [isPublic, setIsPublic] = useState(initialIsPublic);
+  const [busy, setBusy] = useState(false);
+
+  const toggle = async () => {
+    if (busy) return;
+    const next = !isPublic;
+    setBusy(true);
+    setIsPublic(next);
+    try {
+      await axios.patch(
+        `${BACKEND_URL}/interview/${interviewId}/visibility`,
+        { isPublic: next },
+        { withCredentials: true },
+      );
+      toast.success(next ? "Interview is now public" : "Interview is now private");
+    } catch {
+      setIsPublic(!next);
+      toast.error("Couldn't update visibility. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={isPublic}
+      onClick={toggle}
+      disabled={busy}
+      className="flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary px-3 py-2.5 text-left transition-colors hover:bg-muted disabled:opacity-60"
+    >
+      <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+        {isPublic ? (
+          <Globe className="size-4 text-primary" />
+        ) : (
+          <Lock className="size-4 text-ink-subtle" />
+        )}
+        {isPublic ? "Public" : "Private"}
+      </span>
+      <span
+        className={cn(
+          "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors",
+          isPublic ? "bg-primary" : "bg-input",
+        )}
+      >
+        <span
+          className={cn(
+            "inline-block size-3.5 rounded-full bg-white shadow-sm transition-transform",
+            isPublic ? "translate-x-[18px]" : "translate-x-[3px]",
+          )}
+        />
+      </span>
+    </button>
+  );
+}
+
 // ── The pinned verdict rail ─────────────────────────────────────────────────
 type NavItem = { href: string; label: string };
 
@@ -294,6 +362,7 @@ function Rail({
 
         {/* Actions */}
         <div className="flex flex-col gap-2 border-t border-border pt-5">
+          <VisibilityToggle interviewId={interviewId} initialIsPublic={data.isPublic} />
           <DownloadTranscriptButton interviewId={interviewId} fullWidth />
           <Link
             to="/dashboard/interviews"

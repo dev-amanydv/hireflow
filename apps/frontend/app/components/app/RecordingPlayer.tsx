@@ -105,10 +105,18 @@ export default function RecordingPlayer({
   interviewId,
   status,
   durationMs,
+  recordingUrl,
+  allowDownload = true,
 }: {
   interviewId: string;
   status: RecordingStatus;
   durationMs?: number | null;
+  /** When provided (e.g. a public, already-presigned URL), skips the owner-scoped
+   * fetch below — used by the public interview page, which has no session cookie. */
+  recordingUrl?: string | null;
+  /** Owner-only: the download button hits an authenticated endpoint, so public
+   * viewers never get it. */
+  allowDownload?: boolean;
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const scrubRef = useRef<HTMLDivElement | null>(null);
@@ -136,9 +144,16 @@ export default function RecordingPlayer({
   const progress = duration > 0 ? Math.min(1, current / duration) : 0;
   const bufferedFrac = duration > 0 ? Math.min(1, buffered / duration) : 0;
 
-  // Fetch the presigned URL once the recording is ready.
+  // Fetch the presigned URL once the recording is ready — unless the caller
+  // already handed us one (the public interview page has no session cookie to
+  // hit the owner-scoped endpoint with).
   useEffect(() => {
     if (status !== "READY") return;
+    if (recordingUrl !== undefined) {
+      if (recordingUrl) setUrl(recordingUrl);
+      else setLoadFailed(true);
+      return;
+    }
     let cancelled = false;
     axios
       .get<{ data: RecordingResponse }>(
@@ -157,7 +172,7 @@ export default function RecordingPlayer({
     return () => {
       cancelled = true;
     };
-  }, [status, interviewId]);
+  }, [status, interviewId, recordingUrl]);
 
   const seekTo = useCallback(
     (seconds: number) => {
@@ -433,20 +448,22 @@ export default function RecordingPlayer({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <button
-              type="button"
-              onClick={onDownload}
-              disabled={downloading}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-60"
-              aria-label="Download recording"
-            >
-              {downloading ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Download className="size-4" />
-              )}
-              <span className="hidden sm:inline">Download</span>
-            </button>
+            {allowDownload && (
+              <button
+                type="button"
+                onClick={onDownload}
+                disabled={downloading}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-secondary px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-60"
+                aria-label="Download recording"
+              >
+                {downloading ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Download className="size-4" />
+                )}
+                <span className="hidden sm:inline">Download</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

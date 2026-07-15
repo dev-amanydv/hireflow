@@ -83,7 +83,10 @@ enum JobType {
 
 model User {
   id        String          @id @default(uuid())
-  username  String?
+  username  String?         @unique
+  displayName String?
+  bio       String?
+  avatarKey String?
   email     String          @unique
   provider  Provider        @default(LOCAL)
   password  String?
@@ -113,6 +116,7 @@ model Interview {
   recordingKey        String?
   recordingStatus     RecordingStatus @default(NONE)
   recordingDurationMs Int?
+  isPublic  Boolean         @default(false)
   githubMetadata  Json?
   userId    String  
   user      User            @relation(fields: [userId], references: [id])

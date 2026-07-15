@@ -232,6 +232,17 @@ body {
   --sidebar-accent-foreground: oklch(0.24 0.02 275);
   --sidebar-border: oklch(0.92 0.006 275);
   --sidebar-ring: oklch(0.55 0.15 272);
+  /* Practice-summary skill palette (categorical, validated with
+     scripts/validate_palette.js — all 6 checks pass at this surface). Mirrors
+     the per-skill accent hues already used for Practice skill cards. */
+  --skill-react: oklch(0.68 0.13 220);
+  --skill-nodejs: oklch(0.64 0.14 150);
+  --skill-system-design: oklch(0.72 0.12 70);
+  --skill-sql-databases: oklch(0.66 0.12 195);
+  --skill-javascript: oklch(0.74 0.13 95);
+  --skill-python: oklch(0.62 0.14 255);
+  --skill-dsa: oklch(0.65 0.15 12);
+  --skill-behavioral: oklch(0.6 0.14 315);
 }
 
 .dark {
@@ -274,6 +285,16 @@ body {
   --sidebar-accent-foreground: oklch(0.97 0.004 275);
   --sidebar-border: oklch(0.28 0.012 275);
   --sidebar-ring: oklch(0.62 0.15 272);
+  /* Re-tuned lightness/chroma so the same 8 identities stay validated against
+     the dark card surface (0.205 0.012 275) — see the :root block above. */
+  --skill-react: oklch(0.64 0.13 220);
+  --skill-nodejs: oklch(0.62 0.14 150);
+  --skill-system-design: oklch(0.65 0.12 70);
+  --skill-sql-databases: oklch(0.63 0.12 195);
+  --skill-javascript: oklch(0.66 0.13 95);
+  --skill-python: oklch(0.6 0.14 255);
+  --skill-dsa: oklch(0.62 0.15 12);
+  --skill-behavioral: oklch(0.6 0.14 315);
 }
 
 @layer base {

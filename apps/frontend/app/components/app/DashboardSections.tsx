@@ -35,7 +35,6 @@ import {
   TrendingDown,
   TrendingUp,
   Trophy,
-  User,
   Zap,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -1443,61 +1442,6 @@ export function Insights() {
         title="Not enough data yet"
         description="Complete a few interviews and QuickHire charts your score trend, strengths by topic, and areas to focus on next."
       />
-    </div>
-  );
-}
-
-export function Profile() {
-  const user = useAuth((s) => s.user);
-  const openAuthModal = useAuth((s) => s.openAuthModal);
-
-  return (
-    <div className="flex flex-col gap-8">
-      <SectionHeader
-        eyebrow="Account"
-        title="Profile"
-        description="Your account details and connected sources."
-      />
-      {user ? (
-        <div className="ln-lift max-w-2xl rounded-2xl border border-border bg-card p-6">
-          <div className="flex items-center gap-4">
-            <div className="flex size-14 items-center justify-center rounded-full bg-primary/10 text-lg font-semibold text-primary">
-              {user.email.slice(0, 1).toUpperCase()}
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-base font-semibold text-foreground">
-                {user.email.split("@")[0]}
-              </p>
-              <p className="truncate text-sm text-ink-subtle">{user.email}</p>
-            </div>
-          </div>
-          <div className="mt-6 grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2">
-            <div className="bg-card p-4">
-              <p className="text-xs text-ink-tertiary">Connected GitHub</p>
-              <p className="mt-1 text-sm text-ink-subtle">Not connected</p>
-            </div>
-            <div className="bg-card p-4">
-              <p className="text-xs text-ink-tertiary">Connected LinkedIn</p>
-              <p className="mt-1 text-sm text-ink-subtle">Not connected</p>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <EmptyState
-          icon={User}
-          title="You're not signed in"
-          description="Sign in to save your interview history, track your scores, and connect your GitHub and LinkedIn."
-          action={
-            <Button
-              variant="outline"
-              onClick={() => openAuthModal({ mode: "signin" })}
-            >
-              Sign in
-              <ArrowRight className="size-4" />
-            </Button>
-          }
-        />
-      )}
     </div>
   );
 }

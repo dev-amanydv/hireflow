@@ -6,6 +6,7 @@ import interviewRoutes from './routes/interview.routes';
 import jobsRoutes from './routes/jobs.route';
 import resumeRoutes from './routes/resume.routes';
 import dashboardRoutes from './routes/dashboard.route';
+import profileRoutes from './routes/profile.route';
 import { errorHandler } from './middlewares/error.middleware';
 import { NotFound } from './utils/NotFound';
 import './workers/worker';
@@ -45,6 +46,7 @@ app.use('/api/v1/interview', interviewRoutes);
 app.use('/api/v1/jobs', jobsRoutes);
 app.use('/api/v1/resume', resumeRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
+app.use('/api/v1/profile', profileRoutes);
 
 app.use(NotFound);
 app.use(errorHandler)

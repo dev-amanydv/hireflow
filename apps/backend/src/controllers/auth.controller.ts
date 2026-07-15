@@ -49,14 +49,22 @@ export const handleSignup = async (req: Request, res: Response) => {
             data: null
         })
     }
-    const username = genUniqueUsername(data.email);
-    const user = await prisma.user.create({
-        data: {
-            email: data.email,
-            password: data.password,
-            username: username
+    let user;
+    for (let attempt = 0; attempt < 5; attempt++) {
+        try {
+            user = await prisma.user.create({
+                data: {
+                    email: data.email,
+                    password: data.password,
+                    username: genUniqueUsername(data.email)
+                }
+            });
+            break;
+        } catch (err: any) {
+            if (err?.code === 'P2002' && attempt < 4) continue;
+            throw err;
         }
-    })
+    }
 
     const refreshToken = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
         audience: 'User',
@@ -101,6 +109,9 @@ export const handleSignup = async (req: Request, res: Response) => {
     })
     } catch (error) {
         console.log('Error in signup controller: ', error)
+        if (!res.headersSent) {
+            res.status(500).json({ success: false, message: 'Something went wrong', data: null })
+        }
     }
 }
 
