@@ -36,6 +36,9 @@ export type MyProfileData = {
   scoreTrend: ScoreTrendPoint[];
   typeDistribution: TypeCount[];
   skillDistribution: SkillCount[];
+  resumeStatus: "PARSING" | "PARSED" | "FAILED" | null;
+  resumeError: string | null;
+  summary: ParsedSummary | null;
 };
 
 export type MyInterviewCard = {
@@ -58,6 +61,7 @@ export type PublicProfileData = {
   bio: string | null;
   avatarUrl: string | null;
   joinedAt: string;
+  summary: ParsedSummary | null;
   interviews: {
     id: string;
     jobRole: string;
@@ -70,6 +74,14 @@ export type PublicProfileData = {
   }[];
 };
 
+export type PublicInterviewOwner = {
+  username: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  totalInterviews: number;
+  minutesPracticed: number;
+};
+
 export type PublicInterviewData = {
   jobRole: string;
   skill: string | null;
@@ -79,4 +91,20 @@ export type PublicInterviewData = {
   recordingStatus: RecordingStatus;
   durationMs: number | null;
   recordingUrl: string | null;
+  owner: PublicInterviewOwner;
+};
+
+export type ParsedSummary = {
+  name: string | null;
+  role: string | null;
+  summary: string | null;
+  yearOfExp: string | null;
+  email: string | null;
+  linkedIn: string | null;
+  github: string | null;
+  phone: string | null;
+  technicalSkills: { name: string | null; usedIn: string[] | null }[];
+  experience: { role: string | null; company: string | null; duration: string | null; work: string[] | null }[];
+  projects: { name: string | null; skills: string[] | null; readmeSummary: string[] | null; about: string[] | null }[];
+  education: { qualification: string | null; institution: string | null; startingYear: string | null }[];
 };

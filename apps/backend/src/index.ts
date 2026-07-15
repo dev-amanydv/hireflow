@@ -14,7 +14,7 @@ import 'dotenv/config';
 import {
     startResumeParserWorker, startSourceFetchWorker, startJobsIngestWorker,
     startResumeAnalysisUploadWorker, startResumeAnalysisParserWorker, startResumeAnalysisScoreWorker,
-    startInterviewFeedbackWorker
+    startInterviewFeedbackWorker, startProfileResumeWorker
 } from './workers/worker';
 import { scheduleJobsIngest } from './queues/queue';
 
@@ -27,6 +27,7 @@ startResumeAnalysisUploadWorker();
 startResumeAnalysisParserWorker();
 startResumeAnalysisScoreWorker();
 startInterviewFeedbackWorker();
+startProfileResumeWorker();
 scheduleJobsIngest().catch((err) => console.error('Failed to schedule jobs ingest', err));
 
 app.use(express.json());

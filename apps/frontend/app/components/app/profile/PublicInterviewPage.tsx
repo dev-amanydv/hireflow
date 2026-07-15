@@ -4,6 +4,7 @@ import axios from "axios";
 import { ArrowLeft, FileQuestion } from "lucide-react";
 import EmptyState from "../EmptyState";
 import RecordingPlayer from "../RecordingPlayer";
+import { InterviewOwnerPanel, InterviewOwnerPanelSkeleton } from "./InterviewOwnerPanel";
 import { BACKEND_URL } from "~/lib/config";
 import type { PublicInterviewData } from "./types";
 
@@ -82,7 +83,7 @@ export function PublicInterviewPage({
   }
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-6 px-5 sm:px-8">
+    <div className="mx-auto flex max-w-5xl flex-col gap-6 px-5 sm:px-8">
       <Link
         to={`/u/${username}`}
         className="inline-flex w-fit items-center gap-1.5 text-sm text-ink-subtle transition-colors hover:text-foreground"
@@ -92,27 +93,33 @@ export function PublicInterviewPage({
       </Link>
 
       {loading || !data ? (
-        <div className="ln-lift flex flex-col gap-4 rounded-2xl border border-border bg-card p-6">
-          <div className="skeleton-shimmer h-6 w-48 rounded bg-muted" />
-          <div className="skeleton-shimmer h-40 rounded-lg bg-muted" />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
+          <div className="ln-lift flex flex-col gap-4 rounded-2xl border border-border bg-card p-6">
+            <div className="skeleton-shimmer h-6 w-48 rounded bg-muted" />
+            <div className="skeleton-shimmer h-40 rounded-lg bg-muted" />
+          </div>
+          <InterviewOwnerPanelSkeleton />
         </div>
       ) : (
-        <>
-          <div>
-            <h1 className="ln-display-md text-foreground">{data.jobRole}</h1>
-            <p className="mt-1.5 text-sm text-ink-subtle">
-              {data.skill ? SKILL_LABEL[data.skill] ?? data.skill : "Behavioral"} ·{" "}
-              {LEVEL_LABEL[data.experience] ?? data.experience} · {formatDate(data.createdAt)}
-            </p>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
+          <div className="flex flex-col gap-6">
+            <div>
+              <h1 className="ln-display-md text-foreground">{data.jobRole}</h1>
+              <p className="mt-1.5 text-sm text-ink-subtle">
+                {data.skill ? SKILL_LABEL[data.skill] ?? data.skill : "Behavioral"} ·{" "}
+                {LEVEL_LABEL[data.experience] ?? data.experience} · {formatDate(data.createdAt)}
+              </p>
+            </div>
+            <RecordingPlayer
+              interviewId={interviewId}
+              status={data.recordingStatus}
+              durationMs={data.durationMs}
+              recordingUrl={data.recordingUrl}
+              allowDownload={false}
+            />
           </div>
-          <RecordingPlayer
-            interviewId={interviewId}
-            status={data.recordingStatus}
-            durationMs={data.durationMs}
-            recordingUrl={data.recordingUrl}
-            allowDownload={false}
-          />
-        </>
+          <InterviewOwnerPanel owner={data.owner} />
+        </div>
       )}
     </div>
   );

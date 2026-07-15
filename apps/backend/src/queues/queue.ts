@@ -212,3 +212,25 @@ export function buildAnalysisSourceFetchFlow(input: {
 export async function enqueueAnalysisScore(meta: AnalysisMeta) {
     return resumeAnalysisScoreQueue.add('score', { meta }, { jobId: aid('score', meta) });
 }
+
+export interface ProfileResumeMeta {
+    userId: string,
+    s3key: string
+}
+
+export const profileResumeQueue = new Queue('profile-resume', {
+    connection,
+    defaultJobOptions: {
+        attempts: 2,
+        backoff: { type: "exponential", delay: 2_000 },
+        removeOnComplete: { age: 3_600 },
+        removeOnFail: { age: 24 * 3_600 }
+    }
+});
+
+export async function enqueueProfileResume(meta: ProfileResumeMeta, filePath: string, size: number) {
+    // No fixed jobId: a fixed per-user id would collide with a previous attempt's
+    // (possibly failed/exhausted) job of the same id, and BullMQ silently reuses
+    // that existing job instead of processing a new one — leaving the upload stuck.
+    return profileResumeQueue.add('parse', { meta, filePath, size });
+}

@@ -458,6 +458,60 @@ export const listInterviews = async (req: Request, res: Response) => {
   });
 };
 
+// Cross-user feed for the dashboard's "Public interviews" section — any interview
+// any user has opted into sharing, newest first. Only READY recordings qualify
+// since the feed is built around the thumbnail/audio-visualization card.
+export const listPublicInterviews = async (req: Request, res: Response) => {
+  const limit = Math.min(Number(req.query.limit) || 12, 48);
+  const cursor = typeof req.query.cursor === "string" ? req.query.cursor : undefined;
+
+  const interviews = await prisma.interview.findMany({
+    where: { isPublic: true, recordingStatus: "READY" },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    take: limit,
+    select: {
+      id: true,
+      jobRole: true,
+      skill: true,
+      experience: true,
+      type: true,
+      createdAt: true,
+      recordingStatus: true,
+      recordingDurationMs: true,
+      user: { select: { username: true, displayName: true, avatarKey: true } },
+    },
+  });
+
+  const withAvatars = await Promise.all(
+    interviews
+      .filter((i) => i.user.username)
+      .map(async (i) => ({
+        id: i.id,
+        jobRole: i.jobRole,
+        skill: i.skill,
+        experience: i.experience,
+        type: i.type,
+        createdAt: i.createdAt,
+        recordingStatus: i.recordingStatus,
+        recordingDurationMs: i.recordingDurationMs,
+        username: i.user.username as string,
+        displayName: i.user.displayName,
+        avatarUrl: i.user.avatarKey
+          ? await getPresignedGetUrl(i.user.avatarKey, { expiresIn: 3600 })
+          : null,
+      })),
+  );
+
+  const nextCursor = interviews.length === limit ? interviews[interviews.length - 1]!.id : null;
+
+  res.status(200).json({
+    success: true,
+    message: "Public interviews fetched",
+    data: { interviews: withAvatars, nextCursor },
+  });
+};
+
 // Polled by the result page while the async feedback job runs.
 export const getInterviewResult = async (req: Request, res: Response) => {
   const userId = req.userId;

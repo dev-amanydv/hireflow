@@ -5,7 +5,8 @@ import { uploadToBucket } from "../utils/upload";
 import fs from 'fs';
 import {
     buildSourceFetchFlow, enqueueResumeParse, type JobMeta,
-    type AnalysisMeta, enqueueAnalysisParse, buildAnalysisSourceFetchFlow
+    type AnalysisMeta, enqueueAnalysisParse, buildAnalysisSourceFetchFlow,
+    type ProfileResumeMeta
 } from "../queues/queue";
 import { parseResume } from "../utils/parse";
 import { fetchGithub } from "../utils/FetchGithub";
@@ -295,6 +296,53 @@ export function startInterviewFeedbackWorker() {
 
     w.on('failed', (job, err) => {
         console.log(`interview-feedback ${job?.id} failed: ${err.message}`);
+    });
+
+    return w;
+}
+
+// Isolated from the ResumeAnalysis/ATS pipeline on purpose: a profile resume upload
+// should never touch ResumeAnalysis rows or ATS scoring, and vice versa. Single job,
+// no BullMQ Flow — raw resume text alone is enough context for getResumeSummary.
+export function startProfileResumeWorker() {
+    const w = new Worker('profile-resume', async job => {
+        const { meta, filePath, size } = job.data as { meta: ProfileResumeMeta, filePath: string, size: number };
+        try {
+            const body = await fs.promises.readFile(filePath);
+            const upload = await uploadToBucket(meta.s3key, body, size);
+            if (!upload?.success) throw new Error(String(upload?.message ?? 'upload failed'));
+
+            const { text, usedOcr } = await parseResume(filePath);
+            const summary = await getResumeSummary({
+                rawResumeText: text,
+                githubSources: [],
+                siteSources: [],
+                usedOcr
+            });
+            if (!summary) throw new Error('summary generation returned null');
+
+            await prisma.user.update({
+                where: { id: meta.userId },
+                data: {
+                    resumeKey: meta.s3key,
+                    summary: summary as Prisma.InputJsonValue,
+                    resumeStatus: 'PARSED',
+                    resumeError: null
+                }
+            });
+        } catch (err) {
+            await prisma.user.update({
+                where: { id: meta.userId },
+                data: { resumeStatus: 'FAILED', resumeError: String((err as Error)?.message ?? err) }
+            }).catch(() => { });
+            throw err;
+        } finally {
+            await fs.promises.unlink(filePath).catch(() => { });
+        }
+    }, { connection });
+
+    w.on('failed', (job, err) => {
+        console.log(`profile-resume ${job?.id} failed: ${err.message}`);
     });
 
     return w;

@@ -4,6 +4,8 @@ import type { Request, Response } from "express";
 import { AppError } from "../utils/AppError";
 import { prisma } from "../../prisma/db";
 import { uploadToBucket, getPresignedGetUrl } from "../utils/upload";
+import { enqueueProfileResume } from "../queues/queue";
+import type { ParsedSummary } from "../services/ats/types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const dayKey = (d: Date) => d.toISOString().slice(0, 10);
@@ -80,6 +82,9 @@ export const getMyProfile = async (req: Request, res: Response) => {
         avatarKey: true,
         provider: true,
         createdAt: true,
+        resumeStatus: true,
+        resumeError: true,
+        summary: true,
       },
     }),
     prisma.interview.count({ where: { userId } }),
@@ -220,6 +225,29 @@ export const uploadMyAvatar = async (req: Request, res: Response) => {
   });
 };
 
+export const uploadMyResume = async (req: Request, res: Response) => {
+  const userId = req.userId;
+  if (!userId) throw new AppError(401, "Unauthorised");
+
+  const file = req.file;
+  if (!file) throw new AppError(400, "ResumeRequired");
+
+  const ext = path.extname(file.originalname) || ".pdf";
+  const s3key = `users/${userId}/profile-resume/resume${ext}`;
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { resumeStatus: "PARSING", resumeError: null },
+  });
+  await enqueueProfileResume({ userId, s3key }, file.path, file.size);
+
+  res.status(202).json({
+    success: true,
+    message: "Resume uploaded, parsing started",
+    data: { status: "PARSING" },
+  });
+};
+
 export const getPublicProfile = async (req: Request, res: Response) => {
   const username = req.params.username as string;
 
@@ -231,9 +259,16 @@ export const getPublicProfile = async (req: Request, res: Response) => {
       bio: true,
       avatarKey: true,
       createdAt: true,
+      summary: true,
     },
   });
   if (!user) throw new AppError(404, "UserNotFound");
+
+  // Never leak contact info from the parsed resume on the public, unauthenticated page.
+  const rawSummary = user.summary as unknown as ParsedSummary | null;
+  const publicSummary: ParsedSummary | null = rawSummary
+    ? { ...rawSummary, email: null, phone: null }
+    : null;
 
   const publicInterviews = await prisma.interview.findMany({
     where: { user: { username }, isPublic: true },
@@ -259,6 +294,7 @@ export const getPublicProfile = async (req: Request, res: Response) => {
       ...identity,
       avatarUrl,
       joinedAt: identity.createdAt,
+      summary: publicSummary,
       interviews: publicInterviews,
     },
   });
@@ -278,14 +314,29 @@ export const getPublicInterview = async (req: Request, res: Response) => {
       recordingStatus: true,
       recordingDurationMs: true,
       recordingKey: true,
+      userId: true,
+      user: { select: { username: true, displayName: true, avatarKey: true } },
     },
   });
   if (!interview) throw new AppError(404, "InterviewNotFound");
 
-  const recordingUrl =
+  const [recordingUrl, avatarUrl, totalInterviews, timedInterviews] = await Promise.all([
     interview.recordingStatus === "READY" && interview.recordingKey
-      ? await getPresignedGetUrl(interview.recordingKey, { expiresIn: 3600 })
-      : null;
+      ? getPresignedGetUrl(interview.recordingKey, { expiresIn: 3600 })
+      : Promise.resolve(null),
+    interview.user.avatarKey
+      ? getPresignedGetUrl(interview.user.avatarKey, { expiresIn: 3600 })
+      : Promise.resolve(null),
+    prisma.interview.count({ where: { userId: interview.userId } }),
+    prisma.interview.findMany({
+      where: { userId: interview.userId, startAt: { not: null }, endAt: { not: null } },
+      select: { startAt: true, endAt: true },
+    }),
+  ]);
+
+  const minutesPracticed = Math.round(
+    timedInterviews.reduce((sum, i) => sum + Math.max(0, i.endAt!.getTime() - i.startAt!.getTime()), 0) / 60_000,
+  );
 
   res.status(200).json({
     success: true,
@@ -299,6 +350,13 @@ export const getPublicInterview = async (req: Request, res: Response) => {
       recordingStatus: interview.recordingStatus,
       durationMs: interview.recordingDurationMs,
       recordingUrl,
+      owner: {
+        username: interview.user.username,
+        displayName: interview.user.displayName,
+        avatarUrl,
+        totalInterviews,
+        minutesPracticed,
+      },
     },
   });
 };

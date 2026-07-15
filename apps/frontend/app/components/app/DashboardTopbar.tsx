@@ -19,11 +19,12 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "~/components/ui/sheet";
-import { useAuth } from "~/store/store";
+import { useAuth, usePageEyebrow } from "~/store/store";
 
 export default function DashboardTopbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const user = useAuth((s) => s.user);
+  const eyebrow = usePageEyebrow((s) => s.eyebrow);
 
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur-md sm:px-6 lg:px-8">
@@ -48,6 +49,10 @@ export default function DashboardTopbar() {
         </Sheet>
         <Brand to="/" />
       </div>
+
+      {eyebrow && (
+        <span className="ln-eyebrow hidden md:block">{eyebrow}</span>
+      )}
 
       <div className="ml-auto flex items-center gap-1">
         <ThemeToggle />

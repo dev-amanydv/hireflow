@@ -13,6 +13,8 @@ import { ResumeInsightCard, ResumeInsightCardSkeleton } from "./ResumeInsightCar
 import { ConnectedAccounts, ConnectedAccountsSkeleton } from "./ConnectedAccounts";
 import { PracticeSummary, PracticeSummarySkeleton } from "./PracticeSummary";
 import { PublicInterviewCard, PublicInterviewCardSkeleton } from "./PublicInterviewCard";
+import { ProfileResumeUploadCard } from "./ProfileResumeUploadCard";
+import { ProfileSummaryCard, ProfileSummaryCardSkeleton } from "./ProfileSummaryCard";
 import { EditProfileDialog, type EditableProfileFields } from "./EditProfileDialog";
 import type { MyInterviewCard, MyProfileData } from "./types";
 
@@ -22,6 +24,9 @@ function initialsFor(name: string): string {
   if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
   return (parts[0]![0]! + parts[parts.length - 1]![0]!).toUpperCase();
 }
+
+const RESUME_POLL_MS = 3000;
+const RESUME_POLL_MAX = 100;
 
 export function ProfilePage() {
   const user = useAuth((s) => s.user);
@@ -47,6 +52,46 @@ export function ProfilePage() {
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
+
+  const resumePollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (profile?.resumeStatus !== "PARSING") return;
+    let cancelled = false;
+    let attempts = 0;
+
+    const tick = async () => {
+      if (cancelled) return;
+      attempts += 1;
+      try {
+        const res = await axios.get(`${BACKEND_URL}/profile/me`, { withCredentials: true });
+        const next: MyProfileData | null = res.data?.data ?? null;
+        if (cancelled) return;
+        if (next && next.resumeStatus !== "PARSING") {
+          setProfile(next);
+          if (next.resumeStatus === "PARSED") {
+            toast.success("Resume parsed — your profile summary is up to date");
+          } else if (next.resumeStatus === "FAILED") {
+            toast.error("Couldn't parse your resume. Please try another file.");
+          }
+          return;
+        }
+      } catch {
+        // transient — keep polling until the ceiling below
+      }
+      if (attempts >= RESUME_POLL_MAX) {
+        toast.error("This is taking longer than expected. Check back shortly.");
+        return;
+      }
+      resumePollRef.current = setTimeout(tick, RESUME_POLL_MS);
+    };
+
+    resumePollRef.current = setTimeout(tick, RESUME_POLL_MS);
+    return () => {
+      cancelled = true;
+      if (resumePollRef.current) clearTimeout(resumePollRef.current);
+    };
+  }, [profile?.resumeStatus]);
 
   useEffect(() => {
     if (!user) return;
@@ -180,6 +225,23 @@ export function ProfilePage() {
         </div>
         <div className="lg:col-span-2">
           {profileLoading ? <ConnectedAccountsSkeleton /> : <ConnectedAccounts />}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-1">
+          {profileLoading || !profile ? (
+            <ResumeInsightCardSkeleton />
+          ) : (
+            <ProfileResumeUploadCard profile={profile} onUploaded={loadProfile} />
+          )}
+        </div>
+        <div className="lg:col-span-2">
+          {profileLoading || !profile ? (
+            <ProfileSummaryCardSkeleton />
+          ) : (
+            <ProfileSummaryCard summary={profile.summary} />
+          )}
         </div>
       </div>
 

@@ -5,6 +5,7 @@ import EmptyState from "../EmptyState";
 import { BACKEND_URL } from "~/lib/config";
 import { ProfileHero, ProfileHeroSkeleton } from "./ProfileHero";
 import { PublicInterviewCard, PublicInterviewCardSkeleton } from "./PublicInterviewCard";
+import { ProfileSummaryCard, ProfileSummaryCardSkeleton } from "./ProfileSummaryCard";
 import type { PublicProfileData } from "./types";
 
 export function PublicProfilePage({ username }: { username: string }) {
@@ -57,6 +58,12 @@ export function PublicProfilePage({ username }: { username: string }) {
           joinedAt={profile.joinedAt}
           isOwner={false}
         />
+      )}
+
+      {loading || !profile ? (
+        <ProfileSummaryCardSkeleton />
+      ) : (
+        <ProfileSummaryCard summary={profile.summary} />
       )}
 
       <div className="flex flex-col gap-4">

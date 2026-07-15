@@ -81,6 +81,12 @@ enum JobType {
   OTHER
 }
 
+enum ResumeParseStatus {
+  PARSING
+  PARSED
+  FAILED
+}
+
 model User {
   id        String          @id @default(uuid())
   username  String?         @unique
@@ -90,7 +96,10 @@ model User {
   email     String          @unique
   provider  Provider        @default(LOCAL)
   password  String?
-  Resume    String?
+  resumeKey     String?
+  resumeStatus  ResumeParseStatus?
+  resumeError   String?
+  summary       Json?
   interview Interview[]
   resumeAnalyses ResumeAnalysis[]
   savedJobs SavedJob[]

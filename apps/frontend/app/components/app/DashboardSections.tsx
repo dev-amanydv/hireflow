@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import axios from "axios";
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ import {
   Database,
   Dumbbell,
   FileText,
+  Globe,
   Hexagon,
   ListChecks,
   Loader2,
@@ -41,10 +42,16 @@ import type { LucideIcon } from "lucide-react";
 import EmptyState from "./EmptyState";
 import ResumeAnalyzer from "./resume-analyzer/ResumeAnalyzer";
 import type { RecordingStatus } from "./RecordingPlayer";
+import {
+  PublicInterviewFeedCard,
+  PublicInterviewFeedCardSkeleton,
+  formatDuration,
+  type PublicInterviewFeedItem,
+} from "./PublicInterviewFeedCard";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { Input } from "~/components/ui/input";
-import { useAuth } from "~/store/store";
+import { useAuth, usePageEyebrow } from "~/store/store";
 import { useStartInterview } from "~/lib/useStartInterview";
 import { BACKEND_URL } from "~/lib/config";
 import { cn } from "~/lib/utils";
@@ -114,7 +121,7 @@ const LEVEL_LABEL: Record<Difficulty, string> = {
   staff: "Staff",
 };
 
-function SectionHeader({
+export function SectionHeader({
   eyebrow,
   title,
   description,
@@ -125,9 +132,15 @@ function SectionHeader({
   description?: string;
   action?: React.ReactNode;
 }) {
+  const setPageEyebrow = usePageEyebrow((s) => s.setEyebrow);
+  useEffect(() => {
+    setPageEyebrow(eyebrow);
+    return () => setPageEyebrow(null);
+  }, [eyebrow, setPageEyebrow]);
+
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="ln-eyebrow">{eyebrow}</span>
+      <span className="ln-eyebrow md:hidden">{eyebrow}</span>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="ln-display-md text-foreground text-balance">
@@ -286,6 +299,7 @@ function RecordingRow({ interview }: { interview: PastInterview }) {
   const status = interview.recordingStatus ?? "NONE";
   const ready = status === "READY";
   const processing = status === "PROCESSING";
+  const duration = formatDuration(interview.recordingDurationMs);
 
   return (
     <Link
@@ -313,54 +327,16 @@ function RecordingRow({ interview }: { interview: PastInterview }) {
         <p className="truncate text-[11px] text-ink-tertiary">
           {LEVEL_LABEL[interview.experience]}
           {dateLabel ? ` · ${dateLabel}` : ""}
-          {processing ? " · Preparing" : ready ? "" : " · No recording"}
+          {processing
+            ? " · Preparing"
+            : ready
+              ? duration
+                ? ` · ${duration}`
+                : ""
+              : " · No recording"}
         </p>
       </div>
     </Link>
-  );
-}
-
-// Replaces the old "Continue" card: a compact replay shelf of the user's most recent
-// sessions, each linking to its recording + report.
-function RecentRecordings({ interviews }: { interviews: PastInterview[] }) {
-  const recent = interviews.slice(0, 4);
-  return (
-    <div className="ln-lift ln-rise flex h-full flex-col rounded-2xl border border-border bg-card p-5">
-      <div className="flex items-center justify-between">
-        <div className="flex flex-col">
-          <span className="ln-eyebrow">Replay</span>
-          <h3 className="mt-1 text-sm font-semibold text-foreground">
-            Recent recordings
-          </h3>
-        </div>
-        <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          <Mic className="size-4" />
-        </span>
-      </div>
-
-      {recent.length > 0 ? (
-        <div className="mt-3 flex flex-1 flex-col">
-          {recent.map((interview) => (
-            <RecordingRow key={interview.id} interview={interview} />
-          ))}
-        </div>
-      ) : (
-        <div className="mt-3 flex flex-1 flex-col justify-center">
-          <p className="text-xs leading-relaxed text-ink-subtle">
-            Every interview is recorded. Finish a session and replay it here to
-            hear exactly how you answered.
-          </p>
-        </div>
-      )}
-
-      <Link
-        to="/dashboard/interviews"
-        className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
-      >
-        All interviews
-        <ArrowRight className="size-3.5" />
-      </Link>
-    </div>
   );
 }
 
@@ -502,6 +478,12 @@ export function Overview() {
   const [jobsLoading, setJobsLoading] = useState(true);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
 
+  const [publicInterviews, setPublicInterviews] = useState<
+    PublicInterviewFeedItem[]
+  >([]);
+  const [publicInterviewsLoading, setPublicInterviewsLoading] =
+    useState(true);
+
   useEffect(() => {
     let cancelled = false;
     axios
@@ -514,6 +496,28 @@ export function Overview() {
       })
       .finally(() => {
         if (!cancelled) setDashboardLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    axios
+      .get(`${BACKEND_URL}/interview/public`, {
+        params: { limit: 8 },
+        withCredentials: true,
+      })
+      .then((res) => {
+        if (!cancelled)
+          setPublicInterviews(res.data?.data?.interviews ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setPublicInterviews([]);
+      })
+      .finally(() => {
+        if (!cancelled) setPublicInterviewsLoading(false);
       });
     return () => {
       cancelled = true;
@@ -622,110 +626,86 @@ export function Overview() {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <KpiCard
-            icon={MessagesSquare}
-            accent="oklch(0.62 0.15 285)"
-            label="Total Interviews"
-            value={String(dashboard?.totalInterviews ?? 0)}
-            hint={
-              dashboard && dashboard.totalInterviews > 0
-                ? "Across practice & real"
-                : "No sessions yet"
-            }
-          />
-          <KpiCard
-            icon={Clock}
-            accent="oklch(0.66 0.12 195)"
-            label="Minutes Practiced"
-            value={formatMinutes(dashboard?.minutesPracticed ?? 0)}
-            hint="Time in live interviews"
-          />
-          <KpiCard
-            icon={Trophy}
-            accent="oklch(0.72 0.12 70)"
-            label="Best / Avg Score"
-            value={
-              dashboard?.bestScore != null
-                ? `${Math.round(dashboard.bestScore)}`
-                : "—"
-            }
-            hint={
-              dashboard?.lastScoreDelta != null
-                ? `${dashboard.lastScoreDelta >= 0 ? "+" : ""}${Math.round(
-                    dashboard.lastScoreDelta,
-                  )} from last · avg ${
-                    dashboard.avgScore != null
-                      ? Math.round(dashboard.avgScore)
-                      : "—"
-                  }`
-                : dashboard?.avgScore != null
-                  ? `Avg ${Math.round(dashboard.avgScore)}`
-                  : "Awaiting first result"
-            }
-            hintTone={
-              dashboard?.lastScoreDelta == null
-                ? "neutral"
-                : dashboard.lastScoreDelta > 0
-                  ? "up"
-                  : dashboard.lastScoreDelta < 0
-                    ? "down"
-                    : "neutral"
-            }
-          />
-          <KpiCard
-            icon={Bookmark}
-            accent="oklch(0.64 0.14 150)"
-            label="Jobs Saved"
-            value={String(dashboard?.savedJobs ?? 0)}
-            hint="From the job board"
-          />
-        </div>
+        null
       )}
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="flex flex-col gap-4 lg:col-span-2">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-foreground">
-              Recent interviews
-            </h2>
-            <Link
-              to="/dashboard/interviews"
-              className="inline-flex items-center gap-1 text-xs font-medium text-ink-subtle hover:text-primary"
-            >
-              View all
-              <ArrowRight className="size-3.5" />
-            </Link>
-          </div>
-          {dashboardLoading ? (
-            <div className="flex flex-col gap-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="ln-lift rounded-2xl border border-border bg-card p-5"
-                >
-                  <div className="skeleton-shimmer h-4 w-32 rounded bg-muted" />
-                  <div className="skeleton-shimmer mt-2 h-3 w-24 rounded bg-muted" />
-                </div>
-              ))}
-            </div>
-          ) : dashboard && dashboard.recent.length > 0 ? (
-            <div className="flex flex-col gap-3">
-              {dashboard.recent.map((interview) => (
-                <InterviewRow key={interview.id} interview={interview} />
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              icon={Sparkles}
-              title="No activity yet"
-              description="Once you complete a session, your interview history and scores collect here."
-            />
-          )}
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-foreground">
+            Recent recordings
+          </h2>
+          <Link
+            to="/dashboard/interviews"
+            className="inline-flex items-center gap-1 text-xs font-medium text-ink-subtle hover:text-primary"
+          >
+            View all
+            <ArrowRight className="size-3.5" />
+          </Link>
         </div>
+        {dashboardLoading ? (
+          <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 p-2">
+                <div className="skeleton-shimmer size-8 shrink-0 rounded-lg bg-muted" />
+                <div className="flex-1">
+                  <div className="skeleton-shimmer h-3.5 w-32 rounded bg-muted" />
+                  <div className="skeleton-shimmer mt-2 h-2.5 w-24 rounded bg-muted" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : dashboard && dashboard.recent.length > 0 ? (
+          <div className="ln-lift flex flex-col rounded-2xl border border-border bg-card p-3">
+            {dashboard.recent.map((interview) => (
+              <RecordingRow key={interview.id} interview={interview} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            icon={Mic}
+            title="No recordings yet"
+            description="Every interview is recorded. Finish a session and replay it here to hear exactly how you answered."
+          />
+        )}
+      </div>
 
-        {!dashboardLoading && (
-          <RecentRecordings interviews={dashboard?.recent ?? []} />
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+              <Globe className="size-4 text-primary" />
+              Public interviews
+            </h2>
+            <p className="mt-1 text-xs text-ink-subtle">
+              Recordings other candidates have chosen to share publicly.
+            </p>
+          </div>
+          <Link
+            to="/dashboard/overview/public"
+            className="inline-flex items-center gap-1 text-xs font-medium text-ink-subtle hover:text-primary"
+          >
+            View all
+            <ArrowRight className="size-3.5" />
+          </Link>
+        </div>
+        {publicInterviewsLoading ? (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <PublicInterviewFeedCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : publicInterviews.length > 0 ? (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            {publicInterviews.map((interview) => (
+              <PublicInterviewFeedCard key={interview.id} interview={interview} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            icon={Globe}
+            title="No public interviews yet"
+            description="Once candidates share a recording from their profile, it shows up here for everyone to see."
+          />
         )}
       </div>
 
@@ -1305,6 +1285,7 @@ type PastInterview = {
   status: "SCHEDULED" | "ONGOING" | "COMPLETED";
   createdAt: string;
   recordingStatus?: RecordingStatus;
+  recordingDurationMs?: number | null;
   score: number | null;
 };
 
