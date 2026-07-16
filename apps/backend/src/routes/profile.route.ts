@@ -10,7 +10,7 @@ import {
 import { authMiddleware } from '../middlewares/auth.middleware';
 import { avatarUploadMiddleware } from '../middlewares/avatarUpload.middleware';
 import { uploadMiddleware } from '../middlewares/upload.middleware';
-import { AsyncHandler } from '../utils/asyncHandler';
+import { AsyncHandler } from '../utils/AsyncHandler';
 
 const router = express.Router();
 
