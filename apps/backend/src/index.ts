@@ -32,7 +32,8 @@ scheduleJobsIngest().catch((err) => console.error('Failed to schedule jobs inges
 
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors({ origin: "http://localhost:5173",credentials: true }))
+const corsOrigin = process.env.CORS_ORIGIN?.split(",") ?? "http://localhost:5173";
+app.use(cors({ origin: corsOrigin, credentials: true }))
 
 app.get('/api/v1/health', (req: Request, res: Response) => {
     res.status(200).json({

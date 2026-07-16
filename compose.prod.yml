@@ -1,0 +1,50 @@
+# Production compose file for the Oracle Cloud Ampere A1 VM.
+#
+# Scope: apps/backend only. The frontend is deployed separately on Vercel, and
+# Postgres/Redis are offloaded to Neon and Redis Cloud (see the deploy plan) so
+# this box's CPU/RAM stay free for two more, unrelated backend services later.
+#
+# Resource budget (fill in from `Governance & Administration > Limits, Quotas
+# and Usage` in the OCI console for this tenancy before sizing the two future
+# backends — Oracle cut the Always-Free Ampere A1 allotment on 2026-06-15, so
+# don't assume 4 OCPU/24 GB):
+#   backend reserves: 1.0 CPU / 1.5 GB
+#   remaining for future backends: <tenancy total> - 1.0 CPU / 1.5 GB - nginx overhead
+#
+# Usage: docker compose -f compose.prod.yml up -d --build
+name: quick-hire-prod
+services:
+  backend:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    expose:
+      - "8000"
+    env_file:
+      - ./apps/backend/.env
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1.5G
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/v1/health || exit 1"]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+
+  nginx:
+    restart: unless-stopped
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
+    depends_on:
+      backend:
+        condition: service_healthy

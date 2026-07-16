@@ -55,6 +55,7 @@
   },
   "devDependencies": {
     "@react-router/dev": "7.16.0",
+    "@vercel/react-router": "^1.1.4",
     "@tailwindcss/vite": "^4.2.2",
     "@types/node": "^22",
     "@types/react": "^19.2.14",
