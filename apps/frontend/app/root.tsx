@@ -7,6 +7,7 @@ import {
   Scripts,
   ScrollRestoration,
   useLoaderData,
+  useRouteLoaderData,
 } from "react-router";
 import { Toaster } from "sonner"
 import type { Route } from "./+types/root";
@@ -15,10 +16,14 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import { TooltipProvider } from "./components/ui/tooltip";
 import AuthModals from "./components/auth/AuthModals";
 import { getUser } from "./lib/auth.server";
+import { ThemeProvider, getThemeFromCookie, useTheme } from "./lib/theme";
 import { useAuth } from "./store/store";
 
 export function loader({ request }: Route.LoaderArgs) {
-  return { user: getUser(request) };
+  return {
+    user: getUser(request),
+    theme: getThemeFromCookie(request.headers.get("cookie")),
+  };
 }
 
 export const links: Route.LinksFunction = () => [];
@@ -33,6 +38,8 @@ export const meta: Route.MetaFunction = () => [
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  const theme = useRouteLoaderData<typeof loader>("root")?.theme ?? "light";
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -42,11 +49,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
-        <Toaster className="z-50" position="top-center" />
         <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
           <TooltipProvider>
-            {children}
-            <AuthModals />
+            <ThemeProvider initialTheme={theme}>
+              <ThemedToaster />
+              {children}
+              <AuthModals />
+            </ThemeProvider>
           </TooltipProvider>
         </GoogleOAuthProvider>
         <ScrollRestoration />
@@ -54,6 +63,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </body>
     </html>
   );
+}
+
+function ThemedToaster() {
+  const { theme } = useTheme();
+  return <Toaster className="z-50" position="top-center" theme={theme} />;
 }
 
 export default function App() {

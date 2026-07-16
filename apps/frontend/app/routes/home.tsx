@@ -1,6 +1,4 @@
-import { useLoaderData } from "react-router";
 import type { Route } from "./+types/home";
-import { ThemeProvider, getThemeFromCookie } from "~/lib/theme";
 import LandingNav from "~/components/marketing/LandingNav";
 import Hero from "~/components/marketing/Hero";
 import LogoMarquee from "~/components/marketing/LogoMarquee";
@@ -25,18 +23,9 @@ export function meta({}: Route.MetaArgs) {
   ];
 }
 
-export function loader({ request }: Route.LoaderArgs) {
-  return { theme: getThemeFromCookie(request.headers.get("cookie")) };
-}
-
 export default function Home() {
-  const { theme } = useLoaderData<typeof loader>();
   return (
-    
-    <ThemeProvider
-      initialTheme={theme}
-      className="min-h-screen bg-background text-foreground"
-    >
+    <div className="min-h-screen bg-background text-foreground">
       <LandingNav />
       <main>
         <Hero />
@@ -64,6 +53,6 @@ export default function Home() {
         <CTABanner />
       </main>
       <Footer />
-    </ThemeProvider>
+    </div>
   );
 }
