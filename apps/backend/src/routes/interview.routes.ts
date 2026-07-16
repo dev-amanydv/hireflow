@@ -2,7 +2,7 @@ import express from 'express';
 import { handlePreSession, handleResume, handleResumeStatus, handleRoleDetails, generateLivekitToken, recordInterviewMessage, completeInterview, updateSummary, listPracticeSkills, getPracticeSkillDetail, handlePracticeDetails, getInterviewResult, getInterviewTranscript, listInterviews, listPublicInterviews, uploadInterviewRecording, getInterviewRecording, setInterviewVisibility } from '../controllers/interview.controller';
 import { uploadMiddleware } from '../middlewares/upload.middleware';
 import { recordingUploadMiddleware } from '../middlewares/recordingUpload.middleware';
-import { AsyncHandler } from '../utils/asyncHandler';
+import { AsyncHandler } from '../utils/AsyncHandler';
 import { authMiddleware } from '../middlewares/auth.middleware';
 import { internalAuth } from '../middlewares/internal.middleware';
 

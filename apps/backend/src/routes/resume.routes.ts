@@ -7,7 +7,7 @@ import {
     listAnalyses,
 } from '../controllers/resume.controller';
 import { uploadMiddleware } from '../middlewares/upload.middleware';
-import { AsyncHandler } from '../utils/asyncHandler';
+import { AsyncHandler } from '../utils/AsyncHandler';
 import { authMiddleware } from '../middlewares/auth.middleware';
 
 const router = express.Router();

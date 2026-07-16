@@ -1,6 +1,6 @@
 import express from "express";
 import { getDashboardOverview } from "../controllers/dashboard.controller";
-import { AsyncHandler } from "../utils/asyncHandler";
+import { AsyncHandler } from "../utils/AsyncHandler";
 import { authMiddleware } from "../middlewares/auth.middleware";
 
 const router = express.Router();

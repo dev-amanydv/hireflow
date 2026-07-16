@@ -1,6 +1,6 @@
 import express from "express";
 import { handleGoogle, handleSignin, handleSignup } from "../controllers/auth.controller";
-import { AsyncHandler } from "../utils/asyncHandler";
+import { AsyncHandler } from "../utils/AsyncHandler";
 
 const router = express.Router();
 

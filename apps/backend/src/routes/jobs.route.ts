@@ -5,7 +5,7 @@ import {
   saveJob,
   unsaveJob,
 } from '../controllers/jobs.controller';
-import { AsyncHandler } from '../utils/asyncHandler';
+import { AsyncHandler } from '../utils/AsyncHandler';
 import { authMiddleware } from '../middlewares/auth.middleware';
 
 const router = express.Router();
