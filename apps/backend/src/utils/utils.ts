@@ -1,5 +1,5 @@
 
-export const JWT_SECRET = 'amanydv07'
+export const JWT_SECRET = process.env.JWT_SECRET!
 
 
 export function getGithubUsername(urlString: string) {
