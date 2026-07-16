@@ -1,5 +1,5 @@
 import { Worker } from "bullmq";
-import IORedis from 'ioredis';
+import { connection } from "../queues/connection";
 import { prisma } from "../../prisma/db";
 import { uploadToBucket } from "../utils/upload";
 import fs from 'fs';
@@ -18,8 +18,6 @@ import { getResumeSummary } from "../services/openai";
 import { analyzeResume, type ParsedSummary } from "../services/ats";
 import { getInterviewFeedback, type TranscriptTurn } from "../services/feedback";
 import type { Difficulty } from "../data/skillCatalog";
-
-export const connection = new IORedis(process.env.REDIS_URL!, { maxRetriesPerRequest: null });
 
 export function startResumeParserWorker() {
     return new Worker(
@@ -109,55 +107,59 @@ export function startSourceFetchWorker() {
     })
 }
 
-const worker = new Worker('resume-upload', async job => {
-    const { resumeId, s3Key, filePath, size, interviewId } = job.data;
+export function startResumeUploadWorker() {
+    const worker = new Worker('resume-upload', async job => {
+        const { resumeId, s3Key, filePath, size, interviewId } = job.data;
 
-    await prisma.resume.update({
-        where: { id: resumeId },
-        data: { status: 'UPLOADING' }
-    });
+        await prisma.resume.update({
+            where: { id: resumeId },
+            data: { status: 'UPLOADING' }
+        });
 
-    const body = await fs.promises.readFile(filePath);
-    const upload = await uploadToBucket(s3Key, body, size);
-    const isLastAttempt = job.attemptsMade >= (job.opts.attempts ?? 1);
+        const body = await fs.promises.readFile(filePath);
+        const upload = await uploadToBucket(s3Key, body, size);
+        const isLastAttempt = job.attemptsMade >= (job.opts.attempts ?? 1);
 
-    if (!upload?.success) {
-        if (isLastAttempt) {
-            await prisma.resume.update({
-                where: { id: resumeId },
-                data: { status: 'FAILED', error: String(upload?.message ?? 'upload failed') }
-            });
+        if (!upload?.success) {
+            if (isLastAttempt) {
+                await prisma.resume.update({
+                    where: { id: resumeId },
+                    data: { status: 'FAILED', error: String(upload?.message ?? 'upload failed') }
+                });
+            }
+            throw new Error(`Upload failed for ${s3Key}`);
         }
-        throw new Error(`Upload failed for ${s3Key}`);
-    }
 
-    await prisma.resume.update({
-        where: { id: resumeId },
-        data: { status: 'COMPLETE', url: s3Key }
-    });
-    return { resumeId, s3Key, interviewId }
-}, { connection });
+        await prisma.resume.update({
+            where: { id: resumeId },
+            data: { status: 'COMPLETE', url: s3Key }
+        });
+        return { resumeId, s3Key, interviewId }
+    }, { connection });
 
-worker.on('completed', async (job, returnValue) => {
-    try {
-        
-        await enqueueResumeParse({
-            resumeId: returnValue.resumeId,
-            s3key: returnValue.s3Key,
-            interviewId: returnValue.interviewId
-        }, job.data.filePath);
-    } catch (error) {
-        console.log(error)
-    }
-    console.log(`${job.id} has completed!`);
-})
+    worker.on('completed', async (job, returnValue) => {
+        try {
 
-worker.on('failed', async (job, err) => {
-    if (job && job?.attemptsMade >= (job?.opts.attempts ?? 1)) {
-        await fs.promises.unlink(job.data.filePath).catch(() => { })
-    }
-    console.log(`${job?.id} has failed with ${err.message}!`);
-})
+            await enqueueResumeParse({
+                resumeId: returnValue.resumeId,
+                s3key: returnValue.s3Key,
+                interviewId: returnValue.interviewId
+            }, job.data.filePath);
+        } catch (error) {
+            console.log(error)
+        }
+        console.log(`${job.id} has completed!`);
+    })
+
+    worker.on('failed', async (job, err) => {
+        if (job && job?.attemptsMade >= (job?.opts.attempts ?? 1)) {
+            await fs.promises.unlink(job.data.filePath).catch(() => { })
+        }
+        console.log(`${job?.id} has failed with ${err.message}!`);
+    })
+
+    return worker;
+}
 
 
 export function startResumeAnalysisUploadWorker() {
@@ -258,7 +260,6 @@ export function startInterviewFeedbackWorker() {
             select: { id: true, jobRole: true, skill: true, experience: true, resultId: true }
         });
         if (!interview) return;
-        // A Result already linked means feedback was generated on a prior attempt.
         if (interview.resultId) return;
 
         const messages = await prisma.message.findMany({
@@ -275,9 +276,6 @@ export function startInterviewFeedbackWorker() {
         });
         if (!feedback) throw new Error(`Feedback generation returned null for ${interviewId}`);
 
-        // Create the Result and link it back to the interview in one transaction.
-        // The report is stored as a versioned envelope so the frontend can branch
-        // on schemaVersion when the scorecard shape evolves.
         await prisma.$transaction(async (tx) => {
             const result = await tx.result.create({
                 data: {
@@ -300,10 +298,6 @@ export function startInterviewFeedbackWorker() {
 
     return w;
 }
-
-// Isolated from the ResumeAnalysis/ATS pipeline on purpose: a profile resume upload
-// should never touch ResumeAnalysis rows or ATS scoring, and vice versa. Single job,
-// no BullMQ Flow — raw resume text alone is enough context for getResumeSummary.
 export function startProfileResumeWorker() {
     const w = new Worker('profile-resume', async job => {
         const { meta, filePath, size } = job.data as { meta: ProfileResumeMeta, filePath: string, size: number };

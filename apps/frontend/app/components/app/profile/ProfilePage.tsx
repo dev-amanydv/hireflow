@@ -81,7 +81,6 @@ export function ProfilePage() {
           return;
         }
       } catch {
-        // transient — keep polling until the ceiling below
       }
       if (attempts >= RESUME_POLL_MAX) {
         toast.error("This is taking longer than expected. Check back shortly.");
@@ -336,7 +335,6 @@ export function ProfilePage() {
         />
       )}
 
-      {/* Floating quick-edit action, always reachable regardless of scroll position. */}
       {user && (
         <button
           type="button"

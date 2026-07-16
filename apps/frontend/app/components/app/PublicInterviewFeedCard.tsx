@@ -34,9 +34,6 @@ export function formatDuration(ms: number | null | undefined): string | null {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-// Deterministic per-interview bar heights so a static thumbnail still "reads" as
-// an audio recording, echoed from the seeded waveform pattern used on public
-// profile interview cards.
 export function useWaveformBars(seed: string, count = 24): number[] {
   return useMemo(() => {
     let h = 0;

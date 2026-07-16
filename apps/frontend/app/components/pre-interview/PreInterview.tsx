@@ -27,8 +27,6 @@ export default function PreInterview() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(false);
     const [summary, setSummary] = useState<ResumeSummary | null>(null);
-    // A fresh resume was uploaded since the last summary was built, so the
-    // profile must be (re)generated before showing the preview.
     const [needsSummary, setNeedsSummary] = useState(false);
 
    
@@ -67,9 +65,8 @@ export default function PreInterview() {
         }
     }, []);
 
-    // Poll the backend until the resume has been fully parsed by the worker.
     const waitForResumeParsed = async (id: string) => {
-        const MAX_ATTEMPTS = 60; // ~2 min at a 2s interval
+        const MAX_ATTEMPTS = 60;
         for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
             const res = await axios.get(
                 `${BACKEND_URL}/interview/pre/${id}/resume-status`,
@@ -83,8 +80,6 @@ export default function PreInterview() {
         throw new Error("Resume parsing timed out");
     };
 
-    // Called by step 2 whenever a resume finishes uploading. Persist it so it
-    // survives navigating back and forth, and mark the summary as stale.
     const handleResumeComplete = useCallback((session: SessionDetails) => {
         setSessionDetails(session);
         setSummary(null);
@@ -97,8 +92,6 @@ export default function PreInterview() {
             return;
         }
 
-        // Resume unchanged since we last built the profile — reuse it and skip
-        // the (slow) parse + summarise round-trip.
         if (summary && !needsSummary) {
             setStep(3);
             return;
@@ -113,10 +106,8 @@ export default function PreInterview() {
             const id = interviewIdRef.current;
             if (!id) throw new Error("Missing interview id");
 
-            // 1. Ensure the resume is parsed before asking the LLM for a summary.
             await waitForResumeParsed(id);
 
-            // 2. Generate (or fetch the cached) profile summary.
             const res = await axios.post(
                 `${BACKEND_URL}/interview/pre/session`,
                 {

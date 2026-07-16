@@ -47,14 +47,6 @@ describe("errorHandler", () => {
     expect(res.status).toHaveBeenCalledWith(401);
   });
 
-  // BUG: error.middleware.ts chains `if (AppError) {} if (JsonWebTokenError) {} if
-  // (TokenExpiredError) {} else {}` — these are sibling `if`s, not `else if`. The
-  // `else` is only attached to the TokenExpiredError check, so it fires whenever the
-  // error is NOT a TokenExpiredError — including the JsonWebTokenError branch right
-  // above it — and overwrites the friendly "Invalid token" message with the raw
-  // `err.message` (e.g. "jwt malformed"). statusCode stays correct; only the message
-  // is wrong. Fix: make these `else if` (or return early per branch). Documented here
-  // via test.fails so it shows up as a known-bug marker rather than a silent pass.
   test.fails("JsonWebTokenError -> message should be the friendly 'Invalid token' (currently clobbered)", () => {
     const res = fakeRes();
     const next = vi.fn() as NextFunction;

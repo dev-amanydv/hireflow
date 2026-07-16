@@ -47,11 +47,11 @@ export interface JudgeResult {
 
 function getModel() {
   return new AzureChatOpenAI({
-    model: process.env.OPENAI_TTT_MODEL,
+    model: process.env.OPENAI_TTT_MODEL ?? "gpt-5-mini",
     azureOpenAIApiKey: process.env.AZURE_SECRET_KEY,
     azureOpenAIApiDeploymentName: process.env.OPENAI_TTT_MODEL,
     azureOpenAIEndpoint: process.env.AZURE_OPENAI_ENDPOINT,
-    azureOpenAIApiVersion: process.env.AZURE_OPENAI_API_VERSION ?? "2024-12-01-preview",
+    azureOpenAIApiVersion: process.env.AZURE_OPENAI_API_VERSION ?? "2025-04-01-preview",
     maxRetries: 2,
     maxTokens: 12000,
     modelKwargs: { reasoning_effort: "medium" },

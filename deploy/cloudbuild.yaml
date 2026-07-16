@@ -1,0 +1,19 @@
+# Builds the backend image from the repo root context using the nested Dockerfile,
+# then pushes it to Artifact Registry. Runs on Cloud Build (linux/amd64), so it works
+# regardless of your local machine's architecture (e.g. Apple Silicon) and needs no
+# local Docker daemon.
+#
+# Usage (from repo root):
+#   gcloud builds submit \
+#     --config deploy/cloudbuild.yaml \
+#     --substitutions=_IMAGE=<REGION>-docker.pkg.dev/<PROJECT_ID>/<REPO>/hireflow-backend:latest \
+#     .
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: ["build", "-f", "apps/backend/Dockerfile", "-t", "${_IMAGE}", "."]
+  - name: gcr.io/cloud-builders/docker
+    args: ["push", "${_IMAGE}"]
+images:
+  - "${_IMAGE}"
+options:
+  logging: CLOUD_LOGGING_ONLY

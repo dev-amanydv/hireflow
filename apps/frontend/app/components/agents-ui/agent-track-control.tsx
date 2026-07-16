@@ -69,64 +69,18 @@ const selectVariants = cva(
   },
 );
 
-/**
- * Props for the TrackDeviceSelect component. */
 type TrackDeviceSelectProps = React.ComponentProps<typeof SelectTrigger> &
   VariantProps<typeof selectVariants> & {
-    /**
-     * The type of media device (audioinput or videoinput).
-     */
     kind: MediaDeviceKind;
-    /**
-     * Array of available devices
-     */
     devices: MediaDeviceInfo[];
-    /**
-     * Active device ID
-     */
     activeDeviceId?: string;
-    /**
-     * The size of the select.
-     * @defaultValue 'default'
-     */
     size?: 'default' | 'sm';
-    /**
-     * The variant of the select.
-     * @defaultValue 'default'
-     */
     variant?: 'default' | 'outline' | null;
-    /**
-     * Whether to request permissions for the media device.
-     */
     requestPermissions?: boolean;
-    /**
-     * Callback when the select is opened or closed.
-     */
     onOpen: (open: boolean) => void;
-    /**
-     * Callback when the active device changes.
-     */
     onActiveDeviceChange?: (deviceId: string) => void;
   };
 
-/**
- * A select component for selecting a media device.
- *
- * @extends ComponentProps<'button'>
- *
- * @example
- * ```tsx
- * <TrackDeviceSelect
- *   size="sm"
- *   variant="outline"
- *   kind="audioinput"
- *   devices={devices}
- *   activeDeviceId={activeDeviceId}
- *   onOpen={setOpen}
- *   onActiveDeviceChange={setActiveDeviceId}
- * />
- * ```
- */
 function TrackDeviceSelect({
   kind,
   devices,
@@ -172,69 +126,19 @@ function TrackDeviceSelect({
   );
 }
 
-/**
- * Props for the AgentTrackControl component.
- */
 export type AgentTrackControlProps = VariantProps<typeof toggleVariants> & {
-  /**
-   * The type of media device (audioinput or videoinput).
-   */
   kind: MediaDeviceKind;
-  /**
-   * The track source to control (Microphone, Camera, or ScreenShare).
-   */
   source: 'camera' | 'microphone' | 'screen_share';
-  /**
-   * Whether the track is currently enabled/published.
-   */
   pressed?: boolean;
-  /**
-   * Whether the control is in a pending/loading state.
-   */
   pending?: boolean;
-  /**
-   * Whether the control is disabled.
-   */
   disabled?: boolean;
-  /**
-   * The audio track reference for visualization (only for microphone).
-   */
   audioTrack?: TrackReferenceOrPlaceholder;
-  /**
-   * Additional CSS class names to apply to the container.
-   */
   className?: string;
-  /**
-   * Callback when the pressed state changes.
-   */
   onPressedChange?: (pressed: boolean) => void;
-  /**
-   * Callback when a media device error occurs.
-   */
   onMediaDeviceError?: (error: Error) => void;
-  /**
-   * Callback when the active device changes.
-   */
   onActiveDeviceChange?: (deviceId: string) => void;
 };
 
-/**
- * A combined track toggle and device selector control.
- * Includes a toggle button and a dropdown to select the active device.
- * For microphone tracks, displays an audio visualizer.
- *
- * @example
- * ```tsx
- * <AgentTrackControl
- *   kind="audioinput"
- *   source={Track.Source.Microphone}
- *   pressed={isMicEnabled}
- *   audioTrack={micTrackRef}
- *   onPressedChange={(pressed) => setMicEnabled(pressed)}
- *   onActiveDeviceChange={(deviceId) => setMicDevice(deviceId)}
- * />
- * ```
- */
 export function AgentTrackControl({
   kind,
   variant = 'default',
@@ -258,11 +162,6 @@ export function AgentTrackControl({
   });
 
   useEffect(() => {
-    // A track was already acquired elsewhere (e.g. session.start()), so permission is already
-    // granted — safe to fetch labeled devices without a second getUserMedia prompt. Without
-    // this, the list stays label-less until a page reload, since the device observer only
-    // re-fetches when `requestPermissions` changes value. Screen share has no `kind` and no
-    // associated device list, so it should never trigger a mic/camera permission request.
     if (pressed && kind) {
       setRequestPermissionsState(true);
     }
@@ -280,10 +179,6 @@ export function AgentTrackControl({
   };
 
   const filteredDevices = useMemo(() => devices.filter((d) => d.deviceId !== ''), [devices]);
-  // Before permission is granted, the browser reports devices with blank ids, which get filtered
-  // out here — that's an *unknown* device count, not a confirmed empty one. Only treat it as
-  // "no devices" once a permission-gated check has actually run and still come up empty;
-  // otherwise the toggle disables itself before the user ever gets a chance to grant permission.
   const noDevices = Boolean(kind) && requestPermissionsState && filteredDevices.length === 0;
   const resolvedPressed = pressed && !noDevices;
 

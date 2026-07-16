@@ -26,8 +26,6 @@ import {
 type View = "list" | "upload" | "parsing" | "target" | "scoring" | "report";
 
 const POLL_MS = 3000;
-// The judge runs gpt-5-mini at medium reasoning effort (~1–2 min). Ceiling of
-// ~5 min leaves a comfortable buffer so the poll never abandons a live score.
 const POLL_MAX = 100;
 
 function Header({ title, description, action }: { title: string; description: string; action?: React.ReactNode }) {

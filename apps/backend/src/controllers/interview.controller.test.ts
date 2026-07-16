@@ -56,10 +56,6 @@ const mockLivekit = vi.hoisted(() => {
 
 vi.mock("../../prisma/db", () => ({ prisma: mockPrisma }));
 vi.mock("../queues/queue", () => mockQueue);
-// Fully replaces services/openai.ts (which constructs a real `new OpenAI(...)`
-// client at import time and throws without AZURE_* env vars configured). The
-// zod schema below mirrors the real summarySchema so updateSummary's
-// safeParse behavior is exercised faithfully.
 vi.mock("../services/openai", async () => {
   const { z } = await import("zod");
   const summarySchema = z.object({
@@ -183,13 +179,6 @@ describe("handleRoleDetails", () => {
 });
 
 describe("handleResume", () => {
-  // NOTE (bug): handleResume wraps its whole body in a try/catch that always
-  // responds 500 "Internal server error", discarding the specific AppError
-  // statusCode/message thrown for missing-userId (404), missing-file (404), and
-  // missing-interviewId (400). Every failure path below is observably a 500 to the
-  // caller, which is very likely a bug (contrast with every other handler in this
-  // file, which lets AppError propagate to the errorHandler middleware for a
-  // correctly-coded response). Asserting actual behavior here, not desired behavior.
   test("missing userId -> still resolves 500 Internal server error (status/message swallowed)", async () => {
     const req = fakeReq({ body: { interviewId: "interview-1" } });
     const res = fakeRes();
@@ -424,7 +413,7 @@ describe("updateSummary", () => {
     const req = fakeReq({
       userId: "user-1",
       params: { interviewId: "interview-1" },
-      body: { name: "Aman" }, // missing required fields
+      body: { name: "Aman" },
     });
     await expect(updateSummary(req, fakeRes(), vi.fn())).rejects.toMatchObject({
       statusCode: 400,

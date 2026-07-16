@@ -1,11 +1,6 @@
 import { useEffect, useState } from "react";
 import { cn } from "~/lib/utils";
 
-/**
- * A refined, self-contained score meter. The fill grows from 0 → value once on
- * mount to convey the score, and collapses to an instant paint under
- * prefers-reduced-motion. `tone` colors the fill; default derives from the value.
- */
 export function ScoreBar({
   value,
   tone,

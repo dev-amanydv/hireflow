@@ -96,10 +96,6 @@ const PRACTICE_LEVELS: {
   },
 ];
 
-// Per-skill identity: a distinct icon + a cohesive jewel-tone accent so the grid
-// reads as a considered set rather than eight identical tiles. Accents are tuned
-// to the dominant hue of each skill's hero art (SKILL_BG) so the icon chip,
-// border wash, and background image read as one piece rather than fighting.
 const SKILL_META: Record<string, { icon: LucideIcon; accent: string }> = {
   react: { icon: Atom, accent: "oklch(0.72 0.13 220)" },
   nodejs: { icon: Hexagon, accent: "oklch(0.68 0.15 145)" },
@@ -111,9 +107,6 @@ const SKILL_META: Record<string, { icon: LucideIcon; accent: string }> = {
   dsa: { icon: Binary, accent: "oklch(0.6 0.11 185)" },
 };
 
-// Hero art for each skill card — dropped in /public as `<slug>-light-mode.png`
-// / `<slug>-dark-mode.png`. `javascript` renders the TS art since its catalog
-// label is "JavaScript / TypeScript".
 const SKILL_BG: Record<string, string> = {
   react: "react",
   nodejs: "nodejs",
@@ -842,8 +835,6 @@ function SkillCard({ skill, index }: { skill: PracticeSkill; index: number }) {
         "active:translate-y-0 active:scale-[0.99]",
       )}
     >
-      {/* Hero art — theme-swapped, cropped to the right edge, tinted with a
-          card-color scrim so it reads as this app's card and not a pasted image. */}
       {bgSlug && (
         <>
           <img
@@ -892,7 +883,6 @@ function SkillCard({ skill, index }: { skill: PracticeSkill; index: number }) {
   );
 }
 
-// Shared level picker — reads its accent from a `--accent` var on any ancestor.
 function DifficultySelector({
   level,
   onLevel,
@@ -1160,7 +1150,6 @@ export function PracticeSkillDetail() {
       {backLink}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-start">
-        {/* Left: hero + topics + how it works */}
         <div className="flex flex-col gap-6 lg:col-span-2">
           <div className="ln-lift ln-rise relative overflow-hidden rounded-2xl border border-border bg-card p-6">
             <span
@@ -1905,7 +1894,6 @@ export function Jobs() {
   }, [debouncedQuery, remoteOnly, type, source, page]);
 
   // Saved jobs load once — they drive both the "Saved" view and each card's
-  // bookmark state in the "All" view.
   useEffect(() => {
     if (!user) {
       setSavedJobs([]);
@@ -1937,7 +1925,6 @@ export function Jobs() {
   const saveJob = (job: Job) => {
     const wasSaved = savedIds.has(job.id);
 
-    // Optimistic update.
     setSavedIds((prev) => {
       const next = new Set(prev);
       if (wasSaved) next.delete(job.id);
@@ -1965,7 +1952,6 @@ export function Jobs() {
     request
       .then(() => toast.success(wasSaved ? "Removed from saved" : "Job saved"))
       .catch(() => {
-        // Roll back on failure.
         setSavedIds((prev) => {
           const next = new Set(prev);
           if (wasSaved) next.add(job.id);
@@ -2002,7 +1988,6 @@ export function Jobs() {
       />
 
       <div className="flex flex-wrap items-center gap-3">
-        {/* All / Saved view segmented control. */}
         <div className="inline-flex rounded-lg border border-border bg-card p-0.5">
           {(["all", "saved"] as const).map((v) => {
             const on = view === v;

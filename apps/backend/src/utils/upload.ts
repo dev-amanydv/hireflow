@@ -24,11 +24,6 @@ const s3 = new S3Client({
     },
 });
 
-/**
- * Presigned GET URL for an object. Used to hand the browser a short-lived,
- * range-request-capable link to a private recording without proxying the bytes.
- * Pass `downloadFilename` to force a download (Content-Disposition: attachment).
- */
 async function getPresignedGetUrl(
     key: string,
     { expiresIn = 3600, downloadFilename }: { expiresIn?: number; downloadFilename?: string } = {},
@@ -41,8 +36,6 @@ async function getPresignedGetUrl(
             : {}),
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the presigner and
-    // client-s3 resolve to duplicate @smithy/types copies, so the S3Client instance
-    // isn't structurally assignable to the presigner's Client param. Runtime-safe.
     return getSignedUrl(s3 as any, command as any, { expiresIn });
 }
 

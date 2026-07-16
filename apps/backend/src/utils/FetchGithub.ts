@@ -30,7 +30,6 @@ interface Result {
 }
 
 function extractGithub(url: string) {
-    //https://github.com/ali-imtiyazkhan/ali-imtiyazkhan
     const username = url.includes('http') ? url.split('/')[3] : url.split('/')[1];
     const repoName = url.includes('http') ? url.split('/')[4] : url.split('/')[2];
     return { username: username, repo: repoName ? repoName : null }

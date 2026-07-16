@@ -65,7 +65,6 @@ export const handleRoleDetails = async (
   });
 };
 
-// Returns the curated skill catalog for the practice picker UI.
 export const listPracticeSkills = async (_req: Request, res: Response) => {
   res.status(200).json({
     success: true,
@@ -74,8 +73,6 @@ export const listPracticeSkills = async (_req: Request, res: Response) => {
   });
 };
 
-// Returns a single skill's full detail (topic outline + per-level rubric) for the
-// skill detail page. Unlike listSkills(), this exposes topics/subtopics/rubrics.
 export const getPracticeSkillDetail = async (req: Request, res: Response) => {
   const id = typeof req.params.id === "string" ? req.params.id : "";
   const skill = getSkill(id);
@@ -87,8 +84,6 @@ export const getPracticeSkillDetail = async (req: Request, res: Response) => {
   });
 };
 
-// Creates a resume-less, skill-focused practice interview. Mirrors handleRoleDetails
-// but branches on a curated skill instead of a free-text role + resume upload.
 export const handlePracticeDetails = async (req: Request, res: Response) => {
   const userId = req.userId;
   if (!userId) throw new AppError(404, "Unauthorised");
@@ -134,10 +129,6 @@ export const handleResume = async (req: Request, res: Response) => {
     const uniqueName = `${userId}-resume-${interviewId}${ext}`;
     const s3Key = `users/${userId}/${interviewId}/resume/${uniqueName}`;
 
-    // Re-uploads reuse the same interview (interviewId is unique on Resume), so
-    // upsert instead of create — inserting a second row would hit the unique
-    // constraint and 500. Reset the parse state and clear any stale summary so
-    // the new resume is re-parsed and re-summarised.
     const resume = await prisma.$transaction(async (tx) => {
       const row = await tx.resume.upsert({
         where: { interviewId },
@@ -299,15 +290,8 @@ export const generateLivekitToken = async (req: Request, res: Response) => {
   const interviewId = req.params.interviewId as string;
   if (!interviewId) throw new AppError(400, "interviewId required");
 
-  // Atomically claim the interview: only the request that actually flips it out of
-  // SCHEDULED gets to mint a token. This is race-free against concurrent duplicate
-  // calls (e.g. React StrictMode double-invoking effects in dev, multiple tabs) as
-  // well as a refresh/revisit after the interview already moved past SCHEDULED —
-  // unlike a read-then-write check, two simultaneous requests can't both pass.
   const claim = await prisma.interview.updateMany({
     where: { id: interviewId, userId, status: "SCHEDULED" },
-    // The agent records every session and uploads the audio on shutdown; mark it
-    // processing up front so the UI can show a "recording is being prepared" state.
     data: { status: "ONGOING", startAt: new Date(), recordingStatus: "PROCESSING" },
   });
   if (claim.count === 0) {
@@ -336,8 +320,6 @@ export const generateLivekitToken = async (req: Request, res: Response) => {
   const roomName = `interview-${interviewId}`;
   const participantIdentity = `${userId}-${interviewId}`;
   const participantName = user?.email?.split("@")[0] ?? "candidate";
-  // Practice interviews have no resume summary; the agent is instead grounded in a
-  // curated skill focus block rendered from the catalog for the chosen difficulty.
   const skillFocus =
     interview.type === "PRACTICE" && interview.skill
       ? buildSkillFocus(interview.skill, interview.experience as Difficulty)
@@ -418,7 +400,6 @@ export const completeInterview = async (req: Request, res: Response) => {
     data: { status: "COMPLETED", endAt: new Date() },
   });
 
-  // Kick off the async scorecard pass so it never blocks the agent's shutdown callback.
   await enqueueInterviewFeedback(interviewId).catch((err) =>
     console.error("Failed to enqueue interview feedback", err),
   );
@@ -426,7 +407,6 @@ export const completeInterview = async (req: Request, res: Response) => {
   res.status(200).json({ success: true, message: "Interview completed", data: null });
 };
 
-// Lists the signed-in user's interviews for the "Past interviews" dashboard section.
 export const listInterviews = async (req: Request, res: Response) => {
   const userId = req.userId;
   if (!userId) throw new AppError(401, "Unauthorised");
@@ -470,9 +450,6 @@ export const listInterviews = async (req: Request, res: Response) => {
   });
 };
 
-// Cross-user feed for the dashboard's "Public interviews" section — any interview
-// any user has opted into sharing, newest first. Only READY recordings qualify
-// since the feed is built around the thumbnail/audio-visualization card.
 export const listPublicInterviews = async (req: Request, res: Response) => {
   const limit = Math.min(Number(req.query.limit) || 12, 48);
   const cursor = typeof req.query.cursor === "string" ? req.query.cursor : undefined;
@@ -524,7 +501,6 @@ export const listPublicInterviews = async (req: Request, res: Response) => {
   });
 };
 
-// Polled by the result page while the async feedback job runs.
 export const getInterviewResult = async (req: Request, res: Response) => {
   const userId = req.userId;
   if (!userId) throw new AppError(401, "Unauthorised");
@@ -569,8 +545,6 @@ export const getInterviewResult = async (req: Request, res: Response) => {
   });
 };
 
-// Returns the full ordered transcript plus header context, used by the result
-// page to generate a downloadable PDF. Scoped to the owning user.
 export const getInterviewTranscript = async (req: Request, res: Response) => {
   const userId = req.userId;
   if (!userId) throw new AppError(401, "Unauthorised");
@@ -609,17 +583,12 @@ export const getInterviewTranscript = async (req: Request, res: Response) => {
   });
 };
 
-// The worker transcodes the recorder's OGG/Opus to AAC (.m4a) for Safari/iOS, but
-// falls back to the original OGG if transcoding fails — so derive the stored extension
-// and content-type from what actually arrived.
 const RECORDING_EXT: Record<string, string> = {
   "audio/mp4": "m4a",
   "audio/mpeg": "mp3",
   "audio/ogg": "ogg",
 };
 
-// Internal (agent-worker) endpoint: receives the finalized session audio and stores
-// it in R2. Multipart field `file` (the recording) + optional `durationMs`.
 export const uploadInterviewRecording = async (req: Request, res: Response) => {
   const interviewId = req.params.interviewId as string;
   const file = req.file;
@@ -657,9 +626,6 @@ export const uploadInterviewRecording = async (req: Request, res: Response) => {
   res.status(201).json({ success: true, message: "Recording stored", data: null });
 };
 
-// Returns a short-lived presigned URL to the owner's recording so the browser can
-// stream (range requests) or download it directly from R2. `?download=1` forces a
-// download with a friendly filename.
 export const getInterviewRecording = async (req: Request, res: Response) => {
   const userId = req.userId;
   if (!userId) throw new AppError(401, "Unauthorised");
@@ -715,8 +681,6 @@ export const getInterviewRecording = async (req: Request, res: Response) => {
 
 const visibilitySchema = z.object({ isPublic: z.boolean() });
 
-// Owner-only toggle so an interview can be showcased on the public /u/:username
-// profile. Public viewers only ever see interviews with isPublic === true.
 export const setInterviewVisibility = async (req: Request, res: Response) => {
   const userId = req.userId;
   if (!userId) throw new AppError(401, "Unauthorised");

@@ -27,16 +27,12 @@ const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] as const;
 const WAVE_BARS = 72;
 const SKIP_SECONDS = 10;
 
-// A deterministic pseudo-waveform. Audio-only recordings have no visual, so we render
-// a stable, organic-looking bar field that fills as playback advances — it reads as a
-// "recording" and doubles as the scrubber. Seeded so it never reflows between renders.
 function useWaveform(count: number): number[] {
   return useMemo(() => {
     const bars: number[] = [];
     for (let i = 0; i < count; i++) {
       const t = i / count;
-      // Layer a few sines + a cheap hash so the shape has both flow and texture.
-      const envelope = Math.sin(t * Math.PI); // taper the ends
+      const envelope = Math.sin(t * Math.PI);
       const wobble =
         Math.sin(t * 34) * 0.5 + Math.sin(t * 11 + 1.7) * 0.3 + Math.sin(t * 71) * 0.2;
       const hash = ((Math.sin(i * 127.1) * 43758.5453) % 1 + 1) % 1;
@@ -111,11 +107,7 @@ export default function RecordingPlayer({
   interviewId: string;
   status: RecordingStatus;
   durationMs?: number | null;
-  /** When provided (e.g. a public, already-presigned URL), skips the owner-scoped
-   * fetch below — used by the public interview page, which has no session cookie. */
   recordingUrl?: string | null;
-  /** Owner-only: the download button hits an authenticated endpoint, so public
-   * viewers never get it. */
   allowDownload?: boolean;
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -133,8 +125,6 @@ export default function RecordingPlayer({
 
   const waveform = useWaveform(WAVE_BARS);
 
-  // Prefer the live media duration once known; fall back to the value the worker
-  // probed at upload time (streamed Ogg/Opus can report an unusable duration).
   const duration =
     mediaDuration > 0 && Number.isFinite(mediaDuration)
       ? mediaDuration
@@ -144,9 +134,6 @@ export default function RecordingPlayer({
   const progress = duration > 0 ? Math.min(1, current / duration) : 0;
   const bufferedFrac = duration > 0 ? Math.min(1, buffered / duration) : 0;
 
-  // Fetch the presigned URL once the recording is ready — unless the caller
-  // already handed us one (the public interview page has no session cookie to
-  // hit the owner-scoped endpoint with).
   useEffect(() => {
     if (status !== "READY") return;
     if (recordingUrl !== undefined) {
@@ -209,7 +196,6 @@ export default function RecordingPlayer({
     setSpeed(rate);
   }, []);
 
-  // Pointer-drag scrubbing on the waveform.
   useEffect(() => {
     if (!scrubbing) return;
     const onMove = (e: PointerEvent) => seekToFraction(e.clientX);
@@ -271,7 +257,6 @@ export default function RecordingPlayer({
     }
   };
 
-  // ── Non-playable states ──────────────────────────────────────────────────
   if (status === "PROCESSING") {
     return (
       <StateCard
@@ -339,7 +324,6 @@ export default function RecordingPlayer({
           </div>
         </div>
 
-        {/* Waveform scrubber */}
         <div
           ref={scrubRef}
           className="group relative flex h-16 cursor-pointer items-center gap-[2px] select-none touch-none"
@@ -373,7 +357,6 @@ export default function RecordingPlayer({
               />
             );
           })}
-          {/* Playhead */}
           {duration > 0 && (
             <span
               aria-hidden
@@ -383,7 +366,6 @@ export default function RecordingPlayer({
           )}
         </div>
 
-        {/* Transport */}
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-1">
             <button

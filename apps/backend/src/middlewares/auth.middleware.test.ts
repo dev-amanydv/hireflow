@@ -41,7 +41,7 @@ describe("authMiddleware", () => {
 
   test("expired token -> responds with TokenExpired payload instead of calling next", () => {
     const token = jwt.sign({ userId: "user-1", email: "a@b.com" }, JWT_SECRET, {
-      expiresIn: -10, // already expired
+      expiresIn: -10,
     });
     const req = fakeReq(token);
     const res = fakeRes();

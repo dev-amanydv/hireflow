@@ -26,11 +26,6 @@ function slugify(input: string): string {
   );
 }
 
-/**
- * Fetch a completed interview's transcript and hand the user a designed,
- * paginated PDF. jsPDF is imported dynamically so it never touches the SSR bundle.
- * Throws on failure so the caller can surface a toast.
- */
 export async function downloadTranscriptPdf(interviewId: string): Promise<void> {
   const res = await axios.get(
     `${BACKEND_URL}/interview/${interviewId}/transcript`,
@@ -48,9 +43,9 @@ export async function downloadTranscriptPdf(interviewId: string): Promise<void> 
   const contentW = pageW - margin * 2;
   const bottom = pageH - margin;
 
-  const ink = "#18181b"; // near-black
-  const muted = "#71717a"; // zinc-500
-  const hair = "#e4e4e7"; // zinc-200
+  const ink = "#18181b";
+  const muted = "#71717a";
+  const hair = "#e4e4e7";
 
   const date = new Date(data.createdAt).toLocaleDateString(undefined, {
     year: "numeric",
@@ -64,7 +59,6 @@ export async function downloadTranscriptPdf(interviewId: string): Promise<void> 
     date,
   ].filter(Boolean);
 
-  // ── Header ────────────────────────────────────────────────
   let y = margin + 6;
   doc.setTextColor(muted);
   doc.setFont("helvetica", "normal");
@@ -89,7 +83,6 @@ export async function downloadTranscriptPdf(interviewId: string): Promise<void> 
   doc.line(margin, y, pageW - margin, y);
   y += 28;
 
-  // ── Turns ─────────────────────────────────────────────────
   const addPageFooter = () => {
     const page = doc.getNumberOfPages();
     doc.setTextColor(muted);
@@ -126,7 +119,6 @@ export async function downloadTranscriptPdf(interviewId: string): Promise<void> 
     doc.setFontSize(11);
     const bodyLines = doc.splitTextToSize(m.content.trim(), contentW) as string[];
 
-    // Keep the speaker label with at least its first line together.
     ensureSpace(14 + speakerLines * 12 + 15);
 
     doc.setFont("helvetica", "bold");
@@ -144,7 +136,7 @@ export async function downloadTranscriptPdf(interviewId: string): Promise<void> 
       doc.text(line, margin, y);
       y += lineH;
     }
-    y += 16; // gap between turns
+    y += 16;
   }
   addPageFooter();
 

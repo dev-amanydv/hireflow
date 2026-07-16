@@ -1,5 +1,3 @@
-// A neutral gray gradient keyed off the identity string, so the same person
-// always gets the same fallback shade across sessions and devices.
 export function gradientFor(seed: string): string {
   let hash = 0;
   for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) | 0;

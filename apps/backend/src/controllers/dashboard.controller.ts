@@ -2,10 +2,6 @@ import type { Request, Response } from "express";
 import { AppError } from "../utils/AppError";
 import { prisma } from "../../prisma/db";
 
-// Aggregates the signed-in user's activity for the Overview dashboard: interview
-// counts, minutes practiced (derived from startAt/endAt), score high/average, saved
-// jobs, latest resume ATS score, and a short list of recent interviews shaped like
-// GET /interview/list so the frontend can reuse the same row component.
 export const getDashboardOverview = async (req: Request, res: Response) => {
   const userId = req.userId;
   if (!userId) throw new AppError(401, "Unauthorised");

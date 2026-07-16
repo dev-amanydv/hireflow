@@ -10,7 +10,6 @@ import type { ParsedSummary } from "../services/ats/types";
 const DAY_MS = 24 * 60 * 60 * 1000;
 const dayKey = (d: Date) => d.toISOString().slice(0, 10);
 
-// Consecutive days (ending today, UTC) with at least one interview.
 function computeStreak(createdAts: Date[]): number {
   const days = new Set(createdAts.map((d) => dayKey(d)));
   let streak = 0;
@@ -23,7 +22,6 @@ function computeStreak(createdAts: Date[]): number {
   return streak;
 }
 
-// Minutes practiced per week for the last `weeks` weeks, oldest first.
 function bucketWeeklyMinutes(
   timed: { startAt: Date; endAt: Date }[],
   weeks: number,
@@ -264,7 +262,6 @@ export const getPublicProfile = async (req: Request, res: Response) => {
   });
   if (!user) throw new AppError(404, "UserNotFound");
 
-  // Never leak contact info from the parsed resume on the public, unauthenticated page.
   const rawSummary = user.summary as unknown as ParsedSummary | null;
   const publicSummary: ParsedSummary | null = rawSummary
     ? { ...rawSummary, email: null, phone: null }

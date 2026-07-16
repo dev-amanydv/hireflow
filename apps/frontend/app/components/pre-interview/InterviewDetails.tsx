@@ -30,8 +30,6 @@ export default function InterviewDetails({
   onContinue: () => void;
 }) {
   const hasResume = Boolean(session?.resume.name);
-  // When a resume already exists, the uploader is hidden behind an explicit
-  // "Upload a new resume" action so the current file stays the default.
   const [replacing, setReplacing] = useState(false);
   const showUploader = !hasResume || replacing;
 
