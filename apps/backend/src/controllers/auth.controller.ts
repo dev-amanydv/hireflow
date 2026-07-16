@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import axios from "axios";
 import jwt from 'jsonwebtoken';
 import z from "zod";
 import { prisma } from "../../prisma/db";
@@ -15,7 +16,7 @@ const signinSchema = z.object({
 })
 
 const googleSchema = z.object({
-    email: z.string()
+    accessToken: z.string().min(1)
 })
 
 function genUniqueUsername (email: string) {
@@ -24,6 +25,38 @@ function genUniqueUsername (email: string) {
     const unique = clean + crypto.randomUUID().slice(3,7).replace('-', '');
 
     return unique
+}
+
+async function issueSession(res: Response, user: { id: string; email: string }) {
+    const payload = { userId: user.id, email: user.email };
+    const refreshToken = jwt.sign(payload, JWT_SECRET, {
+        audience: 'User',
+        expiresIn: '7d',
+        issuer: "quick-hire"
+    })
+    const accessToken = jwt.sign(payload, JWT_SECRET, {
+        audience: 'User',
+        expiresIn: '2h',
+        issuer: "quick-hire"
+    })
+
+    await prisma.user.update({
+        where: { id: user.id },
+        data: { refreshToken }
+    });
+
+    res.cookie('ref_token', refreshToken, {
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none'
+    })
+    res.cookie('access_token', accessToken, {
+        maxAge: 2 * 60 * 60 * 1000,
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none'
+    })
 }
 
 export const handleSignup = async (req: Request, res: Response) => {
@@ -202,12 +235,74 @@ export const handleSignin = async (req: Request, res: Response) => {
 }
 
 export const handleGoogle = async (req: Request, res: Response) => {
-    const { success, data } = googleSchema.safeParse(req.body);
+    try {
+        const { success, data } = googleSchema.safeParse(req.body);
+        if (!success) {
+            return res.status(400).json({
+                success: false,
+                message: 'Google access token is required',
+                data: null
+            })
+        }
 
-    if (!success){
-        return res.status(401).json({
+        let profile: { email?: string; email_verified?: boolean | string };
+        try {
+            const { data: userinfo } = await axios.get(
+                'https://www.googleapis.com/oauth2/v3/userinfo',
+                { headers: { Authorization: `Bearer ${data.accessToken}` } }
+            );
+            profile = userinfo;
+        } catch {
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid or expired Google session',
+                data: null
+            })
+        }
+
+        const email = profile.email;
+        const emailVerified = profile.email_verified === true || profile.email_verified === 'true';
+        if (!email || !emailVerified) {
+            return res.status(401).json({
+                success: false,
+                message: 'Google account email is not verified',
+                data: null
+            })
+        }
+
+        let user = await prisma.user.findUnique({ where: { email } });
+        if (!user) {
+            for (let attempt = 0; attempt < 5; attempt++) {
+                try {
+                    user = await prisma.user.create({
+                        data: {
+                            email,
+                            provider: 'GOOGLE',
+                            username: genUniqueUsername(email)
+                        }
+                    });
+                    break;
+                } catch (err: any) {
+                    if (err?.code === 'P2002' && attempt < 4) continue;
+                    throw err;
+                }
+            }
+        }
+
+        await issueSession(res, { id: user!.id, email: user!.email });
+
+        res.status(200).json({
             success: true,
-            message: 'Email is required'
+            message: 'Logged in with Google',
+            data: {
+                id: user!.id,
+                email: user!.email
+            }
         })
+    } catch (error) {
+        console.log('Error in google controller: ', error)
+        if (!res.headersSent) {
+            res.status(500).json({ success: false, message: 'Something went wrong', data: null })
+        }
     }
 }

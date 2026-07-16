@@ -1,20 +1,3 @@
-// Curated skill catalog for skill-specific practice interviews.
-//
-// Each skill's topic outline is authored from real interview-question research so the
-// agent probes what candidates are actually asked for that domain, not invented areas.
-// This module is the single source of truth for practice curation: the backend renders
-// `buildSkillFocus()` into the LiveKit agent's instructions, and the LLM feedback judge
-// scores the transcript against these same topic names.
-//
-// Sources consulted while authoring (per skill, non-exhaustive):
-//   React               — interviewbit.com, greatfrontend.com, geeksforgeeks.org
-//   Node.js             — interviewbit.com, geeksforgeeks.org, dev.to
-//   Distributed Systems — datainterview.com, systemdesignhandbook.com
-//   System Design       — designgurus.io, hellointerview.com, github/system-design-primer
-//   SQL & Databases     — geeksforgeeks.org, datacamp.com, dbvis.com
-//   JavaScript/TS       — greatfrontend.com, geeksforgeeks.org
-//   Python              — geeksforgeeks.org, realpython.com
-//   DSA                 — leetcode.com, geeksforgeeks.org
 
 export type Difficulty = "beginner" | "junior" | "mid" | "senior" | "staff";
 
@@ -597,17 +580,10 @@ export function getSkill(id: string): Skill | undefined {
   return SKILL_BY_ID.get(id);
 }
 
-/** Lightweight list for the practice picker UI (no rubrics/subtopics). */
 export function listSkills() {
   return SKILL_CATALOG.map(({ id, label, blurb }) => ({ id, label, blurb }));
 }
 
-/**
- * Render a skill into an instruction block the LiveKit agent appends verbatim,
- * mirroring how the resume-tailored flow appends the candidate profile. Difficulty
- * calibration (year ranges) is applied agent-side via EXPERIENCE_LABELS; here we
- * supply the topic outline and the "what good looks like" rubric for this level.
- */
 export function buildSkillFocus(
   skillId: string,
   experience: Difficulty,

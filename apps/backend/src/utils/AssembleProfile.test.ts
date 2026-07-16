@@ -36,9 +36,6 @@ describe("assembleProfile", () => {
   });
 
   test("always reports usedOcr as false regardless of input", () => {
-    // Note: assembleProfile hard-codes usedOcr to false and never threads through
-    // any OCR signal from the caller — this looks like a real gap (OCR-derived
-    // text would silently be scored as if it were clean extractable text).
     const result = assembleProfile("text", META, []);
     expect(result.usedOcr).toBe(false);
   });

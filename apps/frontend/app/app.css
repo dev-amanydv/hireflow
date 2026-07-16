@@ -124,8 +124,6 @@ body {
   color-scheme: dark;
 }
 
-/* Theme-aware card elevation. Light: a soft, low ambient shadow over a
-   hairline border. Dark: a subtle inset top-highlight (Linear-style). */
 .ln-lift {
   box-shadow:
     0 1px 2px -1px color-mix(in oklab, var(--foreground) 10%, transparent),
@@ -168,7 +166,6 @@ body {
   --color-card: var(--card);
   --color-foreground: var(--foreground);
   --color-background: var(--background);
-  /* Extra Linear surface ladder + ink tokens (used directly where the shadcn map is too coarse) */
   --color-canvas: var(--background);
   --color-surface-1: var(--card);
   --color-surface-2: var(--muted);
@@ -192,7 +189,6 @@ body {
 }
 
 :root {
-  /* Light theme */
   --background: oklch(0.985 0.004 275);
   --foreground: oklch(0.21 0.02 275);
   --card: oklch(1 0 0);
@@ -232,9 +228,6 @@ body {
   --sidebar-accent-foreground: oklch(0.24 0.02 275);
   --sidebar-border: oklch(0.92 0.006 275);
   --sidebar-ring: oklch(0.55 0.15 272);
-  /* Practice-summary skill palette (categorical, validated with
-     scripts/validate_palette.js — all 6 checks pass at this surface). Mirrors
-     the per-skill accent hues already used for Practice skill cards. */
   --skill-react: oklch(0.68 0.13 220);
   --skill-nodejs: oklch(0.64 0.14 150);
   --skill-system-design: oklch(0.72 0.12 70);
@@ -246,7 +239,6 @@ body {
 }
 
 .dark {
-  /* Dark theme — lifted off pure black, tinted indigo */
   --background: oklch(0.17 0.01 275);
   --foreground: oklch(0.97 0.004 275);
   --card: oklch(0.205 0.012 275);
@@ -285,8 +277,6 @@ body {
   --sidebar-accent-foreground: oklch(0.97 0.004 275);
   --sidebar-border: oklch(0.28 0.012 275);
   --sidebar-ring: oklch(0.62 0.15 272);
-  /* Re-tuned lightness/chroma so the same 8 identities stay validated against
-     the dark card surface (0.205 0.012 275) — see the :root block above. */
   --skill-react: oklch(0.64 0.13 220);
   --skill-nodejs: oklch(0.62 0.14 150);
   --skill-system-design: oklch(0.65 0.12 70);

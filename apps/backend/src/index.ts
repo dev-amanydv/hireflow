@@ -9,26 +9,12 @@ import dashboardRoutes from './routes/dashboard.route';
 import profileRoutes from './routes/profile.route';
 import { errorHandler } from './middlewares/error.middleware';
 import { NotFound } from './utils/NotFound';
-import './workers/worker';
 import 'dotenv/config';
-import {
-    startResumeParserWorker, startSourceFetchWorker, startJobsIngestWorker,
-    startResumeAnalysisUploadWorker, startResumeAnalysisParserWorker, startResumeAnalysisScoreWorker,
-    startInterviewFeedbackWorker, startProfileResumeWorker
-} from './workers/worker';
-import { scheduleJobsIngest } from './queues/queue';
+
+process.on('unhandledRejection', (reason) => console.error('[unhandledRejection]', reason));
+process.on('uncaughtException', (err) => console.error('[uncaughtException]', err));
 
 const app = express();
-
-startResumeParserWorker();
-startSourceFetchWorker();
-startJobsIngestWorker();
-startResumeAnalysisUploadWorker();
-startResumeAnalysisParserWorker();
-startResumeAnalysisScoreWorker();
-startInterviewFeedbackWorker();
-startProfileResumeWorker();
-scheduleJobsIngest().catch((err) => console.error('Failed to schedule jobs ingest', err));
 
 app.use(express.json());
 app.use(cookieParser());
@@ -53,6 +39,29 @@ app.use('/api/v1/profile', profileRoutes);
 app.use(NotFound);
 app.use(errorHandler)
 
-app.listen(8000, () => {
-    console.log(`Server is running at http://localhost:8000`)
+const port = Number(process.env.PORT) || 8000;
+app.listen(port, async () => {
+    console.log(`Server listening on :${port}`)
+    try {
+        const w = await import('./workers/worker');
+        const workers = [
+            w.startResumeUploadWorker(),
+            w.startResumeParserWorker(),
+            w.startSourceFetchWorker(),
+            w.startJobsIngestWorker(),
+            w.startResumeAnalysisUploadWorker(),
+            w.startResumeAnalysisParserWorker(),
+            w.startResumeAnalysisScoreWorker(),
+            w.startInterviewFeedbackWorker(),
+            w.startProfileResumeWorker(),
+        ];
+        
+        for (const worker of workers) {
+            worker.on('error', (err) => console.error('[worker] error:', err.message));
+        }
+        const { scheduleJobsIngest } = await import('./queues/queue');
+        await scheduleJobsIngest();
+    } catch (err) {
+        console.error('deferred worker startup failed', err);
+    }
 })

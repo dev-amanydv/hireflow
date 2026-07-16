@@ -22,8 +22,6 @@ const SKILL_LABEL: Record<string, string> = {
   dsa: "DSA",
 };
 
-// CSS custom properties defined in app.css, validated for both chart surfaces
-// with the dataviz skill's palette checker (fixed categorical order, never cycled).
 const SKILL_COLOR: Record<string, string> = {
   react: "var(--skill-react)",
   nodejs: "var(--skill-nodejs)",
@@ -137,9 +135,6 @@ function ScoreTrendChart({ data }: { data: ScoreTrendPoint[] }) {
   );
 }
 
-// Part-to-whole across named skill identities reads better as direct-labeled
-// horizontal bars than a donut (see dataviz skill: donuts mislead on close
-// values). Each bar is both the mark and its own label — no legend needed.
 function SkillDistributionBars({ skills }: { skills: SkillCount[] }) {
   const sorted = [...skills].filter((s) => s.count > 0).sort((a, b) => b.count - a.count);
   const max = Math.max(1, ...sorted.map((s) => s.count));

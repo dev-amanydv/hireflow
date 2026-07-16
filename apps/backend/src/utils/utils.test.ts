@@ -35,7 +35,6 @@ describe("getGithubUsername", () => {
   });
 
   test("subdomain containing github.com in hostname is still matched", () => {
-    // hostname.includes('github.com') is a loose check — gist.github.com counts too.
     expect(getGithubUsername("https://gist.github.com/dev-amanydv")).toBe("dev-amanydv");
   });
 });

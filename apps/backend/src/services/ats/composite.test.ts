@@ -63,7 +63,6 @@ describe("buildReport — judge unavailable (deterministic-only degrade)", () =>
 
   test("overall score is the weight-normalized average of just those four categories", () => {
     const report = buildReport(ruleCategories(), unavailableJudge(), target());
-    // weights: parseability .2, contact .1, structure .1, impact .2 -> total .6
     const expected = Math.round((100 * 0.2 + 80 * 0.1 + 60 * 0.1 + 40 * 0.2) / 0.6);
     expect(report.overallScore).toBe(expected);
   });
@@ -82,7 +81,7 @@ describe("buildReport — judge available", () => {
     expect(report.categories).toHaveLength(6);
 
     const keywordsCat = report.categories.find((c) => c.category === "keywords");
-    expect(keywordsCat?.score).toBe(50); // judge.keywords.coverage
+    expect(keywordsCat?.score).toBe(50);
     expect(keywordsCat?.weight).toBe(WEIGHTS.keywords);
     expect(keywordsCat?.summary).toBe("1 expected skills matched, 1 missing.");
 
@@ -138,7 +137,7 @@ describe("buildReport — findings", () => {
     ];
     const categories = [
       ruleCategory({
-        checks: [check({ status: "fail", label: "rule fail" })], // -> "important"
+        checks: [check({ status: "fail", label: "rule fail" })],
       }),
     ];
     const report = buildReport(categories, availableJudge({ findings: judgeFindings }), target());

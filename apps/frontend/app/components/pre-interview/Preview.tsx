@@ -123,7 +123,6 @@ export default function Preview({
     return <PreviewSkeleton error={error} onBack={() => setStep(2)} />;
   }
 
-  // In edit mode we work against a draft copy so Cancel is a true discard.
   const view = editing && draft ? draft : summary;
 
   const patch = (partial: Partial<ResumeSummary>) =>
@@ -212,7 +211,6 @@ export default function Preview({
         )}
       </div>
 
-      {/* Role — set in step 1 and locked from here on. */}
       <div className="flex items-center justify-between rounded-2xl border px-4 py-3.5">
         <span className="text-xs text-muted-foreground">Role</span>
         <span className="flex items-center gap-2 text-sm font-semibold">
@@ -224,7 +222,6 @@ export default function Preview({
         </span>
       </div>
 
-      {/* Identity + contact */}
       <Section title="Candidate profile">
         <div className="rounded-2xl border p-4">
           <div className="flex items-start gap-3.5">
@@ -313,7 +310,6 @@ export default function Preview({
         </div>
       </Section>
 
-      {/* Professional summary */}
       <Section title="Professional summary">
         <div className="rounded-2xl border p-4">
           {editing && draft ? (
@@ -331,7 +327,6 @@ export default function Preview({
         </div>
       </Section>
 
-      {/* Skills */}
       <Section title="Skills" count={skills.length}>
         <div className="rounded-2xl border p-4">
           <div className="flex flex-wrap gap-2">
@@ -382,7 +377,6 @@ export default function Preview({
         </div>
       </Section>
 
-      {/* Experience (read-only) */}
       {view.experience.length > 0 && (
         <Section
           icon={<Briefcase className="size-3.5 text-muted-foreground" />}
@@ -422,7 +416,6 @@ export default function Preview({
         </Section>
       )}
 
-      {/* Projects (read-only) */}
       {view.projects.length > 0 && (
         <Section
           icon={<FolderGit2 className="size-3.5 text-muted-foreground" />}
@@ -467,7 +460,6 @@ export default function Preview({
         </Section>
       )}
 
-      {/* Education (read-only) */}
       {view.education.length > 0 && (
         <Section
           icon={<GraduationCap className="size-3.5 text-muted-foreground" />}
@@ -502,7 +494,6 @@ export default function Preview({
         </Section>
       )}
 
-      {/* Footer actions */}
       {editing ? (
         <div className="mt-6 flex items-center justify-between gap-3 border-t pt-6">
           <Button type="button" variant="outline" size="lg" onClick={cancelEditing} disabled={saving}>

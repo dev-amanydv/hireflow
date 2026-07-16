@@ -36,8 +36,6 @@ describe("normalizeJobType", () => {
   });
 
   test("intern check takes priority over full-time when both keywords present", () => {
-    // "fulltimeinternship" contains both "intern" and "fulltime" substrings;
-    // intern is checked first so it should win.
     expect(normalizeJobType("full-time-internship")).toBe("INTERNSHIP");
   });
 });

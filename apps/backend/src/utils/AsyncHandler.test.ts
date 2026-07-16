@@ -25,7 +25,6 @@ describe("AsyncHandler", () => {
     const handler = vi.fn().mockRejectedValue(err);
 
     AsyncHandler(handler)(req, res, next);
-    // let the microtask queue flush the rejection -> next(err)
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(next).toHaveBeenCalledWith(err);

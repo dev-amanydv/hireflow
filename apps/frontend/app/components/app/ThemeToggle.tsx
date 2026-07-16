@@ -3,14 +3,6 @@ import { Button } from "~/components/ui/button";
 import { useThemeOptional } from "~/lib/theme";
 import { cn } from "~/lib/utils";
 
-/**
- * Sun/moon theme switch. Both icons are stacked and crossfaded so the swap
- * reads as one control changing state rather than two buttons. Respects
- * `prefers-reduced-motion` (the transition collapses to an instant swap).
- *
- * Renders nothing outside a ThemeProvider (e.g. on the dark-locked result
- * page, where TopNav is shown but there is no active theme to toggle).
- */
 export function ThemeToggle({ className }: { className?: string }) {
   const ctx = useThemeOptional();
   if (!ctx) return null;

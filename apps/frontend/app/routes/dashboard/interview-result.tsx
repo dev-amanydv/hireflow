@@ -36,14 +36,13 @@ export function meta({}: Route.MetaArgs) {
   return [{ title: "Report — QuickHire" }];
 }
 
-// ── The v2 scorecard contract (mirrors backend feedbackSchema) ──────────────
 type Evidence = { quote: string; note: string };
 type Dimension = { key: string; name: string; score: number; rationale: string };
 type Topic = {
   name: string;
   score: number;
   summary?: string;
-  comment?: string; // v1 fallback
+  comment?: string;
   wentWell?: string[];
   toImprove?: string[];
   evidence?: Evidence[];
@@ -62,9 +61,9 @@ type Report = {
   topics?: Topic[];
   strengths?: Highlight[] | string[];
   growthAreas?: Highlight[];
-  gaps?: string[]; // v1 fallback
+  gaps?: string[];
   studyPlan?: StudyItem[];
-  studyNext?: string[]; // v1 fallback
+  studyNext?: string[];
   transcriptNote?: string | null;
 };
 
@@ -83,9 +82,8 @@ type ResultData = {
 };
 
 const POLL_INTERVAL_MS = 4000;
-const MAX_POLLS = 45; // ~3 minutes
+const MAX_POLLS = 45;
 
-// ── Tone helpers (theme-aware: the report now lives in the light/dark dashboard) ──
 function scoreTone(score: number): string {
   if (score >= 75) return "text-emerald-600 dark:text-emerald-400";
   if (score >= 50) return "text-amber-600 dark:text-amber-400";
@@ -121,12 +119,10 @@ function formatDate(iso?: string): string | null {
   });
 }
 
-// Normalise a strength/growth item that may be a plain string (v1) or object (v2).
 function asHighlight(item: Highlight | string): Highlight {
   return typeof item === "string" ? { title: item, detail: "" } : item;
 }
 
-// ── Layout primitives ───────────────────────────────────────────────────────
 function Reveal({
   delay = 0,
   id,
@@ -223,7 +219,6 @@ function DownloadTranscriptButton({
   );
 }
 
-// ── Public/private visibility toggle ────────────────────────────────────────
 function VisibilityToggle({
   interviewId,
   initialIsPublic,
@@ -288,7 +283,6 @@ function VisibilityToggle({
   );
 }
 
-// ── The pinned verdict rail ─────────────────────────────────────────────────
 type NavItem = { href: string; label: string };
 
 function Rail({
@@ -307,7 +301,6 @@ function Rail({
   return (
     <aside className="shrink-0 lg:sticky lg:top-24 lg:w-[16.5rem]">
       <Reveal className="ln-lift flex flex-col gap-6 rounded-2xl border border-border bg-card p-6">
-        {/* Identity */}
         <div className="flex flex-col gap-2.5">
           <span className="ln-eyebrow">Interview Report</span>
           <h1 className="text-2xl font-semibold leading-tight tracking-tight text-foreground text-balance">
@@ -324,7 +317,6 @@ function Rail({
           </div>
         </div>
 
-        {/* Score */}
         <div className="flex flex-col gap-3 border-t border-border pt-6">
           <div className="flex items-end gap-1.5">
             <span
@@ -345,7 +337,6 @@ function Rail({
           )}
         </div>
 
-        {/* In-page nav */}
         {nav.length > 0 && (
           <nav className="flex flex-col gap-0.5 border-t border-border pt-5">
             {nav.map((item) => (
@@ -360,7 +351,6 @@ function Rail({
           </nav>
         )}
 
-        {/* Actions */}
         <div className="flex flex-col gap-2 border-t border-border pt-5">
           <VisibilityToggle interviewId={interviewId} initialIsPublic={data.isPublic} />
           <DownloadTranscriptButton interviewId={interviewId} fullWidth />
@@ -377,7 +367,6 @@ function Rail({
   );
 }
 
-// ── Detail column sections ──────────────────────────────────────────────────
 function Lede({ report }: { report: Report }) {
   if (!report.headline && !report.summary && !report.transcriptNote) return null;
   return (
@@ -658,7 +647,6 @@ function Scorecard({
   const report = data.result?.report;
   if (!report) return null;
 
-  // Normalise across v1/v2 shapes so old rows degrade instead of crashing.
   const dimensions = report.dimensions ?? [];
   const topics = report.topics ?? [];
   const strengths = (report.strengths ?? []).map(asHighlight);
@@ -693,7 +681,6 @@ function Scorecard({
   );
 }
 
-// ── Non-report states ───────────────────────────────────────────────────────
 function CenteredState({
   icon,
   title,
@@ -718,11 +705,6 @@ function CenteredState({
   );
 }
 
-// ── Processing skeleton ─────────────────────────────────────────────────────
-// Shown while the transcript is still being scored. Mirrors the Scorecard's exact
-// layout and section labels (job role/badges/nav are already known at this point —
-// only the score and body content are pending) so the page never looks blank or
-// generic, and settles into place instead of swapping layouts once ready.
 function SkelBar({ className }: { className?: string }) {
   return (
     <div className={cn("skeleton-shimmer rounded-md bg-muted", className)} />
@@ -930,8 +912,6 @@ export default function InterviewResult() {
         if (cancelled) return;
         const payload = res.data?.data as ResultData;
         setData(payload);
-        // Keep polling until BOTH the score is ready and the recording has resolved
-        // (recording upload finishes around the same time the transcript is scored).
         const settled =
           payload?.ready && payload.recordingStatus !== "PROCESSING";
         if (settled) return;

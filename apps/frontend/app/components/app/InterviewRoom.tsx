@@ -83,21 +83,11 @@ export default function InterviewRoom({
   const [creds, setCreds] = useState<TokenResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [interrupted, setInterrupted] = useState(false);
-  // get-token is a one-shot claim on the backend (SCHEDULED -> ONGOING), not
-  // idempotent — firing it twice makes the second call look like a stale
-  // reconnect. React's StrictMode double-invokes effects in dev, so guard
-  // against requesting the same interviewId more than once per mount.
   const requestedForRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (requestedForRef.current === interviewId) return;
     requestedForRef.current = interviewId;
-    // No cleanup-driven cancellation here: StrictMode's dev double-invoke runs this
-    // effect's cleanup immediately after the first (only) real invocation, and since
-    // we deliberately skip re-firing above, a `cancelled` flag set by that phantom
-    // cleanup would discard the one real request's result forever. Instead, validate
-    // against the ref when the response lands — it only changes on a genuine
-    // interviewId change, not StrictMode's simulated unmount.
     (async () => {
       try {
         const res = await axios.post<TokenResponse>(

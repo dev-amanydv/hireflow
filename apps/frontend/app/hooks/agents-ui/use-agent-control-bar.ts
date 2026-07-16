@@ -9,7 +9,6 @@ import {
 } from '@livekit/components-react';
 
 const trackSourceToProtocol = (source: Track.Source) => {
-  // NOTE: this mapping avoids importing the protocol package as that leads to a significant bundle size increase
   switch (source) {
     case Track.Source.Camera:
       return 1;
@@ -115,7 +114,6 @@ export function useInputControls({
         screenShareToggle.toggle(false);
       }
       await cameraToggle.toggle(enabled);
-      // persist video input enabled preference
       saveVideoInputEnabled(!cameraToggle.enabled);
     },
     [cameraToggle, screenShareToggle, saveVideoInputEnabled],
@@ -124,7 +122,6 @@ export function useInputControls({
   const handleToggleMicrophone = useCallback(
     async (enabled?: boolean) => {
       await microphoneToggle.toggle(enabled);
-      // persist audio input enabled preference
       saveAudioInputEnabled(!microphoneToggle.enabled);
     },
     [microphoneToggle, saveAudioInputEnabled],

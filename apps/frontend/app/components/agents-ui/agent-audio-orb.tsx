@@ -17,45 +17,14 @@ const SIZE_PX = {
   xl: 340,
 } as const;
 
-/**
- * Props for the AgentAudioOrb component.
- */
 export interface AgentAudioOrbProps {
-  /**
-   * The size of the orb.
-   * @defaultValue 'lg'
-   */
   size?: 'sm' | 'md' | 'lg' | 'xl';
-  /**
-   * The current state of the agent. Determines the idle animation.
-   * @defaultValue 'connecting'
-   */
   state?: AgentState;
-  /**
-   * The core color of the orb in hexadecimal format.
-   * @defaultValue '#5e6ad2'
-   */
   color?: `#${string}`;
-  /**
-   * The audio track to visualize. Amplitude drives the orb's scale and glow.
-   */
   audioTrack?: LocalAudioTrack | RemoteAudioTrack | TrackReferenceOrPlaceholder;
-  /**
-   * Additional CSS class names to apply to the container.
-   */
   className?: string;
 }
 
-/**
- * A soft, breathing orb that scales and glows with the agent's audio amplitude.
- * When idle it breathes gently; when the agent speaks it reacts to the live volume.
- * A premium, minimal alternative to the dot-grid visualizer.
- *
- * @example
- * ```tsx
- * <AgentAudioOrb size="lg" state={state} audioTrack={agentAudioTrack} />
- * ```
- */
 export function AgentAudioOrb({
   size = 'lg',
   state = 'connecting',
@@ -73,7 +42,6 @@ export function AgentAudioOrb({
   const speaking = state === 'speaking';
   const thinking = state === 'thinking';
 
-  // Clamp the raw amplitude so an occasional loud peak doesn't blow out the orb.
   const amp = speaking ? Math.min(1, (volumeBands[0] ?? 0) * 1.4) : 0;
 
   const coreAnimate = useMemo(() => {
@@ -81,10 +49,8 @@ export function AgentAudioOrb({
       return { scale: 1 + amp * 0.42, opacity: 1 };
     }
     if (thinking) {
-      // A quicker, shallower pulse to read as "processing".
       return { scale: [1, 1.05, 1], opacity: [0.9, 1, 0.9] };
     }
-    // Idle / listening / connecting: slow, calm breathing.
     return { scale: [1, 1.06, 1], opacity: [0.85, 1, 0.85] };
   }, [speaking, thinking, amp]);
 
@@ -104,7 +70,6 @@ export function AgentAudioOrb({
       className={cn('relative grid place-items-center', className)}
       style={{ width: px, height: px, color } as CSSProperties}
     >
-      {/* Outer bloom */}
       <motion.div
         aria-hidden
         className="absolute rounded-full"
@@ -123,7 +88,6 @@ export function AgentAudioOrb({
         }
       />
 
-      {/* Core orb */}
       <motion.div
         className="relative rounded-full"
         style={{
@@ -136,7 +100,6 @@ export function AgentAudioOrb({
         animate={coreAnimate}
         transition={coreTransition}
       >
-        {/* Specular highlight for depth */}
         <span
           aria-hidden
           className="absolute rounded-full"

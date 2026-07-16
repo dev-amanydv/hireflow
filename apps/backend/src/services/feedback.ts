@@ -12,11 +12,6 @@ const openai = new OpenAI({
   apiKey: apiKey,
 });
 
-/**
- * The fixed competency dimensions every interview is scored against. Keeping this
- * set stable (rather than per-skill) is what makes scores comparable across
- * interviews and lets us reason about a candidate's trend over time.
- */
 export const DIMENSIONS = [
   {
     key: "technical_depth",
@@ -46,8 +41,6 @@ export const DIMENSIONS = [
 
 const DIMENSION_KEYS = DIMENSIONS.map((d) => d.key) as [string, ...string[]];
 
-// A single, cleaned quote from the candidate plus why it matters. `quote` is a
-// readable paraphrase of what the candidate conveyed — never raw garbled ASR text.
 const EvidenceSchema = z.object({
   quote: z.string(),
   note: z.string(),
@@ -81,9 +74,6 @@ const StudyItemSchema = z.object({
   action: z.string(),
 });
 
-// The scorecard shape (v2) persisted inside Result.report and rendered on the
-// result page. `schemaVersion` is stamped by the worker at store time, not asked
-// of the model, so it lives outside this schema.
 export const feedbackSchema = z.object({
   overall: z.number(),
   band: z.enum(["exceptional", "strong", "developing", "early"]),
@@ -120,14 +110,6 @@ const EXPERIENCE_LABELS: Record<Difficulty, string> = {
   staff: "Staff or above (10+ years)",
 };
 
-/**
- * Evaluate a completed interview transcript and produce a rich, evidence-bound
- * scorecard. Every candidate is scored on the fixed competency DIMENSIONS plus a
- * per-topic breakdown (curated catalog topics for practice interviews, otherwise
- * topics derived from the conversation). Scores are 0-100, calibrated to the
- * target seniority. The transcript comes from voice ASR and may be garbled — the
- * judge is told to read for intent and paraphrase, never to quote raw noise.
- */
 export async function getInterviewFeedback(
   input: FeedbackInput,
 ): Promise<InterviewFeedback | null> {

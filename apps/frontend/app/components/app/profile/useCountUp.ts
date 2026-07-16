@@ -2,11 +2,6 @@ import { useEffect, useRef, useState } from "react";
 
 const EASE_OUT_CUBIC = (t: number) => 1 - Math.pow(1 - t, 3);
 
-/**
- * Animates a number from 0 (or its previous value) up to `value` over `durationMs`.
- * Mirrors the rAF + prefers-reduced-motion approach used by ScoreBar
- * (app/components/ui/score-bar.tsx) so counters feel consistent across the app.
- */
 export function useCountUp(value: number | null, durationMs = 900): number {
   const [display, setDisplay] = useState(0);
   const fromRef = useRef(0);

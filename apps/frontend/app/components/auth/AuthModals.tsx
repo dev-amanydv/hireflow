@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { CiLock, CiMail } from "react-icons/ci";
 import { FiLoader } from "react-icons/fi";
+import { FcGoogle } from "react-icons/fc";
+import { useGoogleLogin } from "@react-oauth/google";
 import axios from "axios";
 import z from "zod";
 import { toast } from "sonner";
@@ -64,6 +66,41 @@ export default function AuthModals() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, closeAuthModal]);
 
+  const onAuthed = (data: { id: string; email: string }) => {
+    addUser({ userId: data.id, email: data.email });
+    const cb = onSuccess;
+    closeAuthModal();
+    cb?.();
+  };
+
+  const googleLogin = useGoogleLogin({
+    onSuccess: async ({ access_token }) => {
+      setLoading(true);
+      try {
+        const res = await axios.post(
+          `${BACKEND_URL}/auth/google`,
+          { accessToken: access_token },
+          { withCredentials: true },
+        );
+        if (!res.data?.success) {
+          toast.error(res.data?.message ?? "Something went wrong");
+          return;
+        }
+        toast.success("Logged in");
+        onAuthed(res.data.data);
+      } catch (err) {
+        const message =
+          axios.isAxiosError(err) && err.response?.data?.message
+            ? err.response.data.message
+            : "Could not sign in with Google";
+        toast.error(message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    onError: () => toast.error("Google sign-in was cancelled"),
+  });
+
   if (!open) return null;
 
   const copy = COPY[mode];
@@ -90,11 +127,8 @@ export default function AuthModals() {
         toast.error(res.data?.message ?? "Something went wrong");
         return;
       }
-      addUser({ userId: res.data.data.id, email: res.data.data.email });
       toast.success(mode === "signup" ? "Account created" : "Logged in");
-      const cb = onSuccess;
-      closeAuthModal();
-      cb?.();
+      onAuthed(res.data.data);
     } catch (err) {
       const message =
         axios.isAxiosError(err) && err.response?.data?.message
@@ -136,6 +170,22 @@ export default function AuthModals() {
             </h2>
             <p className="mt-1 text-sm text-ink-subtle">{copy.sub}</p>
           </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => googleLogin()}
+          disabled={loading}
+          className="flex h-10 w-full items-center justify-center gap-2.5 rounded-md border border-border bg-secondary px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-60"
+        >
+          <FcGoogle className="size-4.5" />
+          {mode === "signup" ? "Sign up with Google" : "Continue with Google"}
+        </button>
+
+        <div className="my-5 flex items-center gap-3">
+          <span className="h-px flex-1 bg-border" />
+          <span className="text-xs text-ink-tertiary">or</span>
+          <span className="h-px flex-1 bg-border" />
         </div>
 
         <form

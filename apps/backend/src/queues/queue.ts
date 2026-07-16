@@ -1,5 +1,5 @@
 import { FlowProducer, Queue, type FlowJob, type JobsOptions } from "bullmq";
-import { connection } from "../workers/worker";
+import { connection } from "./connection";
 
 export interface JobMeta {
     resumeId: string,
@@ -229,8 +229,5 @@ export const profileResumeQueue = new Queue('profile-resume', {
 });
 
 export async function enqueueProfileResume(meta: ProfileResumeMeta, filePath: string, size: number) {
-    // No fixed jobId: a fixed per-user id would collide with a previous attempt's
-    // (possibly failed/exhausted) job of the same id, and BullMQ silently reuses
-    // that existing job instead of processing a new one — leaving the upload stuck.
     return profileResumeQueue.add('parse', { meta, filePath, size });
 }

@@ -21,7 +21,6 @@ export async function parseResume(filePath: string) {
     let usedOcr = false;
 
     
-    //Add fallback to ocr if text.length < 50 characters
 
     return { text, usedOcr, classifiedLinks }
 }

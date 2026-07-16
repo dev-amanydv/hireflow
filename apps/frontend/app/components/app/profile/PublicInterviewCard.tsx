@@ -42,9 +42,6 @@ function formatDuration(ms: number | null): string | null {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-// Deterministic per-interview bar heights, echoing the waveform seed pattern
-// from RecordingPlayer.tsx so a recording "reads as a recording" even as a
-// static square thumbnail rather than a real video frame.
 function useThumbBars(seed: string, count = 28): number[] {
   return useMemo(() => {
     let h = 0;
@@ -91,7 +88,6 @@ async function handleShare(username: string, interviewId: string, title: string)
       await navigator.share({ title, url });
       return;
     } catch {
-      // user cancelled the native sheet — fall through to clipboard
     }
   }
   try {
