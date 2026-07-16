@@ -11,7 +11,7 @@ RUN bun install --frozen-lockfile
 COPY apps/backend ./apps/backend
 
 WORKDIR /app/apps/backend
-RUN bunx --bun prisma generate
+RUN DATABASE_URL="postgresql://build:build@localhost:5432/build" bunx --bun prisma generate
 ENV NODE_ENV=production
 RUN apk add --no-cache curl
 USER bun
