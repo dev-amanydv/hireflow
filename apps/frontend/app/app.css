@@ -316,6 +316,9 @@ body {
   --skill-python: oklch(0.62 0.14 255);
   --skill-dsa: oklch(0.65 0.15 12);
   --skill-behavioral: oklch(0.6 0.14 315);
+  /* Soft brand halo for hero / CTA / node glows. Token, not a hardcoded rgba,
+     so it tracks the theme. */
+  --glow-brand: color-mix(in oklab, var(--primary) 14%, transparent);
 }
 
 .dark {
@@ -373,6 +376,7 @@ body {
   --skill-python: oklch(0.6 0.14 255);
   --skill-dsa: oklch(0.62 0.15 12);
   --skill-behavioral: oklch(0.6 0.14 315);
+  --glow-brand: color-mix(in oklab, var(--primary) 22%, transparent);
 }
 
 @layer base {

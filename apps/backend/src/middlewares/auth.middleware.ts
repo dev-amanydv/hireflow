@@ -17,26 +17,13 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
     try {
         decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
     } catch (err: unknown) {
-        console.log(err)
         if (err instanceof Error && err.name === 'TokenExpiredError') {
-            return res.json({
-                success: false,
-                message: 'TokenExpired',
-                data: null
-            });
+            throw new AppError(401, 'TokenExpired');
         }
         if (err instanceof Error && err.name === 'JsonWebTokenError') {
-            return res.json({
-                success: false,
-                message: 'Invalid Token',
-                data: null
-            });
+            throw new AppError(401, 'InvalidToken');
         }
-        return res.json({
-            success: false,
-            message: 'Authentication Failed',
-            data: null
-        });
+        throw new AppError(401, 'AuthenticationFailed');
     }
 
     console.log(decoded);

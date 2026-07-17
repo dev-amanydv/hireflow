@@ -15,6 +15,7 @@ import "./app.css";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { TooltipProvider } from "./components/ui/tooltip";
 import AuthModals from "./components/auth/AuthModals";
+import "./lib/api";
 import { getUser } from "./lib/auth.server";
 import { ThemeProvider, getThemeFromCookie, useTheme } from "./lib/theme";
 import { useAuth } from "./store/store";
