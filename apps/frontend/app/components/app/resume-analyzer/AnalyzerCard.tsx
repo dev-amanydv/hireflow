@@ -131,8 +131,8 @@ export default function AnalyzerCard({
             className="flex-1"
             dropzoneClassName="flex-1 justify-center py-10"
             sampleResume={{
-              url: "/aman_yadav_resume.pdf",
-              fileName: "Aman Yadav - Resume.pdf",
+              url: "/sample-resume.pdf",
+              fileName: "Sample Resume.pdf",
               label: "Not have one? Use our sample resume.",
             }}
             onUploaded={(data) => {

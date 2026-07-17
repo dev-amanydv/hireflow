@@ -3,12 +3,10 @@ import LandingNav from "~/components/marketing/LandingNav";
 import Hero from "~/components/marketing/Hero";
 import LogoMarquee from "~/components/marketing/LogoMarquee";
 import StatementBlock from "~/components/marketing/StatementBlock";
-import FeatureFigures from "~/components/marketing/FeatureFigures";
-import ProductSection from "~/components/marketing/ProductSection";
-import {
-  ProfileMockup,
-  ScorecardMockup,
-} from "~/components/marketing/ProductMockups";
+import ResumeInterviewShowcase from "~/components/marketing/ResumeInterviewShowcase";
+import SkillPracticeShowcase from "~/components/marketing/SkillPracticeShowcase";
+import JobsShowcase from "~/components/marketing/JobsShowcase";
+import ResumeAnalyzerShowcase from "~/components/marketing/ResumeAnalyzerShowcase";
 import CTABanner from "~/components/marketing/CTABanner";
 import Footer from "~/components/marketing/Footer";
 
@@ -31,24 +29,11 @@ export default function Home() {
         <Hero />
         <LogoMarquee />
         <StatementBlock />
-        <FeatureFigures />
 
-        <ProductSection
-          label="1.0  Intake"
-          title="Turn your resume into a tailored interview"
-          description="Upload once. QuickHire extracts your skills, projects, and experience into a candidate profile that shapes every question in the session."
-        >
-          <ProfileMockup />
-        </ProductSection>
-
-        <ProductSection
-          align="right"
-          label="2.0  Report"
-          title="Know exactly where you stand"
-          description="Every session ends with a clear score and breakdown — technical depth, communication, and problem-solving — so you know what to practice next."
-        >
-          <ScorecardMockup />
-        </ProductSection>
+        <ResumeInterviewShowcase />
+        <SkillPracticeShowcase />
+        <JobsShowcase />
+        <ResumeAnalyzerShowcase />
 
         <CTABanner />
       </main>

@@ -261,18 +261,18 @@ describe("handleResume", () => {
 describe("handleResumeStatus", () => {
   test("no userId -> throws 401 Unauthorised", async () => {
     const req = fakeReq({ params: { interviewId: "interview-1" } });
-    await expect(handleResumeStatus(req, fakeRes(), vi.fn())).rejects.toMatchObject({ statusCode: 401 });
+    await expect(handleResumeStatus(req, fakeRes())).rejects.toMatchObject({ statusCode: 401 });
   });
 
   test("no interviewId param -> throws 400", async () => {
     const req = fakeReq({ userId: "user-1", params: {} });
-    await expect(handleResumeStatus(req, fakeRes(), vi.fn())).rejects.toMatchObject({ statusCode: 400 });
+    await expect(handleResumeStatus(req, fakeRes())).rejects.toMatchObject({ statusCode: 400 });
   });
 
   test("resume not found -> throws 404 ResumeNotFound", async () => {
     mockPrisma.resume.findUnique.mockResolvedValue(null);
     const req = fakeReq({ userId: "user-1", params: { interviewId: "interview-1" } });
-    await expect(handleResumeStatus(req, fakeRes(), vi.fn())).rejects.toMatchObject({
+    await expect(handleResumeStatus(req, fakeRes())).rejects.toMatchObject({
       statusCode: 404,
       message: "ResumeNotFound",
     });
@@ -283,7 +283,7 @@ describe("handleResumeStatus", () => {
     const req = fakeReq({ userId: "user-1", params: { interviewId: "interview-1" } });
     const res = fakeRes();
 
-    await handleResumeStatus(req, res, vi.fn());
+    await handleResumeStatus(req, res);
 
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({ data: { status: "PARSED", ready: true, failed: false } }),
@@ -295,7 +295,7 @@ describe("handleResumeStatus", () => {
     const req = fakeReq({ userId: "user-1", params: { interviewId: "interview-1" } });
     const res = fakeRes();
 
-    await handleResumeStatus(req, res, vi.fn());
+    await handleResumeStatus(req, res);
 
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({ data: { status: "FAILED", ready: false, failed: true } }),
@@ -306,7 +306,7 @@ describe("handleResumeStatus", () => {
 describe("handlePreSession", () => {
   test("invalid body -> throws 401 interviewId required", async () => {
     const req = fakeReq({ body: {} });
-    await expect(handlePreSession(req, fakeRes(), vi.fn())).rejects.toMatchObject({ statusCode: 401 });
+    await expect(handlePreSession(req, fakeRes())).rejects.toMatchObject({ statusCode: 401 });
   });
 
   test("interview already has a summary -> returns cached summary without calling the resume table or LLM", async () => {
@@ -314,7 +314,7 @@ describe("handlePreSession", () => {
     const req = fakeReq({ body: { interviewId: "interview-1" } });
     const res = fakeRes();
 
-    await handlePreSession(req, res, vi.fn());
+    await handlePreSession(req, res);
 
     expect(mockPrisma.resume.findUnique).not.toHaveBeenCalled();
     expect(mockOpenaiService.getResumeSummary).not.toHaveBeenCalled();
@@ -328,7 +328,7 @@ describe("handlePreSession", () => {
     mockPrisma.interview.findUnique.mockResolvedValue(null);
     mockPrisma.resume.findUnique.mockResolvedValue(null);
     const req = fakeReq({ body: { interviewId: "interview-1" } });
-    await expect(handlePreSession(req, fakeRes(), vi.fn())).rejects.toMatchObject({
+    await expect(handlePreSession(req, fakeRes())).rejects.toMatchObject({
       statusCode: 404,
       message: "ResumeNotFound",
     });
@@ -338,7 +338,7 @@ describe("handlePreSession", () => {
     mockPrisma.interview.findUnique.mockResolvedValue(null);
     mockPrisma.resume.findUnique.mockResolvedValue({ status: "FAILED", parsed: null });
     const req = fakeReq({ body: { interviewId: "interview-1" } });
-    await expect(handlePreSession(req, fakeRes(), vi.fn())).rejects.toMatchObject({
+    await expect(handlePreSession(req, fakeRes())).rejects.toMatchObject({
       statusCode: 422,
       message: "ResumeParseFailed",
     });
@@ -350,7 +350,7 @@ describe("handlePreSession", () => {
     const req = fakeReq({ body: { interviewId: "interview-1" } });
     const res = fakeRes();
 
-    await handlePreSession(req, res, vi.fn());
+    await handlePreSession(req, res);
 
     expect(mockOpenaiService.getResumeSummary).not.toHaveBeenCalled();
     expect(res.status).toHaveBeenCalledWith(202);
@@ -367,7 +367,7 @@ describe("handlePreSession", () => {
     const req = fakeReq({ body: { interviewId: "interview-1" } });
     const res = fakeRes();
 
-    await handlePreSession(req, res, vi.fn());
+    await handlePreSession(req, res);
 
     expect(mockOpenaiService.getResumeSummary).toHaveBeenCalledWith({
       rawResumeText: "raw",
@@ -401,12 +401,12 @@ describe("updateSummary", () => {
 
   test("no userId -> throws 401", async () => {
     const req = fakeReq({ params: { interviewId: "interview-1" }, body: validSummary });
-    await expect(updateSummary(req, fakeRes(), vi.fn())).rejects.toMatchObject({ statusCode: 401 });
+    await expect(updateSummary(req, fakeRes())).rejects.toMatchObject({ statusCode: 401 });
   });
 
   test("no interviewId param -> throws 400", async () => {
     const req = fakeReq({ userId: "user-1", params: {}, body: validSummary });
-    await expect(updateSummary(req, fakeRes(), vi.fn())).rejects.toMatchObject({ statusCode: 400 });
+    await expect(updateSummary(req, fakeRes())).rejects.toMatchObject({ statusCode: 400 });
   });
 
   test("invalid summary shape -> throws 400 InvalidSummary", async () => {
@@ -415,7 +415,7 @@ describe("updateSummary", () => {
       params: { interviewId: "interview-1" },
       body: { name: "Aman" },
     });
-    await expect(updateSummary(req, fakeRes(), vi.fn())).rejects.toMatchObject({
+    await expect(updateSummary(req, fakeRes())).rejects.toMatchObject({
       statusCode: 400,
       message: "InvalidSummary",
     });
@@ -427,13 +427,13 @@ describe("updateSummary", () => {
       params: { interviewId: "interview-1" },
       body: { ...validSummary, yearOfExp: "20 years" },
     });
-    await expect(updateSummary(req, fakeRes(), vi.fn())).rejects.toMatchObject({ statusCode: 400 });
+    await expect(updateSummary(req, fakeRes())).rejects.toMatchObject({ statusCode: 400 });
   });
 
   test("interview not owned by user -> throws 404 Interview not found", async () => {
     mockPrisma.interview.findFirst.mockResolvedValue(null);
     const req = fakeReq({ userId: "user-1", params: { interviewId: "interview-1" }, body: validSummary });
-    await expect(updateSummary(req, fakeRes(), vi.fn())).rejects.toMatchObject({
+    await expect(updateSummary(req, fakeRes())).rejects.toMatchObject({
       statusCode: 404,
       message: "Interview not found",
     });
@@ -444,7 +444,7 @@ describe("updateSummary", () => {
     const req = fakeReq({ userId: "user-1", params: { interviewId: "interview-1" }, body: validSummary });
     const res = fakeRes();
 
-    await updateSummary(req, res, vi.fn());
+    await updateSummary(req, res);
 
     expect(mockPrisma.interview.findFirst).toHaveBeenCalledWith({
       where: { id: "interview-1", userId: "user-1" },
@@ -565,7 +565,7 @@ describe("recordInterviewMessage", () => {
 
     await recordInterviewMessage(req, fakeRes());
 
-    const call = mockPrisma.message.create.mock.calls[0][0];
+    const call = mockPrisma.message.create.mock.calls[0]![0];
     expect(call.data.createdAt).toBeInstanceOf(Date);
     expect(call.data.createdAt.getTime()).toBe(1700000000 * 1000);
   });
@@ -582,7 +582,7 @@ describe("completeInterview", () => {
       where: { id: "interview-1" },
       data: expect.objectContaining({ status: "COMPLETED" }),
     });
-    expect(mockPrisma.interview.update.mock.calls[0][0].data.endAt).toBeInstanceOf(Date);
+    expect(mockPrisma.interview.update.mock.calls[0]![0].data.endAt).toBeInstanceOf(Date);
     expect(res.status).toHaveBeenCalledWith(200);
   });
 });

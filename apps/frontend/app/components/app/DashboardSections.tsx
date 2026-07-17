@@ -131,10 +131,12 @@ const LEVEL_LABEL: Record<Difficulty, string> = {
 
 export function SectionHeader({
   eyebrow,
+  title,
   description,
   action,
 }: {
   eyebrow: string;
+  title?: string;
   description?: string;
   action?: React.ReactNode;
 }) {
@@ -149,6 +151,9 @@ export function SectionHeader({
       <span className="ln-eyebrow md:hidden">{eyebrow}</span>
       <div className="flex flex-wrap items-end justify-between gap-0">
         <div>
+          {title && (
+            <h1 className="ln-display-md text-foreground">{title}</h1>
+          )}
           {description && (
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink-subtle">
               {description}
@@ -365,7 +370,6 @@ function ResumeFeatureCard({ atsScore }: { atsScore: number | null }) {
       />
       <div className="relative grid grid-cols-1 gap-8 lg:grid-cols-[1.3fr_1fr] lg:items-center">
         <div>
-          <span className="ln-eyebrow">Resume Analyzer</span>
           <h2 className="ln-display-md mt-2 text-foreground">
             Beat the ATS before you apply.
           </h2>
