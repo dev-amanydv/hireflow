@@ -1,58 +1,98 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useRouteLoaderData } from "react-router";
 import axios from "axios";
-import { ArrowLeft, ArrowRight, FileText, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, FileText } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import EmptyState from "../EmptyState";
 import ReportView from "./ReportView";
+import ReportHeader from "./ReportHeader";
+import AnalysisStages from "./AnalysisStages";
+import { useAnalysisStages } from "./stages";
 import { BACKEND_URL } from "~/lib/config";
 import type { loader as rootLoader } from "~/root";
-import { GENERAL_TARGET_LABEL, isSettled, type AnalysisRow } from "./types";
+import { isSettled, type AnalysisRow } from "./types";
 
 const POLL_MS = 3000;
 
-function ScoringState({ name, targetRole }: { name?: string; targetRole: string | null }) {
+/** Mirrors the finding list's real rhythm: tag line, title, body, occasional before/after. */
+function FindingsSkeleton() {
+  const rows = [
+    { body: 2, diff: true },
+    { body: 1, diff: false },
+    { body: 2, diff: false },
+    { body: 1, diff: false },
+  ];
   return (
-    <div className="ln-lift ln-rise flex flex-col items-center gap-4 rounded-2xl border border-border bg-card px-6 py-20 text-center">
-      <span className="relative flex size-12 items-center justify-center">
-        <span className="absolute inset-0 animate-ping rounded-full bg-primary/20" />
-        <span className="relative flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-          <Sparkles className="size-5" />
-        </span>
-      </span>
-      <div>
-        <p className="text-sm font-medium text-foreground">Running the analysis</p>
-        <p className="mt-1.5 max-w-sm text-sm leading-relaxed text-ink-subtle">
-          Scoring {name ? <span className="text-foreground">{name}</span> : "your resume"} against{" "}
-          {targetRole ?? GENERAL_TARGET_LABEL.toLowerCase()} with deterministic ATS checks plus an
-          AI content review. This usually takes a minute or two — it keeps running even if you
-          leave, and the result lands in your history.
-        </p>
+    <section className="flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="ln-eyebrow">What to fix</h2>
+        <div className="skeleton-shimmer h-5 w-28 rounded-full bg-muted" />
       </div>
-      <div className="h-1 w-40 overflow-hidden rounded-full bg-muted">
-        <div className="ln-indeterminate h-full w-1/3 rounded-full bg-primary" />
+      <div className="flex flex-col gap-2">
+        {rows.map((row, i) => (
+          <div key={i} className="rounded-xl border border-border bg-card p-4">
+            <div className="skeleton-shimmer h-3 w-24 rounded bg-muted" />
+            <div className="skeleton-shimmer mt-2.5 h-3.5 w-2/5 rounded bg-muted" />
+            <div className="skeleton-shimmer mt-2.5 h-2.5 w-full rounded bg-muted" />
+            {row.body > 1 && <div className="skeleton-shimmer mt-1.5 h-2.5 w-4/5 rounded bg-muted" />}
+            {row.diff && (
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <div className="skeleton-shimmer h-14 rounded-lg bg-muted" />
+                <div className="skeleton-shimmer h-14 rounded-lg bg-muted" />
+              </div>
+            )}
+          </div>
+        ))}
       </div>
+    </section>
+  );
+}
+
+/** First paint, before we know whether the row is running or already settled. */
+function ReportSkeleton() {
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="ln-lift overflow-hidden rounded-2xl border border-border bg-card">
+        <div className="flex flex-col gap-4 p-5">
+          <div className="skeleton-shimmer h-3 w-52 rounded bg-muted" />
+          <div className="flex items-end gap-4">
+            <div className="skeleton-shimmer h-9 w-16 rounded bg-muted" />
+            <div className="mb-1 flex-1">
+              <div className="skeleton-shimmer h-3.5 w-24 rounded bg-muted" />
+              <div className="skeleton-shimmer mt-1.5 h-2.5 w-56 rounded bg-muted" />
+            </div>
+          </div>
+          <div className="skeleton-shimmer h-1.5 w-full rounded-full bg-muted" />
+        </div>
+        <div className="grid grid-cols-2 gap-x-2 gap-y-1 border-t border-border p-3 sm:grid-cols-3 lg:grid-cols-6">
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="flex flex-col gap-1.5 px-2 py-1.5">
+              <div className="skeleton-shimmer h-2.5 w-full rounded bg-muted" />
+              <div className="skeleton-shimmer h-1 w-full rounded-full bg-muted" />
+              <div className="skeleton-shimmer h-2 w-10 rounded bg-muted" />
+            </div>
+          ))}
+        </div>
+      </div>
+      <FindingsSkeleton />
     </div>
   );
 }
 
-function ReportSkeleton() {
+/** The analysis is running. The header is real — only the score and findings are pending. */
+function ReportPending({ row }: { row: AnalysisRow }) {
+  const stages = useAnalysisStages(row.status);
   return (
     <div className="flex flex-col gap-6">
-      <div className="ln-lift flex flex-col items-center gap-5 rounded-2xl border border-border bg-card p-6 sm:flex-row sm:gap-8">
-        <div className="skeleton-shimmer size-32 shrink-0 rounded-full bg-muted" />
-        <div className="w-full flex-1">
-          <div className="skeleton-shimmer h-3 w-20 rounded bg-muted" />
-          <div className="skeleton-shimmer mt-3 h-7 w-40 rounded bg-muted" />
-          <div className="skeleton-shimmer mt-3 h-3 w-full rounded bg-muted" />
-          <div className="skeleton-shimmer mt-2 h-3 w-3/4 rounded bg-muted" />
-        </div>
-      </div>
-      <div className="flex flex-col gap-2">
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="skeleton-shimmer h-20 rounded-xl bg-muted" />
-        ))}
-      </div>
+      <ReportHeader
+        name={row.name}
+        targetRole={row.targetRole}
+        targetExperience={row.targetExperience}
+        score={null}
+      >
+        <AnalysisStages stages={stages} />
+      </ReportHeader>
+      <FindingsSkeleton />
     </div>
   );
 }
@@ -95,7 +135,7 @@ export default function ResumeReport({ id }: { id: string }) {
   const settled = row ? isSettled(row.status) : false;
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between gap-4">
         <Link
           to="/dashboard/resume"
@@ -135,9 +175,9 @@ export default function ResumeReport({ id }: { id: string }) {
           }
         />
       ) : !settled ? (
-        <ScoringState name={row.name} targetRole={row.targetRole} />
+        <ReportPending row={row} />
       ) : row.report ? (
-        <ReportView report={row.report} />
+        <ReportView report={row.report} name={row.name} />
       ) : (
         <EmptyState
           icon={FileText}

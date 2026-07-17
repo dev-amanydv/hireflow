@@ -2,14 +2,8 @@ import { Link } from "react-router";
 import { ArrowRight, FileText, Loader2 } from "lucide-react";
 import EmptyState from "../EmptyState";
 import { cn } from "~/lib/utils";
+import { bandMeta } from "./scoring";
 import { GENERAL_TARGET_LABEL, type AnalysisListItem } from "./types";
-
-export function scoreTone(score: number | null) {
-  if (score == null) return "text-ink-tertiary";
-  if (score >= 80) return "text-emerald-600";
-  if (score >= 60) return "text-amber-600";
-  return "text-red-600";
-}
 
 function relativeDate(iso: string): string {
   const then = new Date(iso);
@@ -105,7 +99,7 @@ export default function AnalysisHistory({
               <span
                 className={cn(
                   "ln-mono text-xl font-semibold tabular-nums",
-                  scoreTone(item.overallScore),
+                  bandMeta(item.overallScore).text,
                 )}
               >
                 {item.overallScore != null ? Math.round(item.overallScore) : "—"}

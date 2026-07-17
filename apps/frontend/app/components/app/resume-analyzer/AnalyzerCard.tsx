@@ -115,7 +115,7 @@ export default function AnalyzerCard({
           : "Analyze my resume";
 
   return (
-    <section className="ln-lift ln-rise overflow-hidden rounded-2xl border border-border bg-card">
+    <section className="ln-lift ln-rise overflow-hidden rounded-2xl ">
       <div className="grid lg:grid-cols-[1.1fr_1fr]">
         <div className="flex flex-col gap-3 border-b border-border p-5 lg:border-b-0 lg:border-r lg:p-6">
           <div className="flex items-center justify-between gap-3">
@@ -133,7 +133,7 @@ export default function AnalyzerCard({
             sampleResume={{
               url: "/aman_yadav_resume.pdf",
               fileName: "Aman Yadav - Resume.pdf",
-              label: "No resume on hand?",
+              label: "Not have one? Use our sample resume.",
             }}
             onUploaded={(data) => {
               const id = (data as { id?: string } | undefined)?.id;
@@ -148,9 +148,7 @@ export default function AnalyzerCard({
         <div className="flex flex-col gap-4 p-5 lg:p-6">
           <div>
             <h2 className="text-sm font-semibold text-foreground">What should we score it against?</h2>
-            <p className="mt-1 text-xs leading-relaxed text-ink-subtle">
-              You can set this while your resume uploads.
-            </p>
+            
           </div>
 
           <RadioGroup
@@ -236,9 +234,7 @@ export default function AnalyzerCard({
               )}
               {label}
             </Button>
-            <p className="text-center text-[11px] leading-relaxed text-ink-tertiary">
-              Takes a minute or two. It keeps running if you leave this page.
-            </p>
+            
           </div>
         </div>
       </div>

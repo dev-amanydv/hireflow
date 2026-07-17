@@ -47,6 +47,14 @@ input[type=number] {
   animation: skeleton-shimmer 1.6s ease-in-out infinite;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer::after {
+    animation: none;
+    transform: none;
+    background: color-mix(in oklab, var(--foreground) 4%, transparent);
+  }
+}
+
 @keyframes progress-line-grow {
   from {
     transform: scaleY(0);
@@ -110,6 +118,62 @@ input[type=number] {
 
 .ln-marquee {
   animation: ln-marquee 32s linear infinite;
+}
+
+/* Breathing halo on the stage that is currently running. */
+@keyframes ln-stage-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.72);
+  }
+}
+
+.ln-stage-pulse {
+  animation: ln-stage-pulse 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Sweeps once across the pending score slot: the report is assembling, not stalled. */
+@keyframes ln-scan {
+  0% {
+    transform: translateX(-100%);
+  }
+  60%,
+  100% {
+    transform: translateX(320%);
+  }
+}
+
+.ln-scan {
+  animation: ln-scan 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.ln-fade {
+  animation: ln-fade 0.35s ease-out forwards;
+}
+
+@keyframes ln-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ln-stage-pulse,
+  .ln-scan,
+  .ln-marquee {
+    animation: none;
+  }
+  .ln-scan {
+    opacity: 0;
+  }
 }
 
 html,
@@ -179,6 +243,13 @@ body {
   --color-ink-tertiary: var(--ink-tertiary);
   --color-brand: var(--primary);
   --color-brand-hover: var(--primary-hover);
+  --color-score-strong: var(--score-strong);
+  --color-score-mixed: var(--score-mixed);
+  --color-score-weak: var(--score-weak);
+  --color-score-track: var(--score-track);
+  --color-sev-critical: var(--sev-critical);
+  --color-sev-important: var(--sev-important);
+  --color-sev-minor: var(--sev-minor);
   --radius-sm: calc(var(--radius) * 0.75);
   --radius-md: var(--radius);
   --radius-lg: calc(var(--radius) * 1.5);
@@ -220,6 +291,15 @@ body {
   --ink-muted: oklch(0.34 0.02 275);
   --ink-tertiary: oklch(0.52 0.02 275);
   --success: oklch(0.55 0.13 150);
+  /* Score ramp: chroma encodes strength. A strong resume is full lavender; a weak one
+     desaturates toward ink. No traffic lights — severity colour is spent on findings. */
+  --score-strong: var(--primary);
+  --score-mixed: color-mix(in oklab, var(--primary) 65%, var(--ink-muted));
+  --score-weak: color-mix(in oklab, var(--primary) 32%, var(--ink-muted));
+  --score-track: oklch(0.93 0.008 275);
+  --sev-critical: var(--destructive);
+  --sev-important: oklch(0.54 0.14 62);
+  --sev-minor: var(--ink-tertiary);
   --sidebar: oklch(0.975 0.005 275);
   --sidebar-foreground: oklch(0.21 0.02 275);
   --sidebar-primary: oklch(0.55 0.15 272);
@@ -267,8 +347,16 @@ body {
   --surface-4: oklch(0.27 0.014 275);
   --hairline-strong: oklch(0.34 0.012 275);
   --ink-muted: oklch(0.86 0.01 275);
-  --ink-tertiary: oklch(0.58 0.014 275);
+  /* 0.58 measured 4.19:1 on the card surface — under AA for normal text. */
+  --ink-tertiary: oklch(0.62 0.014 275);
   --success: oklch(0.7 0.15 150);
+  --score-strong: oklch(0.7 0.15 272);
+  --score-mixed: color-mix(in oklab, oklch(0.7 0.15 272) 62%, var(--ink-muted));
+  --score-weak: color-mix(in oklab, oklch(0.7 0.15 272) 30%, var(--ink-muted));
+  --score-track: oklch(0.28 0.012 275);
+  --sev-critical: oklch(0.7 0.18 22);
+  --sev-important: oklch(0.76 0.13 68);
+  --sev-minor: var(--ink-tertiary);
   --sidebar: oklch(0.19 0.011 275);
   --sidebar-foreground: oklch(0.97 0.004 275);
   --sidebar-primary: oklch(0.62 0.15 272);

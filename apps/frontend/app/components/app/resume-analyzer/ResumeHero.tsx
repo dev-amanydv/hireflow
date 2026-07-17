@@ -78,7 +78,6 @@ export default function ResumeHero({ latestScore }: { latestScore: number | null
 
       <div className="relative flex flex-col gap-6 p-5 sm:p-6">
         <div className="flex flex-col gap-3">
-          <span className="ln-eyebrow">Resume analyzer</span>
           <h1 className="max-w-md text-balance text-xl font-semibold leading-tight tracking-tight text-foreground sm:text-2xl">
             Most resumes are rejected before a human{" "}
             <span className="text-primary">ever reads them.</span>
