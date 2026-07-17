@@ -30,11 +30,11 @@ export function loader({ request }: Route.LoaderArgs) {
 export const links: Route.LinksFunction = () => [];
 
 export const meta: Route.MetaFunction = () => [
-  { title: "QuickHire — The AI interviewer, built for the AI era" },
+  { title: "Hireflow — The AI interviewer, built for the AI era" },
   {
     name: "description",
     content:
-      "Practice interviews that feel real. QuickHire reads your resume, GitHub, and code to run adaptive engineering interviews and score them instantly.",
+      "Practice interviews that feel real. Hireflow reads your resume, GitHub, and code to run adaptive engineering interviews and score them instantly.",
   },
 ];
 

@@ -12,7 +12,7 @@ export default function CTABanner() {
           className="pointer-events-none absolute inset-0 opacity-70"
           style={{
             background:
-              "radial-gradient(50% 120% at 50% 0%, rgba(94,106,210,0.14), transparent 70%)",
+              "radial-gradient(50% 120% at 50% 0%, var(--glow-brand), transparent 70%)",
           }}
         />
         <div className="relative flex flex-col items-center gap-6">
@@ -20,7 +20,7 @@ export default function CTABanner() {
             Ready to run your first interview?
           </h2>
           <p className="max-w-md text-base text-ink-subtle">
-            Bring your resume and GitHub. QuickHire handles the rest — no
+            Bring your resume and GitHub. Hireflow handles the rest — no
             scheduling, no waiting.
           </p>
           <button

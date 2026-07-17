@@ -1485,7 +1485,7 @@ export function Insights() {
       <EmptyState
         icon={BarChart3}
         title="Not enough data yet"
-        description="Complete a few interviews and QuickHire charts your score trend, strengths by topic, and areas to focus on next."
+        description="Complete a few interviews and Hireflow charts your score trend, strengths by topic, and areas to focus on next."
       />
     </div>
   );

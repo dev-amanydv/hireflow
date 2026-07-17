@@ -2,7 +2,11 @@ import { useNavigate } from "react-router";
 import { Brand } from "~/components/app/Brand";
 import { ThemeToggle } from "~/components/app/ThemeToggle";
 
-const LINKS = ["Product", "How it works", "Pricing", "Company"];
+const LINKS = [
+  { label: "How it works", href: "#how-it-works" },
+  { label: "Architecture", href: "#architecture" },
+  { label: "FAQ", href: "#faq" },
+];
 
 export default function LandingNav() {
   const navigate = useNavigate();
@@ -15,11 +19,11 @@ export default function LandingNav() {
         <nav className="hidden items-center gap-7 md:flex">
           {LINKS.map((l) => (
             <a
-              key={l}
-              href="#features"
+              key={l.href}
+              href={l.href}
               className="text-sm text-ink-subtle transition-colors hover:text-foreground"
             >
-              {l}
+              {l.label}
             </a>
           ))}
         </nav>

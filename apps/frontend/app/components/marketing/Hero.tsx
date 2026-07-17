@@ -1,6 +1,6 @@
 import { ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router";
-import HeroMockup from "./HeroMockup";
+import HeroPipeline from "./HeroPipeline";
 
 export default function Hero() {
   const navigate = useNavigate();
@@ -9,10 +9,10 @@ export default function Hero() {
     <section className="relative overflow-hidden">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-[520px] opacity-60"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[520px] opacity-90"
         style={{
           background:
-            "radial-gradient(60% 100% at 50% 0%, rgba(94,106,210,0.10), transparent 70%)",
+            "radial-gradient(60% 100% at 50% 0%, var(--glow-brand), transparent 70%)",
         }}
       />
       <div className="relative mx-auto max-w-6xl px-5 pt-20 sm:px-8 sm:pt-28">
@@ -30,12 +30,12 @@ export default function Hero() {
             style={{ animationDelay: "140ms" }}
           >
             <p className="max-w-xl text-lg leading-relaxed text-ink-subtle">
-              Practice interviews that feel real. QuickHire reads your resume,
+              Practice interviews that feel real. Hireflow reads your resume,
               GitHub, and code — then runs an adaptive interview and scores it
               instantly.
             </p>
             <a
-              href="#features"
+              href="#how-it-works"
               className="group inline-flex shrink-0 items-center gap-2 text-sm text-ink-subtle transition-colors hover:text-foreground"
             >
               <span className="text-foreground">New</span> Instant AI scoring
@@ -59,7 +59,7 @@ export default function Hero() {
         </div>
 
         <div className="ln-rise mt-14" style={{ animationDelay: "320ms" }}>
-          <HeroMockup />
+          <HeroPipeline />
         </div>
       </div>
     </section>

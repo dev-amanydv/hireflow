@@ -7,7 +7,7 @@ import PreInterview from "~/components/pre-interview/PreInterview";
 import { useAuth } from "~/store/store";
 
 export function meta({}: Route.MetaArgs) {
-  return [{ title: "New interview — QuickHire" }];
+  return [{ title: "New interview — Hireflow" }];
 }
 
 export default function Start() {

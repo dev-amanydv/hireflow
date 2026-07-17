@@ -4,7 +4,7 @@ import type { Route } from "./+types/interview";
 import { Suspense, lazy, useEffect, useState } from "react";
 
 export function meta({}: Route.MetaArgs) {
-  return [{ title: "Interview — QuickHire" }];
+  return [{ title: "Interview — Hireflow" }];
 }
 
 const InterviewRoom = lazy(() => import("~/components/app/InterviewRoom"));

@@ -3,38 +3,47 @@ import LandingNav from "~/components/marketing/LandingNav";
 import Hero from "~/components/marketing/Hero";
 import LogoMarquee from "~/components/marketing/LogoMarquee";
 import StatementBlock from "~/components/marketing/StatementBlock";
-import ResumeInterviewShowcase from "~/components/marketing/ResumeInterviewShowcase";
+import HowItWorks from "~/components/marketing/HowItWorks";
+import ArchitectureDiagram from "~/components/marketing/ArchitectureDiagram";
+import VoiceInterviewShowcase from "~/components/marketing/VoiceInterviewShowcase";
+import ResumeAnalyzerShowcase from "~/components/marketing/ResumeAnalyzerShowcase";
+import EvaluationShowcase from "~/components/marketing/EvaluationShowcase";
 import SkillPracticeShowcase from "~/components/marketing/SkillPracticeShowcase";
 import JobsShowcase from "~/components/marketing/JobsShowcase";
-import ResumeAnalyzerShowcase from "~/components/marketing/ResumeAnalyzerShowcase";
+import FAQ from "~/components/marketing/FAQ";
 import CTABanner from "~/components/marketing/CTABanner";
 import Footer from "~/components/marketing/Footer";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "QuickHire — The AI interviewer, built for the AI era" },
+    { title: "Hireflow — The AI interviewer, built for the AI era" },
     {
       name: "description",
       content:
-        "Practice interviews that feel real. QuickHire reads your resume, GitHub, and code to run adaptive engineering interviews and score them instantly.",
+        "Practice interviews that feel real. Hireflow reads your resume, GitHub, and code to run adaptive engineering interviews and score them instantly.",
     },
   ];
 }
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="landing-root min-h-screen bg-background text-foreground">
       <LandingNav />
       <main>
         <Hero />
         <LogoMarquee />
         <StatementBlock />
 
-        <ResumeInterviewShowcase />
+        <HowItWorks />
+        <ArchitectureDiagram />
+
+        <VoiceInterviewShowcase />
+        <ResumeAnalyzerShowcase />
+        <EvaluationShowcase />
         <SkillPracticeShowcase />
         <JobsShowcase />
-        <ResumeAnalyzerShowcase />
 
+        <FAQ />
         <CTABanner />
       </main>
       <Footer />

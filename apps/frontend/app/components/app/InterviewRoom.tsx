@@ -255,7 +255,7 @@ function InterviewSession({
 
           <div className="flex items-center gap-3">
             <span className="hidden text-sm text-ink-subtle sm:inline">
-              QuickHire · Interviewer
+              Hireflow · Interviewer
             </span>
             <ToggleGroup
               type="single"

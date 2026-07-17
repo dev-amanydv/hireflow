@@ -34,7 +34,7 @@ const COPY: Record<
     title: "Welcome back",
     sub: "Log in to continue where you left off.",
     cta: "Log in",
-    alt: "New to QuickHire?",
+    alt: "New to Hireflow?",
     altLabel: "Create account",
   },
 };

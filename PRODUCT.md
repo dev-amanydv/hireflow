@@ -18,7 +18,7 @@ worth trusting, not the deliverable.
 
 ## Product Purpose
 
-QuickHire's resume analyzer scores a resume against either a general review or a specific
+Hireflow's resume analyzer scores a resume against either a general review or a specific
 target role, using a transparent weighted blend of deterministic ATS rules and an AI
 content review. Every number traces back to a check the user can expand and read.
 

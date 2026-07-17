@@ -1,4 +1,12 @@
-import { motion, useReducedMotion } from "motion/react";
+import { useEffect, useRef, useState } from "react";
+import {
+  animate,
+  motion,
+  useInView,
+  useMotionValue,
+  useReducedMotion,
+  useTransform,
+} from "motion/react";
 
 /**
  * Resume doc node connected by a hand-drawn dashed path to a cascade of
@@ -131,5 +139,265 @@ export function DrawCheck({ index = 0 }: { index?: number }) {
         }}
       />
     </motion.svg>
+  );
+}
+
+/**
+ * A single "packet" that travels along an SVG path on a seamless loop, using
+ * native SMIL <animateMotion> — pure vector, no JS on the frame loop. Must be
+ * rendered inside an <svg>. Colour comes from `className` via currentColor so
+ * it themes. Returns null under reduced motion (the static connector already
+ * carries the meaning).
+ */
+export function PacketFlow({
+  path,
+  dur = 3,
+  delay = 0,
+  r = 3,
+  className = "text-brand",
+  reduce,
+}: {
+  path: string;
+  dur?: number;
+  delay?: number;
+  r?: number;
+  className?: string;
+  reduce?: boolean | null;
+}) {
+  if (reduce) return null;
+  return (
+    <circle r={r} className={className} fill="currentColor">
+      <animateMotion
+        path={path}
+        dur={`${dur}s`}
+        begin={`${delay}s`}
+        repeatCount="indefinite"
+        calcMode="linear"
+      />
+      <animate
+        attributeName="opacity"
+        values="0;1;1;0"
+        keyTimes="0;0.12;0.85;1"
+        dur={`${dur}s`}
+        begin={`${delay}s`}
+        repeatCount="indefinite"
+      />
+    </circle>
+  );
+}
+
+/**
+ * Voice waveform — rounded bars whose heights breathe on a staggered loop.
+ * `active` toggles the speaking (tall, lively) vs idle (short, calm) state.
+ * Div-based so it drops into any UI card. Static, varied bars under reduced motion.
+ */
+export function Waveform({
+  bars = 28,
+  active = true,
+  className = "bg-brand",
+  reduce: reduceProp,
+}: {
+  bars?: number;
+  active?: boolean;
+  className?: string;
+  reduce?: boolean | null;
+}) {
+  const reduceHook = useReducedMotion();
+  const reduce = reduceProp ?? reduceHook;
+  // Deterministic per-bar amplitude so SSR and client agree.
+  const amp = (i: number) => 0.4 + (Math.sin(i * 1.3) * 0.5 + 0.5) * 0.6;
+
+  return (
+    <div className="flex h-10 items-center gap-[3px]" aria-hidden>
+      {Array.from({ length: bars }).map((_, i) => {
+        const a = amp(i);
+        if (reduce || !active) {
+          return (
+            <span
+              key={i}
+              className={`w-[3px] rounded-full ${className}`}
+              style={{ height: "100%", transform: `scaleY(${active ? a : 0.18})`, opacity: active ? 0.85 : 0.45 }}
+            />
+          );
+        }
+        return (
+          <motion.span
+            key={i}
+            className={`w-[3px] rounded-full ${className}`}
+            style={{ height: "100%", originY: 0.5 }}
+            animate={{ scaleY: [0.16, a, 0.32, a * 0.7, 0.16] }}
+            transition={{
+              duration: 1.1 + (i % 5) * 0.14,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: i * 0.035,
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * Count-up progress ring. Animates a stroke-dash sweep and a rolling number the
+ * first time it scrolls into view. Reused by the evaluation and resume-analyzer
+ * sections so the "score" motif is identical everywhere.
+ */
+export function CountUpScore({
+  value,
+  label,
+  px = 112,
+  radius = 44,
+  stroke = 7,
+  colorVar = "var(--score-strong)",
+}: {
+  value: number;
+  label: string;
+  px?: number;
+  radius?: number;
+  stroke?: number;
+  colorVar?: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-80px" });
+  const reduce = useReducedMotion();
+  const circ = 2 * Math.PI * radius;
+  const count = useMotionValue(0);
+  const dashOffset = useTransform(count, (v) => circ * (1 - v / 100));
+  const [display, setDisplay] = useState(0);
+
+  useEffect(() => {
+    if (!inView) return;
+    if (reduce) {
+      count.set(value);
+      setDisplay(value);
+      return;
+    }
+    const controls = animate(count, value, {
+      duration: 1,
+      ease: [0.22, 1, 0.36, 1] as const,
+    });
+    const unsub = count.on("change", (v) => setDisplay(Math.round(v)));
+    return () => {
+      controls.stop();
+      unsub();
+    };
+  }, [inView, reduce, count, value]);
+
+  return (
+    <div
+      ref={ref}
+      className="relative grid shrink-0 place-items-center"
+      style={{ width: px, height: px }}
+    >
+      <svg viewBox="0 0 100 100" className="size-full -rotate-90">
+        <circle
+          cx="50"
+          cy="50"
+          r={radius}
+          fill="none"
+          stroke="var(--score-track)"
+          strokeWidth={stroke}
+        />
+        <motion.circle
+          cx="50"
+          cy="50"
+          r={radius}
+          fill="none"
+          stroke={colorVar}
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={circ}
+          style={{ strokeDashoffset: dashOffset }}
+        />
+      </svg>
+      <div className="absolute flex flex-col items-center">
+        <span className="text-[26px] font-semibold tracking-tight text-foreground">
+          {display}
+        </span>
+        <span className="ln-mono text-[9px] uppercase tracking-wider text-ink-tertiary">
+          {label}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Four-axis radar over the product's fixed competency dimensions. Grid + axes
+ * are static hairlines; the data polygon grows from its centre on view.
+ */
+export function RadarChart({
+  values,
+  labels,
+  size = 220,
+  colorVar = "var(--chart-1)",
+}: {
+  values: number[];
+  labels: string[];
+  size?: number;
+  colorVar?: string;
+}) {
+  const reduce = useReducedMotion();
+  const C = 100;
+  const maxR = 72;
+  const angle = (i: number) => ((-90 + i * 90) * Math.PI) / 180;
+  const pt = (i: number, r: number): [number, number] => [
+    C + r * Math.cos(angle(i)),
+    C + r * Math.sin(angle(i)),
+  ];
+  const rings = [0.25, 0.5, 0.75, 1];
+  const idx = [0, 1, 2, 3];
+  const dataPts = values.map((v, i) => pt(i, (Math.max(0, Math.min(100, v)) / 100) * maxR));
+  const dataStr = dataPts.map((p) => p.join(",")).join(" ");
+
+  return (
+    <svg viewBox="0 0 200 200" width={size} height={size} className="max-w-full">
+      <g className="text-hairline-strong" stroke="currentColor" strokeWidth="1" fill="none">
+        {rings.map((f, ri) => (
+          <polygon
+            key={ri}
+            points={idx.map((i) => pt(i, maxR * f).join(",")).join(" ")}
+            opacity={0.3}
+          />
+        ))}
+        {idx.map((i) => {
+          const [x, y] = pt(i, maxR);
+          return <line key={i} x1={C} y1={C} x2={x} y2={y} opacity={0.3} />;
+        })}
+      </g>
+      <motion.polygon
+        points={dataStr}
+        fill={colorVar}
+        stroke={colorVar}
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+        style={{ transformBox: "fill-box", transformOrigin: "center", fillOpacity: 0.18 }}
+        initial={reduce ? { scale: 1, opacity: 1 } : { scale: 0.2, opacity: 0 }}
+        whileInView={{ scale: 1, opacity: 1 }}
+        viewport={{ once: true, margin: "-60px" }}
+        transition={reduce ? { duration: 0 } : { duration: 0.6, ease: [0.22, 1, 0.36, 1] as const }}
+      />
+      {dataPts.map((p, i) => (
+        <circle key={i} cx={p[0]} cy={p[1]} r="2.5" fill={colorVar} />
+      ))}
+      {labels.map((l, i) => {
+        const [x, y] = pt(i, maxR + 16);
+        return (
+          <text
+            key={i}
+            x={x}
+            y={y}
+            className="ln-mono fill-ink-tertiary"
+            fontSize="8"
+            textAnchor="middle"
+            dominantBaseline="middle"
+          >
+            {l}
+          </text>
+        );
+      })}
+    </svg>
   );
 }

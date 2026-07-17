@@ -11,9 +11,11 @@ type MockJob = {
   jobType: string;
   tags: string[];
   salary: string;
+  source: string;
   match: number;
 };
 
+// `source` reflects the real aggregation: postings are pulled from these boards.
 const JOBS: MockJob[] = [
   {
     company: "Vercel",
@@ -24,6 +26,7 @@ const JOBS: MockJob[] = [
     jobType: "Full-time",
     tags: ["Node.js", "Postgres"],
     salary: "$160k – $190k",
+    source: "Remotive",
     match: 92,
   },
   {
@@ -35,6 +38,7 @@ const JOBS: MockJob[] = [
     jobType: "Full-time",
     tags: ["Go", "Kubernetes"],
     salary: "$150k – $180k",
+    source: "Adzuna",
     match: 81,
   },
   {
@@ -46,6 +50,7 @@ const JOBS: MockJob[] = [
     jobType: "Contract",
     tags: ["React", "TypeScript"],
     salary: "$120k – $150k",
+    source: "Arbeitnow",
     match: 74,
   },
 ];
@@ -80,6 +85,9 @@ function JobRow({ job, index }: { job: MockJob; index: number }) {
               <MapPin className="size-3" /> {job.location}
             </span>
             <span>{job.jobType}</span>
+            <span className="ln-mono rounded border border-hairline bg-surface-2 px-1.5 py-0.5 text-[10px] text-ink-tertiary">
+              via {job.source}
+            </span>
           </div>
         </div>
       </div>
@@ -116,7 +124,7 @@ function JobListMockup() {
   const reduce = useReducedMotion();
   return (
     <motion.div
-      className="ln-lift overflow-hidden rounded-xl border border-hairline-strong bg-card px-6"
+      className="overflow-hidden"
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true, margin: "-80px" }}
@@ -137,9 +145,9 @@ function JobListMockup() {
 export default function JobsShowcase() {
   return (
     <ProductSection
-      label="3.0  Jobs"
+      label="5.0  Jobs"
       title="See roles matched to what you just proved you can do"
-      description="Every completed interview sharpens your profile. QuickHire surfaces open roles that line up with the skills and level you've actually demonstrated — not just keywords on a resume."
+      description="Hireflow aggregates live openings from Remotive, Arbeitnow, and Adzuna, then surfaces the ones that line up with the skills and level you've actually demonstrated — not just keywords on a resume."
     >
       <JobListMockup />
     </ProductSection>

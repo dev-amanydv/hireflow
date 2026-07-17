@@ -75,7 +75,7 @@ function SkillGridMockup() {
 
   return (
     <motion.div
-      className="ln-lift flex flex-col gap-5 overflow-hidden rounded-xl border border-hairline-strong bg-card p-6"
+      className="flex flex-col gap-5"
       initial={{ opacity: 0, scale: 0.95, y: 8 }}
       whileInView={{ opacity: 1, scale: 1, y: 0 }}
       viewport={{ once: true, margin: "-80px" }}
@@ -120,7 +120,7 @@ function SkillGridMockup() {
             className="flex flex-col gap-1.5"
           >
             <span className="ln-mono text-[10px] uppercase tracking-wider text-ink-tertiary">
-              QuickHire · {skill.label}
+              Hireflow · {skill.label}
             </span>
             <p className="text-[13.5px] leading-relaxed text-foreground">
               {skill.prompt}
@@ -136,9 +136,9 @@ export default function SkillPracticeShowcase() {
   return (
     <ProductSection
       align="right"
-      label="2.0  Practice"
+      label="4.0  Practice"
       title="Practice the skills that matter"
-      description="Pick a skill — React, Node.js, system design, and more — and QuickHire runs a focused mock interview on just that topic. No resume required."
+      description="Pick a skill — React, Node.js, system design, and more — and Hireflow runs a focused mock interview on just that topic. No resume required."
     >
       <SkillGridMockup />
     </ProductSection>

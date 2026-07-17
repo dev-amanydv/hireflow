@@ -2,7 +2,7 @@ import type { Route } from "./+types/profile";
 import { ProfilePage } from "~/components/app/profile/ProfilePage";
 
 export function meta({}: Route.MetaArgs) {
-  return [{ title: "Profile — QuickHire" }];
+  return [{ title: "Profile — Hireflow" }];
 }
 
 export default function DashboardProfileRoute() {

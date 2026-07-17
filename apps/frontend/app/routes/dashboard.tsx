@@ -4,7 +4,7 @@ import DashboardSidebar from "~/components/app/DashboardSidebar";
 import DashboardTopbar from "~/components/app/DashboardTopbar";
 
 export function meta({}: Route.MetaArgs) {
-  return [{ title: "Dashboard — QuickHire" }];
+  return [{ title: "Dashboard — Hireflow" }];
 }
 
 export default function Dashboard() {
