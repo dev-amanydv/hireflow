@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import type { Route } from "./+types/home";
 import LandingNav from "~/components/marketing/LandingNav";
 import Hero from "~/components/marketing/Hero";
@@ -26,27 +27,34 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Home() {
+  useEffect(() => {
+    document.documentElement.classList.add("dark");
+    return () => document.documentElement.classList.remove("dark");
+  }, []);
+
   return (
-    <div className="landing-root min-h-screen bg-background text-foreground">
-      <LandingNav />
-      <main>
-        <Hero />
-        <LogoMarquee />
-        <StatementBlock />
+    <div className="dark">
+      <div className="landing-root min-h-screen bg-background text-foreground">
+        <LandingNav />
+        <main>
+          <Hero />
+          <LogoMarquee />
+          <StatementBlock />
 
-        <HowItWorks />
-        <ArchitectureDiagram />
+          <HowItWorks />
+          <ArchitectureDiagram />
 
-        <VoiceInterviewShowcase />
-        <ResumeAnalyzerShowcase />
-        <EvaluationShowcase />
-        <SkillPracticeShowcase />
-        <JobsShowcase />
+          <VoiceInterviewShowcase />
+          <ResumeAnalyzerShowcase />
+          <EvaluationShowcase />
+          <SkillPracticeShowcase />
+          <JobsShowcase />
 
-        <FAQ />
-        <CTABanner />
-      </main>
-      <Footer />
+          <FAQ />
+          <CTABanner />
+        </main>
+        <Footer />
+      </div>
     </div>
   );
 }

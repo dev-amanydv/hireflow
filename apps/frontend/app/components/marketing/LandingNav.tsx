@@ -1,6 +1,5 @@
 import { useNavigate } from "react-router";
 import { Brand } from "~/components/app/Brand";
-import { ThemeToggle } from "~/components/app/ThemeToggle";
 
 const LINKS = [
   { label: "How it works", href: "#how-it-works" },
@@ -29,7 +28,6 @@ export default function LandingNav() {
         </nav>
 
         <div className="flex items-center gap-1.5">
-          <ThemeToggle />
           <button
             type="button"
             onClick={() => navigate("/dashboard/overview")}
