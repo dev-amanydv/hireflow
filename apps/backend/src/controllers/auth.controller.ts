@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import z from "zod";
 import { prisma } from "../../prisma/db";
 import { JWT_SECRET } from "../utils/utils";
+import { GUEST_COOKIE } from "../middlewares/identity.middleware";
 
 const signupSchema = z.object({
     email: z.email(),
@@ -27,7 +28,19 @@ function genUniqueUsername (email: string) {
     return unique
 }
 
-async function issueSession(res: Response, user: { id: string; email: string }) {
+
+async function claimGuestWork(req: Request, res: Response, userId: string) {
+    const guestId = req.cookies?.[GUEST_COOKIE];
+    if (!guestId) return;
+
+    await prisma.resumeAnalysis.updateMany({
+        where: { guestId },
+        data: { userId, guestId: null }
+    });
+    res.clearCookie(GUEST_COOKIE);
+}
+
+async function issueSession(req: Request, res: Response, user: { id: string; email: string }) {
     const payload = { userId: user.id, email: user.email };
     const refreshToken = jwt.sign(payload, JWT_SECRET, {
         audience: 'User',
@@ -57,6 +70,8 @@ async function issueSession(res: Response, user: { id: string; email: string }) 
         secure: true,
         sameSite: 'none'
     })
+
+    await claimGuestWork(req, res, user.id);
 }
 
 export const handleSignup = async (req: Request, res: Response) => {
@@ -99,38 +114,9 @@ export const handleSignup = async (req: Request, res: Response) => {
         }
     }
 
-    const refreshToken = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
-        audience: 'User',
-        expiresIn: '7d',
-        issuer: "quick-hire"
-    })
-    const accessToken = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
-        audience: 'User',
-        expiresIn: '2h',
-        issuer: "quick-hire"
-    })
+    if (!user) throw new Error('Failed to create user');
 
-    await prisma.user.update({
-        where: {
-            id: user.id
-        },
-        data: {
-            refreshToken
-        }
-    });
-
-    res.cookie('ref_token', refreshToken, {
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-        httpOnly: true,
-        secure: true,
-        sameSite: 'none'
-    })
-    res.cookie('access_token', accessToken, {
-        maxAge: 2 * 60 * 60 * 1000,
-        httpOnly: true,
-        secure: true,
-        sameSite: 'none'
-    })
+    await issueSession(req, res, { id: user.id, email: user.email });
 
     res.status(201).json({
         success: true,
@@ -188,38 +174,7 @@ export const handleSignin = async (req: Request, res: Response) => {
         })
     };
 
-    const refreshToken = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
-        audience: 'User',
-        expiresIn: '7d',
-        issuer: "quick-hire"
-    })
-    const accessToken = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
-        audience: 'User',
-        expiresIn: '2h',
-        issuer: "quick-hire"
-    })
-
-    await prisma.user.update({
-        where: {
-            id: user.id
-        },
-        data: {
-            refreshToken
-        }
-    });
-
-    res.cookie('ref_token', refreshToken, {
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-        httpOnly: true,
-        secure: true,
-        sameSite: 'none'
-    })
-    res.cookie('access_token', accessToken, {
-        maxAge: 2 * 60 * 60 * 1000,
-        httpOnly: true,
-        secure: true,
-        sameSite: 'none'
-    })
+    await issueSession(req, res, { id: user.id, email: user.email });
 
     res.status(201).json({
         success: true,
@@ -289,7 +244,7 @@ export const handleGoogle = async (req: Request, res: Response) => {
             }
         }
 
-        await issueSession(res, { id: user!.id, email: user!.email });
+        await issueSession(req, res, { id: user!.id, email: user!.email });
 
         res.status(200).json({
             success: true,

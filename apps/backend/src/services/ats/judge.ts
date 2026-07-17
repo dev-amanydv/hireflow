@@ -127,7 +127,9 @@ export async function judgeResume(
     const jd = target.jdText ? await firstChunk(target.jdText) : "";
     const jdBlock = jd
       ? `Job description:\n${jd}`
-      : "No specific job description supplied — evaluate against typical expectations for the target role and level, and infer the keywords such a role demands.";
+      : target.role
+        ? "No specific job description supplied — evaluate against typical expectations for the target role and level, and infer the keywords such a role demands."
+        : "No target role or job description supplied — this is a general review. Judge the resume on its own merits for the candidate's apparent field and level, and score relevance as how coherently it presents that. There is no target to match against, so return EMPTY matched and missing keyword arrays.";
 
     const model = getModel().withStructuredOutput(judgeSchema, { name: "resume_evaluation" });
     const prompt = await ChatPromptTemplate.fromMessages([

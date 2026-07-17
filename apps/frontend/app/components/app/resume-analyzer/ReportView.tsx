@@ -165,11 +165,21 @@ export default function ReportView({ report }: { report: AnalysisReport }) {
             {report.overallScore >= 80 ? "Strong" : report.overallScore >= 60 ? "Needs work" : "At risk"}
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-ink-subtle">
-            Scored against{" "}
-            <span className="font-medium text-foreground">{report.target.role ?? "your target role"}</span>
-            {report.target.experience ? ` · ${report.target.experience}` : ""}
-            {report.target.hasJd ? " · matched to a job description" : ""}. This score is a transparent weighted blend of
-            deterministic ATS checks and an AI content review — expand any category to see exactly why.
+            {report.target.role ? (
+              <>
+                Scored against{" "}
+                <span className="font-medium text-foreground">{report.target.role}</span>
+                {report.target.experience ? ` · ${report.target.experience}` : ""}
+                {report.target.hasJd ? " · matched to a job description" : ""}.{" "}
+              </>
+            ) : (
+              <>
+                A <span className="font-medium text-foreground">general review</span> — judged on
+                formatting, structure and impact rather than against a specific job.{" "}
+              </>
+            )}
+            This score is a transparent weighted blend of deterministic ATS checks and an AI
+            content review — expand any category to see exactly why.
           </p>
           <p className="mt-2 text-[11px] text-ink-tertiary">
             Engine: {report.engine.deterministic} + {report.engine.judge}

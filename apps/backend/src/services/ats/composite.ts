@@ -53,20 +53,25 @@ export function buildReport(
     weight: WEIGHTS[c.category],
   }));
 
+  const keyword =
+    judge.keywords && judge.keywords.matched.length + judge.keywords.missing.length > 0
+      ? judge.keywords
+      : null;
+
   if (judge.available && judge.content) {
     const contentScore = Math.round(
       (judge.content.relevance + judge.content.impactQuality + judge.content.seniorityFit) / 3,
     );
-    categories.push({
-      category: "keywords",
-      label: "Keyword & skills match",
-      score: judge.keywords?.coverage ?? 0,
-      weight: WEIGHTS.keywords,
-      checks: [] as Check[],
-      summary: judge.keywords
-        ? `${judge.keywords.matched.length} expected skills matched, ${judge.keywords.missing.length} missing.`
-        : undefined,
-    });
+    if (keyword) {
+      categories.push({
+        category: "keywords",
+        label: "Keyword & skills match",
+        score: keyword.coverage,
+        weight: WEIGHTS.keywords,
+        checks: [] as Check[],
+        summary: `${keyword.matched.length} expected skills matched, ${keyword.missing.length} missing.`,
+      });
+    }
     categories.push({
       category: "content",
       label: "Content quality & fit",
@@ -89,7 +94,7 @@ export function buildReport(
     overallScore,
     categories,
     findings,
-    keyword: judge.keywords,
+    keyword,
     target: { role: target.role, experience: target.experience, hasJd: Boolean(target.jdText) },
     weights: WEIGHTS,
     engine: {

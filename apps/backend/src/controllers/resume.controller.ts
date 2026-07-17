@@ -4,13 +4,21 @@ import path from "path";
 import { AppError } from "../utils/AppError";
 import { prisma } from "../../prisma/db";
 import { enqueueAnalysisUpload, enqueueAnalysisScore } from "../queues/queue";
+import { ownerScope } from "../middlewares/identity.middleware";
+
+/** Analyses a signed-out visitor may run before we ask them to make an account. */
+const GUEST_ANALYSIS_LIMIT = 5;
 
 export const uploadResumeAnalysis = async (req: Request, res: Response) => {
-  const userId = req.userId;
-  if (!userId) throw new AppError(401, "Unauthorised");
+  const owner = ownerScope(req);
 
   const file = req.file;
   if (!file) throw new AppError(400, "ResumeRequired");
+
+  if ("guestId" in owner) {
+    const used = await prisma.resumeAnalysis.count({ where: owner });
+    if (used >= GUEST_ANALYSIS_LIMIT) throw new AppError(403, "GuestLimitReached");
+  }
 
   const ext = path.extname(file.originalname);
 
@@ -20,12 +28,13 @@ export const uploadResumeAnalysis = async (req: Request, res: Response) => {
       size: file.size,
       ext,
       status: "UPLOADING",
-      userId,
+      ...owner,
     },
     select: { id: true },
   });
 
-  const s3key = `users/${userId}/resume-analysis/${analysis.id}/${analysis.id}${ext}`;
+  const prefix = "userId" in owner ? `users/${owner.userId}` : `guests/${owner.guestId}`;
+  const s3key = `${prefix}/resume-analysis/${analysis.id}/${analysis.id}${ext}`;
 
   await enqueueAnalysisUpload({ analysisId: analysis.id, s3key }, file.path, file.size);
 
@@ -37,22 +46,21 @@ export const uploadResumeAnalysis = async (req: Request, res: Response) => {
 };
 
 const targetSchema = z.object({
-  role: z.string().min(1),
+  role: z.string().min(1).optional(),
   experience: z.enum(["beginner", "junior", "mid", "senior", "staff"]).optional(),
   jobId: z.string().min(1).optional(),
   jdText: z.string().min(1).optional(),
 });
 
 export const setAnalysisTarget = async (req: Request, res: Response) => {
-  const userId = req.userId;
-  if (!userId) throw new AppError(401, "Unauthorised");
+  const owner = ownerScope(req);
 
   const id = req.params.id as string;
   const { success, data } = targetSchema.safeParse(req.body);
-  if (!success) throw new AppError(400, "role is required");
+  if (!success) throw new AppError(400, "InvalidTarget");
 
   const row = await prisma.resumeAnalysis.findFirst({
-    where: { id, userId },
+    where: { id, ...owner },
     select: { id: true, status: true },
   });
   if (!row) throw new AppError(404, "AnalysisNotFound");
@@ -76,7 +84,7 @@ export const setAnalysisTarget = async (req: Request, res: Response) => {
   await prisma.resumeAnalysis.update({
     where: { id },
     data: {
-      targetRole: data.role,
+      targetRole: data.role ?? null,
       targetExperience: data.experience ?? null,
       targetJobId,
       targetJdText: jdText,
@@ -96,12 +104,11 @@ export const setAnalysisTarget = async (req: Request, res: Response) => {
 };
 
 export const getAnalysisStatus = async (req: Request, res: Response) => {
-  const userId = req.userId;
-  if (!userId) throw new AppError(401, "Unauthorised");
+  const owner = ownerScope(req);
 
   const id = req.params.id as string;
   const row = await prisma.resumeAnalysis.findFirst({
-    where: { id, userId },
+    where: { id, ...owner },
     select: { status: true },
   });
   if (!row) throw new AppError(404, "AnalysisNotFound");
@@ -119,12 +126,11 @@ export const getAnalysisStatus = async (req: Request, res: Response) => {
 };
 
 export const getAnalysis = async (req: Request, res: Response) => {
-  const userId = req.userId;
-  if (!userId) throw new AppError(401, "Unauthorised");
+  const owner = ownerScope(req);
 
   const id = req.params.id as string;
   const row = await prisma.resumeAnalysis.findFirst({
-    where: { id, userId },
+    where: { id, ...owner },
     select: {
       id: true,
       name: true,

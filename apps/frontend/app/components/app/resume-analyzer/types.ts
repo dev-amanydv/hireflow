@@ -57,6 +57,18 @@ export interface AnalysisReport {
   generatedAt: string;
 }
 
+export type AnalysisStatus =
+  | "UPLOADING"
+  | "PARSING"
+  | "PARSED"
+  | "ANALYZING"
+  | "COMPLETE"
+  | "FAILED";
+
+export function isSettled(status: string): boolean {
+  return status === "COMPLETE" || status === "FAILED";
+}
+
 export interface AnalysisRow {
   id: string;
   name: string;
@@ -91,6 +103,8 @@ export const ROLE_OPTIONS = [
   "Product Designer",
   "Product Manager",
 ];
+
+export const GENERAL_TARGET_LABEL = "General review";
 
 export const EXPERIENCE_OPTIONS: { value: string; label: string }[] = [
   { value: "beginner", label: "Beginner" },
