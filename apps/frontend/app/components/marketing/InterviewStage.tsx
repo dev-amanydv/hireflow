@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  Check,
   ChevronDown,
-  CircleDot,
   FileText,
   LayoutGrid,
   Mic,
@@ -10,9 +8,8 @@ import {
   PhoneOff,
 } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
-import { PacketFlow } from "./illustrations";
 
-const ACC = "#5867C1";
+const ACC = "var(--primary)";
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 
@@ -86,9 +83,31 @@ function Reserve({
 }
 
 /* ---- interview window ------------------------------------------------ */
-/* Mirrors the real product's InterviewRoom: a live/timer + visualizer-switch
-   top bar, a centered audio-reactive dot grid with a status line, a plain
+/* Mirrors the real product's InterviewRoom: a live/timer top bar, a left
+   icon rail, a centered audio-reactive dot grid with a status line, a plain
    alignment-based transcript, and a pill-shaped control bar. */
+
+function TitleBar() {
+  return (
+    <div className="relative flex items-center border-b border-hairline px-4 py-2.5 sm:px-5">
+      <div className="flex items-center gap-2">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <span
+            key={i}
+            className="size-3 rounded-full"
+            style={{
+              background: "#3a3a3c",
+              boxShadow: "inset 0 0 0 0.5px #4a4a4c",
+            }}
+          />
+        ))}
+      </div>
+      <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 text-[12px] font-medium text-ink-tertiary">
+        Interview Room
+      </span>
+    </div>
+  );
+}
 
 function TopBar({ reduce }: { reduce: boolean | null }) {
   return (
@@ -105,17 +124,31 @@ function TopBar({ reduce }: { reduce: boolean | null }) {
         <span className="ln-mono text-[12px] text-ink-subtle">· 00:38</span>
       </div>
 
-      <div className="flex items-center gap-3">
-        <span className="hidden text-[12.5px] text-ink-subtle sm:inline">Hireflow · Interviewer</span>
-        <div className="flex items-center gap-0.5 rounded-md border border-hairline bg-surface-2 p-0.5">
-          <span className="grid size-7 place-items-center rounded-[5px] bg-surface-4 text-foreground">
-            <LayoutGrid className="size-3.5" />
-          </span>
-          <span className="grid size-7 place-items-center rounded-[5px] text-ink-tertiary">
-            <CircleDot className="size-3.5" />
-          </span>
-        </div>
-      </div>
+      <span className="hidden text-[12.5px] text-ink-subtle sm:inline">Hireflow · Interviewer</span>
+    </div>
+  );
+}
+
+const RAIL_ITEMS = [
+  { icon: LayoutGrid, active: false },
+  { icon: Mic, active: true },
+  { icon: FileText, active: false },
+  { icon: MessageSquareText, active: false },
+] as const;
+
+function IconRail() {
+  return (
+    <div className="hidden flex-col items-center gap-1 border-r border-hairline py-4 lg:flex">
+      {RAIL_ITEMS.map(({ icon: Icon, active }, i) => (
+        <span
+          key={i}
+          className={`grid size-9 place-items-center rounded-md ${
+            active ? "bg-surface-4 text-foreground" : "text-ink-tertiary"
+          }`}
+        >
+          <Icon className="size-4" />
+        </span>
+      ))}
     </div>
   );
 }
@@ -149,7 +182,7 @@ function DotGrid({ reduce, mode }: { reduce: boolean | null; mode: "listening" |
   const amp = mode === "speaking" ? 1 : mode === "thinking" ? 0.78 : 0.56;
 
   return (
-    <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))` }}>
+    <div className="grid gap-1.5 lg:gap-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))` }}>
       {Array.from({ length: rows * cols }).map((_, i) => {
         const x = i % cols;
         const y = Math.floor(i / cols);
@@ -157,13 +190,13 @@ function DotGrid({ reduce, mode }: { reduce: boolean | null; mode: "listening" |
         const base = Math.max(0.05, Math.pow(1 - dist, 1.6));
 
         if (reduce) {
-          return <span key={i} className="size-1.5 rounded-full bg-current" style={{ opacity: base * 0.7 }} />;
+          return <span key={i} className="size-1.5 rounded-full bg-current lg:size-2" style={{ opacity: base * 0.7 }} />;
         }
         const peak = Math.min(1, base * amp * 1.15);
         return (
           <motion.span
             key={i}
-            className="size-1.5 rounded-full bg-current"
+            className="size-1.5 rounded-full bg-current lg:size-2"
             animate={{ opacity: [base * 0.3, peak, base * 0.3] }}
             transition={{
               duration: speed + (i % 5) * 0.12,
@@ -182,7 +215,7 @@ function Stage({ reduce }: { reduce: boolean | null }) {
   const status = useStatusCycle(reduce);
 
   return (
-    <div className="flex flex-col items-center justify-center gap-7 p-6 sm:p-8">
+    <div className="flex flex-col items-center justify-center gap-7 p-6 sm:p-8 lg:p-12 xl:p-14">
       <div className="relative grid place-items-center">
         <div
           aria-hidden
@@ -230,7 +263,7 @@ function Transcript({ reduce }: { reduce: boolean | null }) {
   const newest = useStream(MESSAGES[MESSAGES.length - 1].text, { speed: 22, startDelay: 900, loop: true, pause: 4200 }, reduce);
 
   return (
-    <div className="flex flex-col border-t border-hairline p-4 sm:border-l sm:border-t-0 sm:p-5">
+    <div className="hidden flex-col border-l border-hairline p-4 sm:flex sm:p-5">
       <div className="mb-4 flex items-center justify-between">
         <span className="ln-eyebrow">Transcript</span>
         <span className="ln-mono text-[11px] text-ink-tertiary">{MESSAGES.length}</span>
@@ -293,107 +326,22 @@ function Controls() {
 function InterviewWindow({ reduce }: { reduce: boolean | null }) {
   return (
     <div
-      className="relative z-10 overflow-hidden rounded-[28px] border border-hairline"
+      className="relative z-10 overflow-hidden rounded-[20px]"
       style={{
         background: "#000000",
-        boxShadow: "0 28px 70px -28px color-mix(in oklab, var(--foreground) 40%, transparent)",
+        border: "1px solid color-mix(in oklab, white 10%, transparent)",
+        boxShadow:
+          "0 40px 100px -32px color-mix(in oklab, var(--primary) 20%, transparent), 0 28px 70px -28px color-mix(in oklab, var(--foreground) 40%, transparent)",
       }}
     >
+      <TitleBar />
       <TopBar reduce={reduce} />
-      <div className="grid grid-cols-1 sm:min-h-[368px] sm:grid-cols-[1fr_minmax(0,216px)]">
+      <div className="grid grid-cols-1 sm:min-h-[420px] sm:grid-cols-[1fr_minmax(0,240px)] lg:grid-cols-[64px_1fr_minmax(0,300px)] xl:grid-cols-[64px_1fr_minmax(0,340px)]">
+        <IconRail />
         <Stage reduce={reduce} />
         <Transcript reduce={reduce} />
       </div>
       <Controls />
-    </div>
-  );
-}
-
-/* ---- floating cards -------------------------------------------------- */
-
-const SKILLS = [
-  { label: "React", pct: 96 },
-  { label: "Next.js", pct: 92 },
-  { label: "Node", pct: 90 },
-  { label: "TypeScript", pct: 94 },
-  { label: "PostgreSQL", pct: 84 },
-];
-
-function ResumeCard({ reduce }: { reduce: boolean | null }) {
-  return (
-    <div className="absolute left-2 top-full z-20 mt-[-18px] hidden w-52 transition-transform duration-300 hover:-translate-y-1.5 lg:block xl:left-6">
-      <div
-        className="rounded-2xl border border-hairline bg-card p-4"
-        style={{ boxShadow: "0 20px 50px -24px color-mix(in oklab, var(--foreground) 45%, transparent)" }}
-      >
-        <div className="mb-3 flex items-center gap-2">
-          <FileText className="size-3.5 text-ink-tertiary" />
-          <span className="text-[12px] font-semibold text-foreground">Resume analysis</span>
-        </div>
-        <div className="flex flex-col gap-2">
-          {SKILLS.map((s, i) => (
-            <div key={s.label} className="flex items-center gap-2">
-              <Check className="size-3 shrink-0" style={{ color: "var(--success)" }} />
-              <span className="w-16 shrink-0 text-[11px] text-ink-muted">{s.label}</span>
-              <div className="h-1 flex-1 overflow-hidden rounded-full bg-score-track">
-                <motion.div
-                  className="h-full rounded-full"
-                  style={{ background: "var(--acc)" }}
-                  initial={{ width: reduce ? `${s.pct}%` : 0 }}
-                  whileInView={{ width: `${s.pct}%` }}
-                  viewport={{ once: true, margin: "-40px" }}
-                  transition={reduce ? { duration: 0 } : { duration: 0.7, delay: 0.2 + i * 0.1, ease: EASE }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const STEPS = ["Resume", "LLM", "Summarise resume", "Context ready"];
-
-function ContextCard({ reduce }: { reduce: boolean | null }) {
-  const H = 132;
-  const rows = STEPS.length;
-  const cy = (i: number) => (H / rows) * i + H / rows / 2;
-
-  return (
-    <div className="absolute right-2 top-full z-20 mt-[-18px] hidden w-56 transition-transform duration-300 hover:-translate-y-1.5 lg:block xl:right-6">
-      <div
-        className="rounded-2xl border border-hairline bg-card p-4"
-        style={{ boxShadow: "0 20px 50px -24px color-mix(in oklab, var(--foreground) 45%, transparent)" }}
-      >
-        <span className="ln-mono text-[9px] uppercase tracking-wider text-ink-tertiary">Context builder</span>
-        <div className="mt-3 flex gap-3">
-          <svg width="20" height={H} viewBox={`0 0 20 ${H}`} className="shrink-0" aria-hidden>
-            <line x1="10" y1={cy(0)} x2="10" y2={cy(rows - 1)} className="text-hairline-strong" stroke="currentColor" strokeWidth="1.5" />
-            <PacketFlow path={`M10,${cy(0)} V${cy(rows - 1)}`} dur={2.6} delay={0} r={2.6} className="text-[color:var(--acc)]" reduce={reduce} />
-            <PacketFlow path={`M10,${cy(0)} V${cy(rows - 1)}`} dur={2.6} delay={1.3} r={2.6} className="text-[color:var(--acc)]" reduce={reduce} />
-            {STEPS.map((_, i) => (
-              <circle
-                key={i}
-                cx="10"
-                cy={cy(i)}
-                r="4"
-                className="fill-card"
-                style={{ stroke: "var(--acc)", strokeWidth: 1.5 }}
-              />
-            ))}
-          </svg>
-          <div className="flex flex-1 flex-col justify-between" style={{ height: H }}>
-            {STEPS.map((step, i) => (
-              <div key={step} className="flex flex-1 items-center">
-                <span className={`text-[12px] ${i === rows - 1 ? "font-medium" : "text-ink-muted"}`} style={i === rows - 1 ? { color: "var(--acc)" } : undefined}>
-                  {step}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
@@ -421,7 +369,15 @@ export default function InterviewStage() {
   return (
     <div className="relative" style={{ "--acc": ACC } as React.CSSProperties}>
       <Blueprint />
-      <InterviewWindow reduce={reduce} />
+      <div
+        className="lg:max-h-[640px] lg:overflow-hidden"
+        style={{
+          WebkitMaskImage: "linear-gradient(to bottom, black 80%, transparent 100%)",
+          maskImage: "linear-gradient(to bottom, black 80%, transparent 100%)",
+        }}
+      >
+        <InterviewWindow reduce={reduce} />
+      </div>
     </div>
   );
 }
