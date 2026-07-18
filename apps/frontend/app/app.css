@@ -199,6 +199,274 @@ input[type=number] {
   }
 }
 
+/* ---------------------------------------------------------------------------
+   Hero dot grid + voice waveform.
+
+   Both are dense (64 dots, 22–36 bars) and run continuously, so both are pure
+   compositor animations parameterised by custom properties rather than per-
+   element JS keyframes. Because custom properties referenced inside keyframes
+   are re-resolved live, the hero can retarget every dot at once — by setting
+   --dot-amp on the grid container — without restarting a single animation.
+
+   As with .jd-motion below, each element's *static* inline style is its
+   reduced-motion resting pose, so `animation: none` resolves to a real frame.
+--------------------------------------------------------------------------- */
+
+@keyframes hf-dot-breathe {
+  0%,
+  100% {
+    opacity: calc(var(--dot-base) * 0.3);
+  }
+  50% {
+    opacity: var(--dot-peak);
+  }
+}
+
+.hf-dot {
+  --dot-peak: min(1, calc(var(--dot-base) * var(--dot-amp, 1) * 1.15));
+  opacity: calc(var(--dot-base) * 0.3);
+  animation: hf-dot-breathe calc(var(--dot-speed, 1) * 1s + var(--dot-offset)) ease-in-out infinite;
+  animation-delay: var(--dot-delay);
+}
+
+@keyframes hf-wave {
+  0%,
+  100% {
+    transform: scaleY(0.16);
+  }
+  25% {
+    transform: scaleY(var(--wa));
+  }
+  50% {
+    transform: scaleY(0.32);
+  }
+  75% {
+    transform: scaleY(calc(var(--wa) * 0.7));
+  }
+}
+
+.hf-wave-bar {
+  transform-origin: 50% 50%;
+  animation: hf-wave var(--wd) ease-in-out infinite;
+  animation-delay: var(--wdelay);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hf-dot {
+    animation: none;
+    opacity: calc(var(--dot-base) * 0.7);
+  }
+  .hf-wave-bar {
+    animation: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Job discovery orbital scene.
+
+   Every continuous motion here is a compositor-driven CSS animation on one
+   shared 8s master loop, staggered per element with animation-delay. Nothing
+   in the scene ticks React state — driving positions from a JS interval capped
+   the motion at the tick rate and made the whole page stutter.
+
+   Each element's *static* style is its reduced-motion resting pose, so
+   `animation: none` below resolves the scene to a sensible finished frame.
+--------------------------------------------------------------------------- */
+
+/* A job listing leaving its source and falling into the core. Position eases
+   the whole way (gravitational, not mechanical); opacity fades it out as the
+   core absorbs it. */
+@keyframes jd-packet {
+  0% {
+    offset-distance: 0%;
+    opacity: 0;
+    animation-timing-function: cubic-bezier(0.45, 0, 0.7, 0.35);
+  }
+  3% {
+    opacity: 1;
+  }
+  40% {
+    opacity: 1;
+  }
+  45% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+}
+
+/* Schema chips resolving onto a card as it crosses the normalization field. */
+@keyframes jd-chips {
+  0%,
+  20% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  30%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The upsert beat: a source re-sends a listing it already sent, the duplicate
+   catches up to the original and collapses into it instead of landing twice. */
+@keyframes jd-twin {
+  0%,
+  5% {
+    offset-distance: 0%;
+    opacity: 0;
+  }
+  9% {
+    opacity: 0.85;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  22% {
+    opacity: 0.85;
+  }
+  31% {
+    offset-distance: 52%;
+    opacity: 0;
+  }
+  100% {
+    offset-distance: 52%;
+    opacity: 0;
+  }
+}
+
+@keyframes jd-merge-label {
+  0%,
+  21% {
+    opacity: 0;
+  }
+  26%,
+  40% {
+    opacity: 1;
+  }
+  47%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Telemetry drifting along the ingest paths between packet arrivals. */
+@keyframes jd-particle {
+  0% {
+    offset-distance: 0%;
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.85;
+  }
+  82% {
+    opacity: 0.45;
+  }
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+}
+
+/* Slow outward breath from the core ring. */
+@keyframes jd-pulse {
+  0% {
+    transform: scale(0.66);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(1.55);
+    opacity: 0;
+  }
+}
+
+/* Source badge flaring as it releases a listing. */
+@keyframes jd-emit {
+  0% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  4% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  18%,
+  100% {
+    opacity: 0;
+    transform: scale(1.45);
+  }
+}
+
+/* Four core activity indicators, each lit for its quarter of the loop. */
+@keyframes jd-activity {
+  0% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  4%,
+  21% {
+    opacity: 1;
+    transform: scale(1.5);
+  }
+  25%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+}
+
+@keyframes jd-activity-label {
+  0% {
+    opacity: 0;
+  }
+  4%,
+  21% {
+    opacity: 1;
+  }
+  25%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.jd-motion {
+  animation-duration: 8s;
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
+  /* Staggered elements must hold their 0% pose through their delay rather than
+     flashing the reduced-motion resting pose they carry as a static style. */
+  animation-fill-mode: backwards;
+}
+
+/* Layer promotion is opt-in, and only for the elements that actually traverse
+   space (the packet cards and telemetry particles). The pulses, activity dots
+   and flares animate opacity/scale on tiny boxes and do not earn a permanent
+   compositor layer each. Note `offset-distance` is deliberately absent: it is
+   not compositor-animatable, so hinting it buys nothing. */
+.jd-motion-gpu {
+  will-change: transform, opacity;
+}
+
+/* Offscreen or backgrounded: stop the loop and hand the layers back. */
+.jd-scene[data-idle="true"] .jd-motion {
+  animation-play-state: paused;
+}
+
+.jd-scene[data-idle="true"] .jd-motion-gpu {
+  will-change: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jd-motion {
+    animation: none !important;
+  }
+  .jd-motion-gpu {
+    will-change: auto;
+  }
+}
+
 html,
 body {
   @apply bg-background text-foreground;
@@ -460,5 +728,244 @@ body {
   .ln-mono {
     font-family: var(--font-mono);
     letter-spacing: 0;
+  }
+}
+
+/* ── Toasts ──────────────────────────────────────────────────────────────────
+   Sonner is rendered with `unstyled`, so every rule below is the whole design.
+
+   The surface is liquid glass: a translucent tint over a saturating backdrop
+   blur, a specular highlight along the top edge, and a soft bloom in the
+   accent colour bleeding out from behind the icon. `--toast-accent` is the one
+   knob each variant turns — icon, bloom and edge light all read from it.
+
+   Deliberately no ::before/::after on the toast: sonner owns both pseudos for
+   its swipe hit-area and stack spacing. The glass is layered background-images
+   instead. Left unlayered so it outranks the stylesheet sonner injects at
+   runtime. */
+
+[data-sonner-toaster].hf-toaster {
+  --width: 400px;
+  font-family: var(--font-sans);
+}
+
+[data-sonner-toast].hf-toast {
+  --toast-accent: var(--primary);
+  --toast-surface: color-mix(in oklab, var(--popover) 72%, transparent);
+  --toast-sheen: color-mix(in oklab, white 65%, transparent);
+  --toast-edge: color-mix(in oklab, var(--foreground) 11%, transparent);
+  --toast-shadow: color-mix(in oklab, var(--foreground) 26%, transparent);
+
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.875rem 0.875rem 0.9375rem;
+  border-radius: 1rem;
+  color: var(--foreground);
+  font-size: 0.875rem;
+  line-height: 1.45;
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  background-image:
+    /* accent bloom, anchored behind the icon */
+    radial-gradient(
+      120% 130% at 6% 0%,
+      color-mix(in oklab, var(--toast-accent) 16%, transparent) 0%,
+      transparent 62%
+    ),
+    /* raking light across the top-left, the way a real bevel catches it */
+      linear-gradient(
+        152deg,
+        color-mix(in oklab, white 26%, transparent) 0%,
+        transparent 38%
+      ),
+    linear-gradient(var(--toast-surface), var(--toast-surface));
+  box-shadow:
+    inset 0 1px 0 0 var(--toast-sheen),
+    inset 0 0 0 1px color-mix(in oklab, white 8%, transparent),
+    0 0 0 1px var(--toast-edge),
+    0 2px 4px -2px var(--toast-shadow),
+    0 16px 40px -16px var(--toast-shadow);
+}
+
+.dark [data-sonner-toast].hf-toast {
+  --toast-surface: color-mix(in oklab, var(--popover) 72%, transparent);
+  --toast-sheen: color-mix(in oklab, white 12%, transparent);
+  --toast-edge: color-mix(in oklab, white 12%, transparent);
+  --toast-shadow: oklch(0 0 0 / 0.5);
+}
+
+.dark [data-sonner-toast].hf-toast {
+  background-image:
+    radial-gradient(
+      120% 130% at 6% 0%,
+      color-mix(in oklab, var(--toast-accent) 22%, transparent) 0%,
+      transparent 62%
+    ),
+    linear-gradient(
+      152deg,
+      color-mix(in oklab, white 7%, transparent) 0%,
+      transparent 42%
+    ),
+    linear-gradient(var(--toast-surface), var(--toast-surface));
+}
+
+[data-sonner-toast].hf-toast[data-type="success"] {
+  --toast-accent: var(--success);
+}
+[data-sonner-toast].hf-toast[data-type="error"] {
+  --toast-accent: var(--destructive);
+}
+[data-sonner-toast].hf-toast[data-type="warning"] {
+  --toast-accent: var(--sev-important);
+}
+[data-sonner-toast].hf-toast[data-type="info"] {
+  --toast-accent: var(--primary);
+}
+[data-sonner-toast].hf-toast[data-type="loading"] {
+  --toast-accent: var(--ink-tertiary);
+}
+
+/* Icon chip */
+[data-sonner-toast].hf-toast [data-icon] {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-top: -0.0625rem;
+  border-radius: 0.625rem;
+  color: var(--toast-accent);
+  background: color-mix(in oklab, var(--toast-accent) 14%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--toast-accent) 26%, transparent),
+    0 0 12px -4px color-mix(in oklab, var(--toast-accent) 60%, transparent);
+}
+
+[data-sonner-toast].hf-toast [data-icon] > svg {
+  width: 1rem;
+  height: 1rem;
+  stroke-width: 2;
+}
+
+@keyframes hf-toast-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.hf-toast-spin {
+  animation: hf-toast-spin 0.9s linear infinite;
+}
+
+/* Copy */
+[data-sonner-toast].hf-toast [data-content] {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1875rem;
+  flex: 1;
+  min-width: 0;
+  padding-top: 0.125rem;
+}
+
+[data-sonner-toast].hf-toast [data-title] {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.006em;
+  color: var(--foreground);
+}
+
+[data-sonner-toaster].hf-toaster [data-sonner-toast].hf-toast [data-description] {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--ink-tertiary);
+}
+
+/* --ink-tertiary is documented above as sub-AA on dark surfaces, and a toast can
+   land over anything. Lift it, staying a clear step under the title. */
+[data-sonner-toaster].hf-toaster.dark [data-sonner-toast].hf-toast [data-description] {
+  color: oklch(0.76 0.014 275);
+}
+
+/* Action / cancel */
+[data-sonner-toast].hf-toast [data-button] {
+  flex-shrink: 0;
+  height: 1.75rem;
+  padding-inline: 0.6875rem;
+  border: 0;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--primary-foreground);
+  background: var(--primary);
+  transition: background 0.15s ease;
+}
+[data-sonner-toast].hf-toast [data-button]:hover {
+  background: var(--primary-hover);
+}
+[data-sonner-toast].hf-toast [data-cancel] {
+  color: var(--foreground);
+  background: color-mix(in oklab, var(--foreground) 8%, transparent);
+}
+[data-sonner-toast].hf-toast [data-cancel]:hover {
+  background: color-mix(in oklab, var(--foreground) 14%, transparent);
+}
+
+/* Close. Sonner renders it first in the DOM (it absolutely-positions it when
+   styled), so reorder it to the end of the row. */
+[data-sonner-toaster].hf-toaster [data-sonner-toast].hf-toast [data-close-button] {
+  display: grid;
+  place-items: center;
+  order: 1;
+  flex-shrink: 0;
+  width: 1.375rem;
+  height: 1.375rem;
+  margin-top: 0.125rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0.4375rem;
+  cursor: pointer;
+  background: transparent;
+  color: var(--ink-tertiary);
+  opacity: 0.75;
+  transition:
+    opacity 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease;
+}
+[data-sonner-toaster].hf-toaster [data-sonner-toast].hf-toast [data-close-button] > svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+[data-sonner-toaster].hf-toaster [data-sonner-toast].hf-toast [data-close-button]:hover {
+  opacity: 1;
+  color: var(--foreground);
+  background: color-mix(in oklab, var(--foreground) 9%, transparent);
+}
+
+[data-sonner-toast].hf-toast :focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Sonner fades the contents of collapsed background toasts itself, but only for
+   styled toasts — reinstate it so the stack doesn't show through. */
+[data-sonner-toast].hf-toast[data-expanded="false"][data-front="false"] > * {
+  opacity: 0;
+}
+
+/* Blur is the whole effect; without it the tint alone reads as washed out. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  [data-sonner-toast].hf-toast {
+    --toast-surface: var(--popover);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hf-toast-spin {
+    animation-duration: 2.4s;
   }
 }

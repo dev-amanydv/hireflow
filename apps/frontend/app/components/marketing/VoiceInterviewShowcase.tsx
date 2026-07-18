@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import ProductSection from "./ProductSection";
-import { Waveform } from "./illustrations";
+import { Waveform, useSceneActive, useSceneTick } from "./illustrations";
 
 /**
  * Voice-interview feature. A live "call" card whose active waveform alternates
@@ -17,21 +17,19 @@ const TURNS = [
 
 function VoiceMockup() {
   const reduce = useReducedMotion();
+  const ref = useRef<HTMLDivElement>(null);
   const [speaker, setSpeaker] = useState<"ai" | "you">("ai");
 
-  useEffect(() => {
-    if (reduce) return;
-    const id = setInterval(() => {
-      if (document.hidden) return;
-      setSpeaker((s) => (s === "ai" ? "you" : "ai"));
-    }, 2600);
-    return () => clearInterval(id);
-  }, [reduce]);
+  const active = useSceneActive(ref);
+  useSceneTick(ref, 2600, () => setSpeaker((s) => (s === "ai" ? "you" : "ai")), {
+    enabled: !reduce,
+  });
 
   const aiActive = speaker === "ai";
 
   return (
     <motion.div
+      ref={ref}
       className="overflow-hidden"
       initial={{ opacity: 0, scale: 0.96, y: 8 }}
       whileInView={{ opacity: 1, scale: 1, y: 0 }}
@@ -61,7 +59,7 @@ function VoiceMockup() {
           </span>
         </div>
         <div className={aiActive ? "flex-1 text-brand" : "flex-1 text-ink-subtle"}>
-          <Waveform bars={36} active className="bg-current" reduce={reduce} />
+          <Waveform bars={36} active running={active} className="bg-current" reduce={reduce} />
         </div>
       </div>
 

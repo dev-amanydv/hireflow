@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   ChevronDown,
   FileText,
@@ -8,79 +8,10 @@ import {
   PhoneOff,
 } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
+import { Blueprint, Caret, Reserve, useSceneActive, useSceneTick, useStream } from "./illustrations";
 
 const ACC = "var(--primary)";
 const EASE = [0.22, 1, 0.36, 1] as const;
-
-
-function useStream(
-  text: string,
-  opts: { byWord?: boolean; speed?: number; startDelay?: number; loop?: boolean; pause?: number } = {},
-  reduce?: boolean | null,
-) {
-  const { byWord = false, speed = 30, startDelay = 350, loop = false, pause = 2800 } = opts;
-  const [n, setN] = useState(0);
-  const tokens = useMemo(
-    () => (byWord ? text.match(/\S+\s*/g) ?? [text] : Array.from(text)),
-    [text, byWord],
-  );
-
-  useEffect(() => {
-    if (reduce) {
-      setN(tokens.length);
-      return;
-    }
-    let i = 0;
-    let timer: ReturnType<typeof setTimeout>;
-    const gap = byWord ? speed * 3.4 : speed;
-    setN(0);
-    const step = () => {
-      i += 1;
-      setN(i);
-      if (i < tokens.length) {
-        timer = setTimeout(step, gap);
-      } else if (loop) {
-        timer = setTimeout(() => {
-          i = 0;
-          setN(0);
-          timer = setTimeout(step, gap);
-        }, pause);
-      }
-    };
-    timer = setTimeout(step, startDelay);
-    return () => clearTimeout(timer);
-  }, [tokens, speed, startDelay, loop, pause, byWord, reduce]);
-
-  return { out: tokens.slice(0, n).join(""), started: n > 0, done: n >= tokens.length };
-}
-
-function Caret() {
-  return <span className="hf-caret ml-0.5 inline-block h-[1em] w-[2px] translate-y-[2px] bg-current align-middle" />;
-}
-
-
-function Reserve({
-  final,
-  textClassName,
-  className,
-  style,
-  children,
-}: {
-  final: React.ReactNode;
-  textClassName?: string;
-  className?: string;
-  style?: React.CSSProperties;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className={`relative ${className ?? ""}`} style={style}>
-      <div aria-hidden className={`invisible ${textClassName ?? ""}`}>
-        {final}
-      </div>
-      <div className={`absolute inset-0 ${textClassName ?? ""}`}>{children}</div>
-    </div>
-  );
-}
 
 /* ---- interview window ------------------------------------------------ */
 /* Mirrors the real product's InterviewRoom: a live/timer top bar, a left
@@ -159,63 +90,79 @@ const STATUS_STEPS = [
   { label: "Speaking", sub: "Asking a follow-up question…", mode: "speaking" as const },
 ];
 
-function useStatusCycle(reduce: boolean | null) {
+function useStatusCycle(ref: React.RefObject<Element | null>, reduce: boolean | null) {
   const [i, setI] = useState(0);
-  useEffect(() => {
-    if (reduce) return;
-    const id = setInterval(() => setI((v) => (v + 1) % STATUS_STEPS.length), 3400);
-    return () => clearInterval(id);
-  }, [reduce]);
+  useSceneTick(ref, 3400, () => setI((v) => (v + 1) % STATUS_STEPS.length), {
+    enabled: !reduce,
+  });
   return STATUS_STEPS[i];
 }
 
 /* A soft, center-bright cluster of dots standing in for the real product's
    audio-reactive visualizer grid — brighter and quicker while "speaking",
    calmer while "listening". Falls back to a static falloff under reduced motion. */
+const DOT_COLS = 8;
+const DOT_ROWS = 8;
+
 function DotGrid({ reduce, mode }: { reduce: boolean | null; mode: "listening" | "thinking" | "speaking" }) {
-  const cols = 8;
-  const rows = 8;
-  const cx = (cols - 1) / 2;
-  const cy = (rows - 1) / 2;
-  const maxDist = Math.hypot(cx, cy);
+  // The 64 dots never change with `mode` — only the two custom properties on the
+  // container do, and CSS re-resolves those live against the running animations.
+  // Memoising them keeps React out of the 3.4s status cycle entirely.
+  const dots = useMemo(() => {
+    const cx = (DOT_COLS - 1) / 2;
+    const cy = (DOT_ROWS - 1) / 2;
+    const maxDist = Math.hypot(cx, cy);
+
+    return Array.from({ length: DOT_ROWS * DOT_COLS }).map((_, i) => {
+      const x = i % DOT_COLS;
+      const y = Math.floor(i / DOT_COLS);
+      const dist = Math.hypot(x - cx, y - cy) / maxDist;
+      const base = Math.max(0.05, Math.pow(1 - dist, 1.6));
+
+      return (
+        <span
+          key={i}
+          className="hf-dot size-1.5 rounded-full bg-current lg:size-2"
+          style={
+            {
+              "--dot-base": base,
+              "--dot-offset": `${(i % 5) * 0.12}s`,
+              "--dot-delay": `${(i % 7) * 0.09}s`,
+            } as React.CSSProperties
+          }
+        />
+      );
+    });
+  }, []);
+
   const speed = mode === "speaking" ? 0.6 : mode === "thinking" ? 0.95 : 1.35;
   const amp = mode === "speaking" ? 1 : mode === "thinking" ? 0.78 : 0.56;
 
   return (
-    <div className="grid gap-1.5 lg:gap-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))` }}>
-      {Array.from({ length: rows * cols }).map((_, i) => {
-        const x = i % cols;
-        const y = Math.floor(i / cols);
-        const dist = Math.hypot(x - cx, y - cy) / maxDist;
-        const base = Math.max(0.05, Math.pow(1 - dist, 1.6));
-
-        if (reduce) {
-          return <span key={i} className="size-1.5 rounded-full bg-current lg:size-2" style={{ opacity: base * 0.7 }} />;
-        }
-        const peak = Math.min(1, base * amp * 1.15);
-        return (
-          <motion.span
-            key={i}
-            className="size-1.5 rounded-full bg-current lg:size-2"
-            animate={{ opacity: [base * 0.3, peak, base * 0.3] }}
-            transition={{
-              duration: speed + (i % 5) * 0.12,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: (i % 7) * 0.09,
-            }}
-          />
-        );
-      })}
+    <div
+      className="grid gap-1.5 lg:gap-2"
+      style={
+        {
+          gridTemplateColumns: `repeat(${DOT_COLS}, minmax(0,1fr))`,
+          "--dot-amp": reduce ? 1 : amp,
+          "--dot-speed": reduce ? 1 : speed,
+        } as React.CSSProperties
+      }
+    >
+      {dots}
     </div>
   );
 }
 
 function Stage({ reduce }: { reduce: boolean | null }) {
-  const status = useStatusCycle(reduce);
+  const ref = useRef<HTMLDivElement>(null);
+  const status = useStatusCycle(ref, reduce);
 
   return (
-    <div className="flex flex-col items-center justify-center gap-7 p-6 sm:p-8 lg:p-12 xl:p-14">
+    <div
+      ref={ref}
+      className="flex flex-col items-center justify-center gap-7 p-6 sm:p-8 lg:p-12 xl:p-14"
+    >
       <div className="relative grid place-items-center">
         <div
           aria-hidden
@@ -259,11 +206,24 @@ const MESSAGES = [
   { who: "ai", text: "Tell me how you first got started learning React and what resources or projects you used to practice." },
 ] as const;
 
+/* Owns the per-character stream so the ~45 updates/sec touch two adjacent text
+   nodes instead of re-rendering the whole transcript (3 motion.div + Reserve). */
+function StreamingLine({ text, active, reduce }: { text: string; active: boolean; reduce: boolean | null }) {
+  const { out, done } = useStream(text, { speed: 22, startDelay: 900, loop: true, pause: 4200, active }, reduce);
+  return (
+    <>
+      {out}
+      {!done && <Caret />}
+    </>
+  );
+}
+
 function Transcript({ reduce }: { reduce: boolean | null }) {
-  const newest = useStream(MESSAGES[MESSAGES.length - 1].text, { speed: 22, startDelay: 900, loop: true, pause: 4200 }, reduce);
+  const ref = useRef<HTMLDivElement>(null);
+  const active = useSceneActive(ref);
 
   return (
-    <div className="hidden flex-col border-l border-hairline p-4 sm:flex sm:p-5">
+    <div ref={ref} className="hidden flex-col border-l border-hairline p-4 sm:flex sm:p-5">
       <div className="mb-4 flex items-center justify-between">
         <span className="ln-eyebrow">Transcript</span>
         <span className="ln-mono text-[11px] text-ink-tertiary">{MESSAGES.length}</span>
@@ -283,8 +243,7 @@ function Transcript({ reduce }: { reduce: boolean | null }) {
             >
               {isNewest ? (
                 <Reserve final={m.text} textClassName={`text-[12.5px] leading-relaxed text-foreground ${align}`}>
-                  {newest.out}
-                  {!newest.done && <Caret />}
+                  <StreamingLine text={m.text} active={active} reduce={reduce} />
                 </Reserve>
               ) : (
                 <p className="text-[12.5px] leading-relaxed text-foreground">{m.text}</p>
@@ -346,37 +305,24 @@ function InterviewWindow({ reduce }: { reduce: boolean | null }) {
   );
 }
 
-function Blueprint() {
-  return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 -z-0">
-      <div
-        className="absolute inset-0 opacity-60"
-        style={{
-          backgroundImage:
-            "radial-gradient(color-mix(in oklab, var(--foreground) 13%, transparent) 1px, transparent 1px)",
-          backgroundSize: "22px 22px",
-          maskImage: "radial-gradient(75% 75% at 62% 42%, black, transparent)",
-          WebkitMaskImage: "radial-gradient(75% 75% at 62% 42%, black, transparent)",
-        }}
-      />
-    </div>
-  );
-}
-
 export default function InterviewStage() {
   const reduce = useReducedMotion();
 
   return (
     <div className="relative" style={{ "--acc": ACC } as React.CSSProperties}>
       <Blueprint />
-      <div
-        className="lg:max-h-[640px] lg:overflow-hidden"
-        style={{
-          WebkitMaskImage: "linear-gradient(to bottom, black 80%, transparent 100%)",
-          maskImage: "linear-gradient(to bottom, black 80%, transparent 100%)",
-        }}
-      >
+      {/* A mask here would pull the whole window — 64 animating dots, the
+          streaming transcript, the blurred glow — into an offscreen buffer that
+          re-composites on every dot tick. The landing root paints a solid
+          --background, so an overlaid gradient is visually equivalent and costs
+          one static rect. */}
+      <div className="relative lg:max-h-[640px] lg:overflow-hidden">
         <InterviewWindow reduce={reduce} />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-[20%]"
+          style={{ background: "linear-gradient(to bottom, transparent, var(--background))" }}
+        />
       </div>
     </div>
   );

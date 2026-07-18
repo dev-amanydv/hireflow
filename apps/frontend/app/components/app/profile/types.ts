@@ -91,6 +91,8 @@ export type PublicInterviewData = {
   recordingStatus: RecordingStatus;
   durationMs: number | null;
   recordingUrl: string | null;
+  isPublic: boolean;
+  isOwner: boolean;
   owner: PublicInterviewOwner;
 };
 

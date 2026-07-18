@@ -9,8 +9,8 @@ import ArchitectureDiagram from "~/components/marketing/ArchitectureDiagram";
 import VoiceInterviewShowcase from "~/components/marketing/VoiceInterviewShowcase";
 import ResumeAnalyzerShowcase from "~/components/marketing/ResumeAnalyzerShowcase";
 import EvaluationShowcase from "~/components/marketing/EvaluationShowcase";
-import SkillPracticeShowcase from "~/components/marketing/SkillPracticeShowcase";
-import JobsShowcase from "~/components/marketing/JobsShowcase";
+import SkillEngineShowcase from "~/components/marketing/SkillEngineShowcase";
+import JobDiscoveryShowcase from "~/components/marketing/JobDiscoveryShowcase";
 import FAQ from "~/components/marketing/FAQ";
 import CTABanner from "~/components/marketing/CTABanner";
 import Footer from "~/components/marketing/Footer";
@@ -39,19 +39,15 @@ export default function Home() {
         <main>
           <Hero />
           <LogoMarquee />
-          <StatementBlock />
-
-          <HowItWorks />
-          <ArchitectureDiagram />
-
+          <JobDiscoveryShowcase />
           <VoiceInterviewShowcase />
-          <ResumeAnalyzerShowcase />
           <EvaluationShowcase />
-          <SkillPracticeShowcase />
-          <JobsShowcase />
+          <ArchitectureDiagram />
+          <SkillEngineShowcase />
+          <HowItWorks />
+          <ResumeAnalyzerShowcase />
 
           <FAQ />
-          <CTABanner />
         </main>
         <Footer />
       </div>

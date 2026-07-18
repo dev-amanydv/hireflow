@@ -1,47 +1,48 @@
-import { useTheme } from "next-themes"
-import { Toaster as Sonner, type ToasterProps } from "sonner"
-import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
+import {
+  CircleCheckIcon,
+  InfoIcon,
+  LoaderCircleIcon,
+  OctagonAlertIcon,
+  TriangleAlertIcon,
+  XIcon,
+} from "lucide-react";
+import { Toaster as Sonner, type ToasterProps } from "sonner";
+import { useThemeOptional } from "~/lib/theme";
+import { cn } from "~/lib/utils";
 
-const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
+/**
+ * Sonner runs fully unstyled here — the surface is ours (`.hf-toast` in app.css).
+ *
+ * The toaster portals to `document.body`, which sits outside the `.dark` wrapper
+ * that `ThemeProvider` renders, so the `dark:` variant would never match inside a
+ * toast. Mirroring the class onto the toaster element restores it.
+ */
+function Toaster({ className, ...props }: ToasterProps) {
+  const theme = useThemeOptional()?.theme ?? "light";
 
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
-      className="toaster group"
+      theme={theme}
+      className={cn("hf-toaster", theme === "dark" && "dark", className)}
+      closeButton
+      offset={16}
+      gap={12}
       icons={{
-        success: (
-          <CircleCheckIcon className="size-4" />
-        ),
-        info: (
-          <InfoIcon className="size-4" />
-        ),
-        warning: (
-          <TriangleAlertIcon className="size-4" />
-        ),
-        error: (
-          <OctagonXIcon className="size-4" />
-        ),
-        loading: (
-          <Loader2Icon className="size-4 animate-spin" />
-        ),
+        success: <CircleCheckIcon aria-hidden />,
+        info: <InfoIcon aria-hidden />,
+        warning: <TriangleAlertIcon aria-hidden />,
+        error: <OctagonAlertIcon aria-hidden />,
+        loading: <LoaderCircleIcon aria-hidden className="hf-toast-spin" />,
+        close: <XIcon aria-hidden />,
       }}
-      style={
-        {
-          "--normal-bg": "var(--popover)",
-          "--normal-text": "var(--popover-foreground)",
-          "--normal-border": "var(--border)",
-          "--border-radius": "var(--radius)",
-        } as React.CSSProperties
-      }
       toastOptions={{
-        classNames: {
-          toast: "cn-toast",
-        },
+        unstyled: true,
+        closeButtonAriaLabel: "Dismiss notification",
+        classNames: { toast: "hf-toast" },
       }}
       {...props}
     />
-  )
+  );
 }
 
-export { Toaster }
+export { Toaster };
