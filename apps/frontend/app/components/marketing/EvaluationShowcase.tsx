@@ -2,12 +2,6 @@ import { motion, useReducedMotion } from "motion/react";
 import ProductSection from "./ProductSection";
 import { CountUpScore, RadarChart } from "./illustrations";
 
-/**
- * Evaluation feature. The four fixed competency dimensions plotted on a radar,
- * an overall score, and a seniority-relative band — reinforcing that scoring is
- * evidence-grounded and calibrated to the level you targeted, not absolute.
- */
-
 const DIMENSIONS = [
   { label: "Technical Depth", value: 82 },
   { label: "Problem-Solving", value: 88 },
@@ -28,7 +22,6 @@ function EvaluationMockup() {
       viewport={{ once: true, margin: "-80px" }}
       transition={reduce ? { duration: 0 } : { duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
     >
-      {/* radar */}
       <div className="grid place-items-center">
         <RadarChart
           values={DIMENSIONS.map((d) => d.value)}
@@ -37,7 +30,6 @@ function EvaluationMockup() {
         />
       </div>
 
-      {/* score + band + evidence */}
       <div className="flex flex-col gap-5">
         <div className="flex items-center gap-4">
           <CountUpScore value={84} label="overall" />

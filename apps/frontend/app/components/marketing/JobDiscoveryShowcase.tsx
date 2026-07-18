@@ -4,34 +4,6 @@ import { MapPin } from "lucide-react";
 import { BrandMark } from "~/components/app/Brand";
 import { Blueprint, useBreakpoint, useSceneActive, useSceneTick } from "./illustrations";
 
-/**
- * The "stop checking five job boards" story, told as an orbital scene rather
- * than a pipeline: connected sources sit in the outer dark, job packets drift
- * along curved paths toward the Hireflow core, get mapped into one schema as
- * they cross the normalization field, and land in a single feed.
- *
- * Motion note: every continuous animation is a CSS motion-path animation on a
- * shared 8s loop (keyframes live in app.css under `jd-*`). Nothing here drives
- * position from React — a JS interval caps motion at its tick rate and stutters.
- * Only the feed, which is discrete, holds state.
- *
- * Content note: every claim maps to something apps/backend/src/services/jobs/
- * actually does. Three providers are live (remotive/arbeitnow/adzuna); "dedup"
- * is the Prisma upsert on unique(source, externalId) in ingest.ts, so the merge
- * beat shows a source re-sending its own listing — not cross-source matching,
- * which does not exist. There is no score/relevance column on model Job, so
- * there are no match percentages here. Everything not yet built renders as a
- * dimmed, unconnected ghost node.
- */
-
-/* ---- scene geometry ------------------------------------------------------ */
-
-/**
- * The scene is laid out once at this fixed pixel size and then scaled to fit
- * its container with a container query unit. That keeps one coordinate space
- * for the SVG geometry, the absolutely-positioned nodes, and the CSS
- * `offset-path` strings — they cannot drift apart.
- */
 const VW = 1120;
 const VH = 640;
 const CORE = { x: 360, y: 312 };
@@ -42,10 +14,8 @@ const ORBITS = [
   { rx: 345, ry: 290 },
 ];
 
-/** Radius of the normalization field — packets gain schema chips inside it. */
 const FIELD_R = 152;
 
-/** Past this x, node labels render leftward so they stay clear of the feed panel. */
 const FLIP_X = 470;
 
 type Pt = { x: number; y: number };
@@ -55,8 +25,6 @@ function curveD([p0, p1, p2, p3]: Curve) {
   return `M${p0.x} ${p0.y} C${p1.x} ${p1.y} ${p2.x} ${p2.y} ${p3.x} ${p3.y}`;
 }
 
-/* ---- sources ------------------------------------------------------------- */
-
 type LiveSource = {
   id: string;
   mark: string;
@@ -64,7 +32,6 @@ type LiveSource = {
   sub: string;
   at: Pt;
   curve: Curve;
-  /** Offset into the 8s loop at which this source releases a listing. */
   delay: number;
 };
 
@@ -98,7 +65,6 @@ const LIVE_SOURCES: LiveSource[] = [
   },
 ];
 
-/** Not connected yet — the adapter exists, these providers do not. */
 const GHOST_SOURCES = [
   { id: "indeed", mark: "In", name: "Indeed", at: { x: 425, y: 157 } },
   { id: "lever", mark: "Lv", name: "Lever", at: { x: 327, y: 474 } },
@@ -111,8 +77,6 @@ const GHOST_SOURCES = [
   { id: "ashby", mark: "As", name: "Ashby", at: { x: 643, y: 146 } },
   { id: "yc", mark: "YC", name: "YC Jobs", at: { x: 643, y: 478 } },
 ] as const;
-
-/* ---- job packets --------------------------------------------------------- */
 
 type Packet = {
   source: string;
@@ -146,8 +110,6 @@ const PACKETS: Record<string, Packet> = {
   },
 };
 
-/* ---- core activity ------------------------------------------------------- */
-
 const ACTIVITY = [
   { id: "polling", label: "Polling", angle: -75 },
   { id: "normalizing", label: "Normalizing", angle: -25 },
@@ -161,8 +123,6 @@ const activityAt = (angle: number) => ({
   x: CORE.x + ACTIVITY_R * Math.cos((angle * Math.PI) / 180),
   y: CORE.y + ACTIVITY_R * Math.sin((angle * Math.PI) / 180),
 });
-
-/* ---- feed ---------------------------------------------------------------- */
 
 type FeedJob = {
   id: string;
@@ -186,8 +146,6 @@ const FEED_POOL: FeedJob[] = [
 const FEED_ROWS = 4;
 const FEED_ADVANCE_MS = 4000;
 
-/* ---- counters ------------------------------------------------------------ */
-
 const COUNTERS = [
   { value: "3", label: "sources connected" },
   { value: "30m", label: "sync interval" },
@@ -195,9 +153,6 @@ const COUNTERS = [
   { value: "0", label: "duplicate rows" },
 ];
 
-/* ---- background ---------------------------------------------------------- */
-
-/** Deterministic so SSR and client hydration agree — never Math.random() here. */
 const STARS = (() => {
   let seed = 20260718;
   const rnd = () => {
@@ -217,12 +172,6 @@ const CONSTELLATIONS = [
   "M534 136 L643 146 L621 372 L643 478",
 ];
 
-/**
- * Ratio the fixed-size stage is scaled by to fill its container. Measured
- * rather than expressed in container-query units because `scale()` needs a
- * unitless number and `calc(100cqw / VW)` resolves to a length, which browsers
- * drop. Only recomputes on resize, never per frame.
- */
 function useStageScale(ref: React.RefObject<HTMLElement | null>) {
   const [scale, setScale] = useState(1);
 
@@ -240,8 +189,6 @@ function useStageScale(ref: React.RefObject<HTMLElement | null>) {
   return scale;
 }
 
-/* ---- shared bits --------------------------------------------------------- */
-
 function SourceBadge({
   mark,
   name,
@@ -257,7 +204,6 @@ function SourceBadge({
   live: boolean;
   emitDelay?: number;
   dimmed?: boolean;
-  /** Nodes on the right of the scene label leftward, clear of the feed panel. */
   flip?: boolean;
 }) {
   return (
@@ -299,10 +245,6 @@ function SourceBadge({
   );
 }
 
-/**
- * A listing in flight. Placement is handled entirely by CSS `offset-path` —
- * the element sits at the stage origin and the motion path animation carries it.
- */
 function PacketCard({
   packet,
   path,
@@ -322,7 +264,6 @@ function PacketCard({
       style={{
         offsetPath: `path("${path}")`,
         offsetRotate: "0deg",
-        // Reduced-motion resting pose: parked mid-flight, or hidden for the twin.
         offsetDistance: twin ? "52%" : "72%",
         opacity: twin ? 0 : 1,
         animationName: twin ? "jd-twin" : "jd-packet",
@@ -433,8 +374,6 @@ function UnifiedFeed({
   );
 }
 
-/* ---- the orbital scene (lg and up) --------------------------------------- */
-
 function OrbitScene({
   reduce,
   hovered,
@@ -457,7 +396,6 @@ function OrbitScene({
       className="jd-scene relative w-full overflow-hidden"
       style={{ aspectRatio: `${VW} / ${VH}` }}
     >
-      {/* Fixed-size stage, scaled to fit. One coordinate space for everything. */}
       <div
         className="absolute left-0 top-0 origin-top-left"
         style={{
@@ -466,7 +404,6 @@ function OrbitScene({
           transform: `scale(${scale})`,
         }}
       >
-        {/* static geometry — nothing in here animates */}
         <svg
           aria-hidden
           width={VW}
@@ -533,7 +470,6 @@ function OrbitScene({
           <circle cx={CORE.x} cy={CORE.y} r="84" fill="none" stroke="var(--hairline-strong)" strokeWidth="1" opacity="0.8" />
         </svg>
 
-        {/* core breath */}
         {[0, 1.2].map((d) => (
           <span
             key={d}
@@ -553,7 +489,6 @@ function OrbitScene({
           />
         ))}
 
-        {/* telemetry drifting along the ingest paths */}
         {LIVE_SOURCES.flatMap((s) =>
           [0, -0.87, -1.73].map((d) => (
             <span
@@ -573,7 +508,6 @@ function OrbitScene({
           )),
         )}
 
-        {/* core */}
         <div
           className="absolute flex flex-col items-center justify-center gap-1 rounded-full border border-hairline-strong bg-surface-2 text-center"
           style={{ left: CORE.x - 62, top: CORE.y - 62, width: 124, height: 124 }}
@@ -585,7 +519,6 @@ function OrbitScene({
           </span>
         </div>
 
-        {/* activity indicators */}
         {ACTIVITY.map((a, i) => {
           const p = activityAt(a.angle);
           const resting = reduce && a.id === "live";
@@ -619,7 +552,6 @@ function OrbitScene({
           );
         })}
 
-        {/* live source nodes */}
         {LIVE_SOURCES.map((s) => (
           <div
             key={s.id}
@@ -640,7 +572,6 @@ function OrbitScene({
           </div>
         ))}
 
-        {/* ghost source nodes — adapter exists, provider not connected */}
         {GHOST_SOURCES.map((g) => (
           <div
             key={g.id}
@@ -657,7 +588,6 @@ function OrbitScene({
           </div>
         ))}
 
-        {/* listings in flight */}
         {LIVE_SOURCES.map((s) => (
           <PacketCard
             key={s.id}
@@ -668,7 +598,6 @@ function OrbitScene({
           />
         ))}
 
-        {/* the duplicate Remotive re-sends, which gets upserted away */}
         <PacketCard
           packet={PACKETS.remotive}
           path={curveD(LIVE_SOURCES[0].curve)}
@@ -677,7 +606,6 @@ function OrbitScene({
           dimmed={dim("remotive")}
         />
 
-        {/* what just happened — anchored under the source doing the upsert */}
         <div
           className="jd-motion pointer-events-none absolute rounded-md border border-hairline bg-surface-2 px-2 py-1 leading-relaxed"
           style={{
@@ -694,8 +622,6 @@ function OrbitScene({
     </div>
   );
 }
-
-/* ---- stacked fallback (below lg) ----------------------------------------- */
 
 function StackedScene({ idle }: { idle?: boolean }) {
   return (
@@ -733,21 +659,14 @@ function StackedScene({ idle }: { idle?: boolean }) {
   );
 }
 
-/* ---- section ------------------------------------------------------------- */
-
 export default function JobDiscoveryShowcase() {
   const reduce = useReducedMotion();
   const sectionRef = useRef<HTMLDivElement>(null);
   const [hovered, setHovered] = useState<string | null>(null);
   const [feedTick, setFeedTick] = useState(0);
   const wide = useBreakpoint("(min-width: 1024px)");
-  // Drives `data-idle` on the scenes so the CSS loop pauses and hands its
-  // compositor layers back while the section is offscreen or the tab is hidden.
   const active = useSceneActive(sectionRef);
 
-  // The only React-driven motion left in the section: discrete feed rotation,
-  // gated so it stops the moment the section scrolls away. Hover never pauses
-  // it — hovering only dims the sources it isn't about.
   useSceneTick(sectionRef, FEED_ADVANCE_MS, () => setFeedTick((t) => t + 1), {
     enabled: !reduce,
   });
@@ -782,10 +701,6 @@ export default function JobDiscoveryShowcase() {
         <div ref={sectionRef} className="relative mt-14">
           <Blueprint maskPosition="34% 48%" />
 
-          {/* Only one layout is mounted. Rendering both and hiding one with
-              `lg:hidden` left a second UnifiedFeed — a full AnimatePresence +
-              layout tree — reconciling and measuring against a zero-size box on
-              every feed tick. */}
           {wide ? (
             <div className="relative">
               <OrbitScene reduce={reduce} hovered={hovered} setHovered={setHovered} idle={!active} />
@@ -800,7 +715,6 @@ export default function JobDiscoveryShowcase() {
             </div>
           )}
 
-          {/* grounded counters */}
           <div className="relative mt-12 flex flex-wrap items-baseline justify-center gap-x-10 gap-y-4 border-t border-hairline pt-6 lg:mt-8">
             {COUNTERS.map((c) => (
               <div key={c.label} className="flex items-baseline gap-2">

@@ -316,7 +316,6 @@ export const getPublicInterview = async (req: Request, res: Response) => {
       user: { select: { username: true, displayName: true, avatarKey: true } },
     },
   });
-  // The owner keeps access after switching it private, so they can switch it back.
   const isOwner = Boolean(req.userId) && interview?.userId === req.userId;
   if (!interview || (!interview.isPublic && !isOwner)) throw new AppError(404, "InterviewNotFound");
 

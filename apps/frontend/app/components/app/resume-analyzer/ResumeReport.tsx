@@ -14,7 +14,6 @@ import { isSettled, type AnalysisRow } from "./types";
 
 const POLL_MS = 3000;
 
-/** Mirrors the finding list's real rhythm: tag line, title, body, occasional before/after. */
 function FindingsSkeleton() {
   const rows = [
     { body: 2, diff: true },
@@ -48,7 +47,6 @@ function FindingsSkeleton() {
   );
 }
 
-/** First paint, before we know whether the row is running or already settled. */
 function ReportSkeleton() {
   return (
     <div className="flex flex-col gap-6">
@@ -79,7 +77,6 @@ function ReportSkeleton() {
   );
 }
 
-/** The analysis is running. The header is real — only the score and findings are pending. */
 function ReportPending({ row }: { row: AnalysisRow }) {
   const stages = useAnalysisStages(row.status);
   return (

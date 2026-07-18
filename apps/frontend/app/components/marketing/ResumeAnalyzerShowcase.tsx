@@ -3,13 +3,6 @@ import { motion, useReducedMotion } from "motion/react";
 import ProductSection from "./ProductSection";
 import { CountUpScore } from "./illustrations";
 
-/**
- * Resume analyzer. Instead of one opaque grade, this teaches the actual scoring
- * model: a weighted blend of deterministic ATS rules and an AI content judge,
- * every category weighted and visible, feeding one transparent score.
- */
-
-// Weights mirror the real composite in the backend (ats/composite.ts).
 const CATEGORIES = [
   { label: "Parseability", weight: 0.2, score: 96, engine: "rules" },
   { label: "Contact", weight: 0.1, score: 100, engine: "rules" },
@@ -37,7 +30,6 @@ function AnalyzerMockup() {
       viewport={{ once: true, margin: "-80px" }}
       transition={reduce ? { duration: 0 } : { duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
     >
-      {/* mini pipeline */}
       <div className="flex flex-wrap items-center gap-1.5">
         {PIPELINE.map((step, i) => (
           <span key={step} className="flex items-center gap-1.5">
@@ -52,7 +44,6 @@ function AnalyzerMockup() {
       </div>
 
       <div className="grid gap-6 sm:grid-cols-[1fr_auto] sm:items-center">
-        {/* weighted categories */}
         <div className="flex flex-col gap-3 sm:order-1">
           {CATEGORIES.map((c, i) => (
             <div key={c.label} className="flex items-center gap-3">
@@ -90,7 +81,6 @@ function AnalyzerMockup() {
           ))}
         </div>
 
-        {/* overall */}
         <div className="flex flex-row items-center gap-4 border-t border-border pt-5 sm:order-2 sm:flex-col sm:gap-3 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-6">
           <CountUpScore value={84} label="ATS score" />
           <div className="flex flex-col gap-2 text-[12px]">

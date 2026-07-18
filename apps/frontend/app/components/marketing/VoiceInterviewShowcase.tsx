@@ -3,12 +3,6 @@ import { motion, useReducedMotion } from "motion/react";
 import ProductSection from "./ProductSection";
 import { Waveform, useSceneActive, useSceneTick } from "./illustrations";
 
-/**
- * Voice-interview feature. A live "call" card whose active waveform alternates
- * between the interviewer speaking and the candidate answering, over a real
- * turn-by-turn transcript — teaching the adaptive, one-question-at-a-time loop.
- */
-
 const TURNS = [
   { who: "ai", text: "You built payments-svc — how did you keep it idempotent under retries?" },
   { who: "you", text: "Each request carried an idempotency key; the ledger deduped on it before writing." },
@@ -36,7 +30,6 @@ function VoiceMockup() {
       viewport={{ once: true, margin: "-80px" }}
       transition={reduce ? { duration: 0 } : { duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
     >
-      {/* call header */}
       <div className="flex items-center gap-2 border-b border-border px-4 py-2.5">
         <span className="relative flex size-2.5 items-center justify-center">
           <span className={`absolute inline-flex size-2.5 rounded-full bg-brand ${reduce ? "" : "ln-stage-pulse"}`} />
@@ -48,7 +41,6 @@ function VoiceMockup() {
         </span>
       </div>
 
-      {/* current speaker + waveform */}
       <div className="flex items-center gap-4 px-4 py-5">
         <div className="flex w-24 shrink-0 flex-col gap-0.5">
           <span className="ln-mono text-[10px] uppercase tracking-wider text-ink-tertiary">
@@ -63,7 +55,6 @@ function VoiceMockup() {
         </div>
       </div>
 
-      {/* transcript */}
       <div className="flex flex-col gap-3 border-t border-border px-4 py-4">
         <span className="ln-mono text-[10px] uppercase tracking-wider text-ink-tertiary">
           Transcript

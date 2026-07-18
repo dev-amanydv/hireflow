@@ -26,13 +26,6 @@ import {
   useStream,
 } from "./illustrations";
 
-/**
- * The "no résumé required" story: pick a skill, watch Hireflow's engine plan a
- * full interview from it, then the live interview begins — three connected
- * scenes that auto-play on one master clock (pausable on hover), mirroring
- * how every other looping section in this file behaves.
- */
-
 type Skill = { id: string; label: string; icon: LucideIcon; varName: string };
 
 const SKILLS: Skill[] = [
@@ -69,8 +62,6 @@ const INTERVIEW_BASE_SECONDS = 7 * 60 + 38;
 const QUESTION_BASE_NUMBER = 4;
 const QUESTION_TOTAL = 15;
 
-/* ---- master timeline --------------------------------------------------- */
-
 const LOOP_MS = 8000;
 const ENGINE_START_MS = 2000;
 const ENGINE_STEP_MS = 800;
@@ -78,12 +69,6 @@ const QUESTION_GENERATOR_INDEX = ENGINE_NODES.findIndex((n) => n.id === "questio
 const QUESTIONS_START_MS = ENGINE_START_MS + QUESTION_GENERATOR_INDEX * ENGINE_STEP_MS;
 const QUESTION_STEP_MS = 1400;
 
-/**
- * The moments in the loop where something on screen actually changes: a node
- * lights up, or another generated question lands. Ticking at a fixed 100ms
- * instead re-rendered this whole section 80 times per loop to produce these
- * same seven states.
- */
 const PHASES: readonly number[] = [
   ...new Set([
     0,
@@ -93,8 +78,6 @@ const PHASES: readonly number[] = [
 ]
   .filter((t) => t < LOOP_MS)
   .sort((a, b) => a - b);
-
-/* ---- scene 1: choose your skill ------------------------------------------ */
 
 function SkillGrid({ activeSkill, reduce }: { activeSkill: number; reduce: boolean | null }) {
   return (
@@ -155,8 +138,6 @@ function Scene1({ activeSkill, reduce }: { activeSkill: number; reduce: boolean 
   );
 }
 
-/* ---- scene 2: interview generation engine --------------------------------- */
-
 function QuestionRow({ text, reduce }: { text: string; reduce: boolean | null }) {
   const { out } = useStream(text, { byWord: true, speed: 40, startDelay: 0 }, reduce);
   return <p className="text-[11px] leading-snug text-ink-muted">{reduce ? text : out}</p>;
@@ -212,8 +193,6 @@ function EngineNode({
         <p className="mt-0.5 text-[11px] text-ink-subtle">{node.sub}</p>
 
         <div className="mt-1.5 flex items-center gap-2">
-          {/* scaleX rather than width: at 1px tall there is no visible cap
-              distortion, and it keeps the fill off the layout path. */}
           <span className="h-px flex-1 overflow-hidden rounded-full bg-hairline">
             <span
               className={`block h-full w-full origin-left bg-brand transition-transform duration-700 ease-in-out ${
@@ -310,11 +289,6 @@ function Scene2({
   );
 }
 
-/* ---- scene 3: live interview begins --------------------------------------- */
-
-/* The clock and latency readout are the only things in this scene that change
-   continuously, so they own a 1Hz tick of their own rather than forcing the
-   section's master timeline to run fast enough to drive them. */
 function LiveMeters({
   sceneRef,
   questionNumber,
@@ -388,8 +362,6 @@ function Scene3({
     </div>
   );
 }
-
-/* ---- section --------------------------------------------------------------- */
 
 export default function SkillEngineShowcase() {
   const reduce = useReducedMotion();

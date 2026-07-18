@@ -10,13 +10,6 @@ import { Toaster as Sonner, type ToasterProps } from "sonner";
 import { useThemeOptional } from "~/lib/theme";
 import { cn } from "~/lib/utils";
 
-/**
- * Sonner runs fully unstyled here — the surface is ours (`.hf-toast` in app.css).
- *
- * The toaster portals to `document.body`, which sits outside the `.dark` wrapper
- * that `ThemeProvider` renders, so the `dark:` variant would never match inside a
- * toast. Mirroring the class onto the toaster element restores it.
- */
 function Toaster({ className, ...props }: ToasterProps) {
   const theme = useThemeOptional()?.theme ?? "light";
 

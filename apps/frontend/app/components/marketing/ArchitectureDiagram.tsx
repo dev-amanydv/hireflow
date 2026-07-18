@@ -2,18 +2,6 @@ import { useRef, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { Blueprint, PacketComet, PacketFlow, useScenePhase, useSceneActive } from "./illustrations";
 
-/**
- * Animated system diagram of the real stack, split into a control plane (top)
- * and a media plane (bottom). A narration loop walks one interview through the
- * system; hovering a service overrides the narration and traces its edges.
- *
- * The load-bearing detail: Express mints a token whose `roomConfig` *declares*
- * the LiveKit room and the agent to dispatch — it never calls LiveKit. The room
- * is auto-created when the browser joins, and media flows browser ↔ LiveKit
- * directly. That edge is drawn dashed and deliberately carries no packets; the
- * absence of flow on it is the point.
- */
-
 type Plane = "control" | "media" | "span";
 
 type NodeDef = {
@@ -28,7 +16,6 @@ type NodeDef = {
   plane: Plane;
 };
 
-// viewBox 1000 x 560
 const NODES: NodeDef[] = [
   { id: "browser", x: 36, y: 246, w: 164, h: 72, plane: "span", title: "Browser", sub: "React Router SSR", role: "Renders the candidate flow, then holds the media link to LiveKit itself." },
   { id: "api", x: 320, y: 114, w: 176, h: 72, plane: "control", title: "Express API", sub: "REST · /api/v1", role: "Validates requests and mints the interview token — then steps out of the media path." },
@@ -42,11 +29,6 @@ const NODES: NodeDef[] = [
 
 const NODE_BY_ID = Object.fromEntries(NODES.map((n) => [n.id, n]));
 
-/**
- * Edge kind drives weight, colour and — the part that carries meaning — how much
- * traffic runs along it. `declare` is the odd one out: it is a statement, not a
- * channel, so it gets no packets at all.
- */
 type EdgeKind = "control" | "media" | "declare" | "async";
 
 type EdgeDef = {
@@ -54,7 +36,6 @@ type EdgeDef = {
   from: string;
   to: string;
   d: string;
-  /** Explicit reverse path for bidirectional edges (every edge here is a cubic). */
   dBack?: string;
   kind: EdgeKind;
   label?: string[];
@@ -76,7 +57,6 @@ const EDGES: EdgeDef[] = [
   { id: "workers-storage", from: "workers", to: "storage", kind: "control", d: "M740,114 C776,92 800,70 828,66" },
 ];
 
-/** Particle timing per edge kind. `null` means the edge never carries traffic. */
 type Flow = { dur: number; delay: number; r: number };
 const FLOW: Record<EdgeKind, Flow[] | null> = {
   media: [
@@ -88,18 +68,11 @@ const FLOW: Record<EdgeKind, Flow[] | null> = {
   declare: null,
 };
 
-/**
- * Every packet's arrival is deterministic — a particle with `begin=delay` and
- * `dur=D` lands on the target at `delay + D`, then every `D` after. So the node
- * pulses are plain SMIL keyed off the same numbers, with nothing on the JS frame
- * loop and no need to observe the packets.
- */
 const PULSES: { nodeId: string; dur: number; begin: number }[] = EDGES.flatMap((e) => {
   const flows = FLOW[e.kind];
   if (!flows) return [];
   const forward = flows.map((f) => ({ nodeId: e.to, dur: f.dur, begin: f.delay + f.dur }));
   if (!e.dBack) return forward;
-  // The return lane runs offset so the two ends don't pulse in lockstep.
   return forward.concat(
     flows.map((f) => ({ nodeId: e.from, dur: f.dur, begin: f.delay + f.dur * 1.5 })),
   );
@@ -107,7 +80,6 @@ const PULSES: { nodeId: string; dur: number; begin: number }[] = EDGES.flatMap((
 
 type Step = { edges: string[]; text: string };
 
-/** The narration: one interview, in the order it actually happens. */
 const STEPS: Step[] = [
   { edges: ["token-req"], text: "The browser asks the API for a room token." },
   { edges: ["token-res", "declare"], text: "The API returns a JWT that declares the room and the agent to dispatch — it never calls LiveKit." },
@@ -125,8 +97,6 @@ export default function ArchitectureDiagram() {
   const reduce = useReducedMotion();
   const [hovered, setHovered] = useState<string | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
-  // SMIL runs off the document clock, so these timelines keep animating (and
-  // dirtying the SVG) even when the diagram is nowhere near the viewport.
   const inView = useSceneActive(svgRef);
   const moving = !reduce && inView;
 
@@ -140,15 +110,12 @@ export default function ArchitectureDiagram() {
   const narrating = step >= 0;
   const liveEdges = narrating ? STEPS[step].edges : null;
 
-  // Every edge stays legible at all times — the narration and hover states
-  // *emphasise*, they never hide. Hence a high floor rather than a fade-out.
   const edgeOpacity = (e: EdgeDef) => {
     if (hovered) return hovered === e.from || hovered === e.to ? 1 : 0.55;
     if (liveEdges) return liveEdges.includes(e.id) ? 1 : 0.7;
     return 1;
   };
 
-  // Nodes touched by the current beat, so the narration lights boxes too.
   const liveNodes = new Set(
     liveEdges
       ? EDGES.filter((e) => liveEdges.includes(e.id)).flatMap((e) => [e.from, e.to])
@@ -185,7 +152,6 @@ export default function ArchitectureDiagram() {
             boxShadow: "inset 0 1px 0 0 rgb(255 255 255 / 0.045)",
           }}
         >
-          {/* Surface texture + a soft brand halo pooled under the media plane. */}
           <div className="pointer-events-none absolute inset-0 opacity-40">
             <Blueprint maskPosition="50% 78%" />
           </div>
@@ -206,7 +172,6 @@ export default function ArchitectureDiagram() {
               role="group"
               aria-label="System architecture diagram: control plane and media plane"
             >
-              {/* plane markers */}
               <g className="ln-mono fill-ink-muted" fontSize="9.5" opacity={0.75} letterSpacing="0.14em">
                 <text x="36" y="24">CONTROL PLANE</text>
                 <text x="36" y="536">MEDIA PLANE</text>
@@ -222,14 +187,12 @@ export default function ArchitectureDiagram() {
                 opacity={0.8}
               />
 
-              {/* edges */}
               {EDGES.map((e) => {
                 const flows = FLOW[e.kind];
                 const isMedia = e.kind === "media";
                 const lanes = e.dBack ? [e.d, e.dBack] : [e.d];
                 return (
                   <g key={e.id} opacity={edgeOpacity(e)} style={{ transition: "opacity 600ms ease" }}>
-                    {/* fiber cladding — only real channels get the glass halo */}
                     {isMedia && (
                       <path d={e.d} fill="none" className="text-brand" stroke="currentColor" strokeWidth="7" opacity={0.16} />
                     )}
@@ -274,7 +237,6 @@ export default function ArchitectureDiagram() {
                 );
               })}
 
-              {/* edge labels — chipped so they can sit straight on the path */}
               {EDGES.filter((e) => e.label && e.labelAt).map((e) => (
                 <EdgeLabel
                   key={`${e.id}-label`}
@@ -284,7 +246,6 @@ export default function ArchitectureDiagram() {
                 />
               ))}
 
-              {/* nodes */}
               {NODES.map((n) => {
                 const state = nodeState(n.id);
                 const cx = n.x + n.w / 2;
@@ -303,7 +264,6 @@ export default function ArchitectureDiagram() {
                     opacity={state === "off" ? 0.72 : 1}
                     style={{ transition: "opacity 600ms ease" }}
                   >
-                    {/* arrival pulses, one per inbound packet lane */}
                     {moving &&
                       PULSES.filter((p) => p.nodeId === n.id).map((p, i) => (
                         <rect
@@ -338,7 +298,6 @@ export default function ArchitectureDiagram() {
                       />
                     )}
 
-                    {/* Elevation, not outlines: the surface step does the separating. */}
                     <rect
                       x={n.x}
                       y={n.y}
@@ -347,8 +306,6 @@ export default function ArchitectureDiagram() {
                       rx={r}
                       className={n.plane === "control" ? "fill-surface-2" : "fill-surface-3"}
                     />
-                    {/* SVG stand-in for the `inset 0 1px 0 white/6%` top highlight
-                        that `.ln-lift` uses in dark mode. */}
                     <path
                       d={`M${n.x + 1},${n.y + r} A${r},${r} 0 0 1 ${n.x + r},${n.y} H${n.x + n.w - r} A${r},${r} 0 0 1 ${n.x + n.w - 1},${n.y + r}`}
                       fill="none"
@@ -397,7 +354,6 @@ export default function ArchitectureDiagram() {
           </div>
         </div>
 
-        {/* inspector line — narrates the loop, or the hovered service */}
         <div className="mt-4 flex items-start gap-2.5 border-t border-hairline pt-4 text-[13px]">
           <span
             className={`mt-1.5 size-2 shrink-0 rounded-full ${
@@ -424,10 +380,6 @@ export default function ArchitectureDiagram() {
   );
 }
 
-/**
- * Edge annotation with a canvas-coloured chip behind it, so the label can sit
- * directly on the path it describes instead of being nudged into free space.
- */
 function EdgeLabel({
   lines,
   at,
@@ -445,7 +397,6 @@ function EdgeLabel({
   const top = y - h / 2;
   return (
     <g opacity={opacity} style={{ transition: "opacity 600ms ease" }} pointerEvents="none">
-      {/* Opaque chip: the label has to win against whatever edge runs under it. */}
       <rect x={x - w / 2} y={top} width={w} height={h} rx={5} fill="#08090A" />
       {lines.map((l, i) => (
         <text

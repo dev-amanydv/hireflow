@@ -8,11 +8,6 @@ import {
   useTransform,
 } from "motion/react";
 
-/**
- * Reveals `text` a token at a time (char-by-char or word-by-word) on a timer —
- * the shared typewriter effect behind every streaming transcript line. Set
- * `loop` to restart after `pause` once the text finishes.
- */
 export function useStream(
   text: string,
   opts: {
@@ -21,7 +16,6 @@ export function useStream(
     startDelay?: number;
     loop?: boolean;
     pause?: number;
-    /** When false the stream holds where it is — stops it running in a hidden tab. */
     active?: boolean;
   } = {},
   reduce?: boolean | null,
@@ -63,18 +57,6 @@ export function useStream(
   return { out: tokens.slice(0, n).join(""), started: n > 0, done: n >= tokens.length };
 }
 
-/**
- * Interval that only runs while the element is actually on screen and the tab
- * is visible. Every showcase section on the landing page animates on a loop;
- * without this gate they all keep ticking React state while scrolled far out
- * of view, and the page feels laggy everywhere at once.
- *
- * Prefer CSS/compositor animation for continuous spatial motion — reach for
- * this only for discrete state that has to live in React (which step is lit,
- * which row is next).
- */
-/* One `visibilitychange` subscription for the whole page rather than one per
-   animated section — every scene hook below reads from this single store. */
 function subscribeTabVisible(onChange: () => void) {
   document.addEventListener("visibilitychange", onChange);
   return () => document.removeEventListener("visibilitychange", onChange);
@@ -86,12 +68,6 @@ function useTabVisible() {
   return useSyncExternalStore(subscribeTabVisible, getTabVisible, getTabVisibleServer);
 }
 
-/**
- * True only while `ref` is near the viewport *and* the tab is foregrounded — the
- * shared "should this scene be animating at all?" signal. Continuous CSS/SMIL
- * motion should be paused or unmounted when this is false; React-driven scenes
- * should stop ticking.
- */
 export function useSceneActive(ref: React.RefObject<Element | null>) {
   const inView = useInView(ref, { margin: "160px" });
   const tabVisible = useTabVisible();
@@ -119,15 +95,6 @@ export function useSceneTick(
   return running;
 }
 
-/**
- * Steps through a loop by *scene boundary* rather than by fixed tick. Given the
- * timestamps at which something visible actually changes, it fires one state
- * update per boundary instead of one per tick — a scene whose 8s loop has seven
- * distinct states costs seven renders, not eighty.
- *
- * Returns the exact `phases[step]` timestamp so callers can keep deriving state
- * from an elapsed-milliseconds value exactly as they would with a fine tick.
- */
 export function useScenePhase(
   ref: React.RefObject<Element | null>,
   {
@@ -140,8 +107,6 @@ export function useScenePhase(
   const active = useSceneActive(ref);
   const [step, setStep] = useState(0);
   const [loop, setLoop] = useState(0);
-  // Mirrors `step` so the scheduler can advance without the effect closing over
-  // it — otherwise the timer chain tears down and restarts on every boundary.
   const stepRef = useRef(0);
   const running = enabled && !paused && active;
 
@@ -152,7 +117,6 @@ export function useScenePhase(
     const schedule = () => {
       const current = stepRef.current;
       const next = current + 1;
-      // Past the last boundary the remaining wait is whatever is left of the loop.
       const at = next >= phases.length ? loopMs : phases[next];
       timer = setTimeout(
         () => {
@@ -177,11 +141,6 @@ export function useScenePhase(
   return { elapsed: phases[step] ?? 0, loop };
 }
 
-/**
- * SSR-safe media query. Server and first client render both assume the desktop
- * branch, so layouts that would otherwise render *both* breakpoints and hide one
- * can mount only the branch they need.
- */
 export function useBreakpoint(query: string) {
   const subscribe = useMemo(
     () => (onChange: () => void) => {
@@ -198,16 +157,10 @@ export function useBreakpoint(query: string) {
   );
 }
 
-/** Blinking typing caret, sized to sit against the current line of text. */
 export function Caret() {
   return <span className="hf-caret ml-0.5 inline-block h-[1em] w-[2px] translate-y-[2px] bg-current align-middle" />;
 }
 
-/**
- * Reserves the final (longest) text's box size via an invisible copy, then
- * overlays the animating content absolutely — prevents layout jumping as a
- * streamed line grows to its full length.
- */
 export function Reserve({
   final,
   textClassName,
@@ -231,10 +184,6 @@ export function Reserve({
   );
 }
 
-/**
- * Extremely subtle dotted "blueprint" background, radially masked toward one
- * focal point — the faint technical-schematic backdrop behind product mockups.
- */
 export function Blueprint({ maskPosition = "62% 42%" }: { maskPosition?: string }) {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 -z-0">
@@ -252,11 +201,6 @@ export function Blueprint({ maskPosition = "62% 42%" }: { maskPosition?: string 
   );
 }
 
-/**
- * Resume doc node connected by a hand-drawn dashed path to a cascade of
- * question-bubble nodes — visualizes "resume in, tailored questions out".
- * Draws itself in once, the first time it scrolls into view.
- */
 export function FigResumeToInterview() {
   const reduce = useReducedMotion();
 
@@ -299,7 +243,6 @@ export function FigResumeToInterview() {
       viewport={{ once: true, margin: "-80px" }}
     >
       <g stroke="currentColor" strokeWidth="1" strokeLinejoin="round">
-        {/* Resume document node */}
         <motion.g
           variants={{
             hidden: { opacity: 0, scale: 0.95 },
@@ -316,7 +259,6 @@ export function FigResumeToInterview() {
           <path d="M30 130h32M30 142h16" opacity="0.4" />
         </motion.g>
 
-        {/* Dashed connector paths, drawn once on view */}
         {bubbles.map((b, i) => (
           <motion.path
             key={`path-${i}`}
@@ -327,7 +269,6 @@ export function FigResumeToInterview() {
           />
         ))}
 
-        {/* Question bubble nodes */}
         {bubbles.map((b, i) => (
           <motion.g key={`bubble-${i}`} custom={i} variants={nodeVariants}>
             <rect
@@ -350,10 +291,6 @@ export function FigResumeToInterview() {
   );
 }
 
-/**
- * A checkmark that draws itself in with a single stroke — used for the
- * resume-analyzer checklist rows. Animates once, staggered by `index`.
- */
 export function DrawCheck({ index = 0 }: { index?: number }) {
   const reduce = useReducedMotion();
   return (
@@ -386,13 +323,6 @@ export function DrawCheck({ index = 0 }: { index?: number }) {
   );
 }
 
-/**
- * A single "packet" that travels along an SVG path on a seamless loop, using
- * native SMIL <animateMotion> — pure vector, no JS on the frame loop. Must be
- * rendered inside an <svg>. Colour comes from `className` via currentColor so
- * it themes. Returns null under reduced motion (the static connector already
- * carries the meaning).
- */
 export function PacketFlow({
   path,
   dur = 3,
@@ -430,15 +360,6 @@ export function PacketFlow({
   );
 }
 
-/**
- * The soft halo that rides just ahead of a packet — a fiber's comet head. A
- * blurred disc is approximately a radial gradient, and as a paint server it
- * costs no filter-region re-raster as the circle moves (an `feGaussianBlur`
- * would re-rasterize every frame).
- *
- * `id` must be unique per instance on the page — the `<radialGradient>` is
- * defined inline and ids are document-global.
- */
 export function PacketComet({
   id,
   path,
@@ -480,11 +401,6 @@ export function PacketComet({
   );
 }
 
-/**
- * Multi-lane fiber-optic style link between two scene panels — horizontal on
- * `lg:` layouts, vertical below. `id` must be unique per instance on the page —
- * it namespaces the comet's gradient id against every other Connector's.
- */
 export const Connector = memo(function Connector({
   id,
   reduce,
@@ -492,7 +408,6 @@ export const Connector = memo(function Connector({
 }: {
   id: string;
   reduce: boolean | null;
-  /** False renders only the static lanes — no SMIL timelines at all. */
   active?: boolean;
 }) {
   const horizontal = useBreakpoint("(min-width: 1024px)");
@@ -539,11 +454,6 @@ export const Connector = memo(function Connector({
   );
 });
 
-/**
- * Surface-ladder panel container used by every three-scene showcase row —
- * `variant="raised"` bumps it a level up the surface stack (used for the
- * hero/largest scene in the middle).
- */
 export function Panel({
   variant = "panel",
   className = "",
@@ -564,11 +474,6 @@ export function Panel({
   );
 }
 
-/**
- * Voice waveform — rounded bars whose heights breathe on a staggered loop.
- * `active` toggles the speaking (tall, lively) vs idle (short, calm) state.
- * Div-based so it drops into any UI card. Static, varied bars under reduced motion.
- */
 export function Waveform({
   bars = 28,
   active = true,
@@ -578,14 +483,12 @@ export function Waveform({
 }: {
   bars?: number;
   active?: boolean;
-  /** False pauses the bars in place (offscreen / hidden tab) without unmounting. */
   running?: boolean;
   className?: string;
   reduce?: boolean | null;
 }) {
   const reduceHook = useReducedMotion();
   const reduce = reduceProp ?? reduceHook;
-  // Deterministic per-bar amplitude so SSR and client agree.
   const amp = (i: number) => 0.4 + (Math.sin(i * 1.3) * 0.5 + 0.5) * 0.6;
 
   return (
@@ -601,8 +504,6 @@ export function Waveform({
             />
           );
         }
-        // The static transform doubles as the reduced-motion resting pose, so the
-        // `animation: none` rule in app.css resolves to a sensible frame.
         return (
           <span
             key={i}
@@ -624,11 +525,6 @@ export function Waveform({
   );
 }
 
-/**
- * Count-up progress ring. Animates a stroke-dash sweep and a rolling number the
- * first time it scrolls into view. Reused by the evaluation and resume-analyzer
- * sections so the "score" motif is identical everywhere.
- */
 export function CountUpScore({
   value,
   label,
@@ -709,10 +605,6 @@ export function CountUpScore({
   );
 }
 
-/**
- * Four-axis radar over the product's fixed competency dimensions. Grid + axes
- * are static hairlines; the data polygon grows from its centre on view.
- */
 export function RadarChart({
   values,
   labels,

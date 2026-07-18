@@ -5,10 +5,6 @@ import {
   AccordionTrigger,
 } from "~/components/ui/accordion";
 
-/**
- * FAQ — truthful answers only, mirroring how the product actually works.
- */
-
 const FAQS = [
   {
     q: "Is it a real voice interview?",

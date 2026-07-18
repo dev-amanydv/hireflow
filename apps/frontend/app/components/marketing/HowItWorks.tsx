@@ -1,11 +1,5 @@
 import { motion, useReducedMotion } from "motion/react";
 
-/**
- * Three-step "how it works" timeline. A hairline rail draws itself across the
- * three step markers on scroll; each step carries a minimal glyph, a title, and
- * one plain sentence. No marketing fluff — just the real path from PDF to report.
- */
-
 const STEPS = [
   {
     n: "01",
@@ -59,7 +53,6 @@ export default function HowItWorks() {
       </div>
 
       <div className="relative mt-14">
-        {/* connecting rail behind the markers (md and up) */}
         <svg
           aria-hidden
           className="absolute inset-x-0 top-[22px] hidden h-2 w-full md:block"

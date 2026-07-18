@@ -13,11 +13,6 @@ import { Blueprint, Caret, Reserve, useSceneActive, useSceneTick, useStream } fr
 const ACC = "var(--primary)";
 const EASE = [0.22, 1, 0.36, 1] as const;
 
-/* ---- interview window ------------------------------------------------ */
-/* Mirrors the real product's InterviewRoom: a live/timer top bar, a left
-   icon rail, a centered audio-reactive dot grid with a status line, a plain
-   alignment-based transcript, and a pill-shaped control bar. */
-
 function TitleBar() {
   return (
     <div className="relative flex items-center border-b border-hairline px-4 py-2.5 sm:px-5">
@@ -98,16 +93,10 @@ function useStatusCycle(ref: React.RefObject<Element | null>, reduce: boolean | 
   return STATUS_STEPS[i];
 }
 
-/* A soft, center-bright cluster of dots standing in for the real product's
-   audio-reactive visualizer grid — brighter and quicker while "speaking",
-   calmer while "listening". Falls back to a static falloff under reduced motion. */
 const DOT_COLS = 8;
 const DOT_ROWS = 8;
 
 function DotGrid({ reduce, mode }: { reduce: boolean | null; mode: "listening" | "thinking" | "speaking" }) {
-  // The 64 dots never change with `mode` — only the two custom properties on the
-  // container do, and CSS re-resolves those live against the running animations.
-  // Memoising them keeps React out of the 3.4s status cycle entirely.
   const dots = useMemo(() => {
     const cx = (DOT_COLS - 1) / 2;
     const cy = (DOT_ROWS - 1) / 2;
@@ -206,8 +195,6 @@ const MESSAGES = [
   { who: "ai", text: "Tell me how you first got started learning React and what resources or projects you used to practice." },
 ] as const;
 
-/* Owns the per-character stream so the ~45 updates/sec touch two adjacent text
-   nodes instead of re-rendering the whole transcript (3 motion.div + Reserve). */
 function StreamingLine({ text, active, reduce }: { text: string; active: boolean; reduce: boolean | null }) {
   const { out, done } = useStream(text, { speed: 22, startDelay: 900, loop: true, pause: 4200, active }, reduce);
   return (
@@ -311,11 +298,6 @@ export default function InterviewStage() {
   return (
     <div className="relative" style={{ "--acc": ACC } as React.CSSProperties}>
       <Blueprint />
-      {/* A mask here would pull the whole window — 64 animating dots, the
-          streaming transcript, the blurred glow — into an offscreen buffer that
-          re-composites on every dot tick. The landing root paints a solid
-          --background, so an overlaid gradient is visually equivalent and costs
-          one static rect. */}
       <div className="relative lg:max-h-[640px] lg:overflow-hidden">
         <InterviewWindow reduce={reduce} />
         <div

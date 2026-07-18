@@ -8,7 +8,6 @@ const prefersReducedMotion = () =>
   typeof window !== "undefined" &&
   window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
 
-/** Counts to `target` once on reveal. Renders the final value immediately for reduced motion. */
 function useCountUp(target: number | null, duration = 900): number | null {
   const [value, setValue] = useState<number | null>(target == null ? null : 0);
   const frame = useRef<number | undefined>(undefined);
@@ -25,7 +24,6 @@ function useCountUp(target: number | null, duration = 900): number | null {
     const start = performance.now();
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / duration);
-      // ease-out-quart: fast commit, soft landing
       const eased = 1 - Math.pow(1 - t, 4);
       setValue(Math.round(target * eased));
       if (t < 1) frame.current = requestAnimationFrame(tick);
@@ -54,7 +52,6 @@ function ScoreMeter({ score }: { score: number | null }) {
             style={{ width: `${pct}%`, transition: "width 900ms cubic-bezier(0.22, 1, 0.36, 1)" }}
           />
         )}
-        {/* Threshold notches make the number self-explanatory: you can see which band you're in. */}
         {[SCORE_THRESHOLDS.mixed, SCORE_THRESHOLDS.strong].map((t) => (
           <span
             key={t}
@@ -144,11 +141,9 @@ export default function ReportHeader({
   targetRole: string | null;
   targetExperience?: string | null;
   hasJd?: boolean;
-  /** null while the analysis is still running — the slot scans instead of showing a number. */
   score: number | null;
   categories?: CategoryScore[];
   engine?: { deterministic: string; judge: string };
-  /** Stage list during analysis; sits where the category strip will land. */
   children?: React.ReactNode;
 }) {
   const [openCat, setOpenCat] = useState<string | null>(null);

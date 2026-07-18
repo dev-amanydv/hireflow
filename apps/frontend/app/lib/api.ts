@@ -2,12 +2,6 @@ import axios from "axios";
 import { toast } from "sonner";
 import { useAuth } from "~/store/store";
 
-/**
- * Message codes the backend returns with a 401 when the `access_token` cookie is
- * missing, malformed, or past its expiry (see `auth.middleware.ts` / `error.middleware.ts`).
- * The older `TokenExpiredError` / `Invalid token` spellings are kept so a frontend
- * deployed ahead of the backend still recognises them.
- */
 const EXPIRED_CODES = new Set(["TokenExpired", "TokenExpiredError"]);
 const INVALID_CODES = new Set([
   "InvalidToken",
@@ -28,7 +22,6 @@ function isAuthEndpoint(url: string | undefined) {
 function handleExpiredSession(expired: boolean) {
   const { user, authModal, removeUser, openAuthModal } = useAuth.getState();
 
-  // A page can fire several requests at once; all of them 401 together.
   toast.error(expired ? "Your session has expired" : "You're signed out", {
     id: SESSION_TOAST_ID,
     description: "Log back in to pick up where you left off.",
@@ -61,6 +54,4 @@ export function installAuthInterceptor() {
   );
 }
 
-// Requests only ever run in the browser; installing during SSR would leak the
-// interceptor across requests.
 if (typeof window !== "undefined") installAuthInterceptor();

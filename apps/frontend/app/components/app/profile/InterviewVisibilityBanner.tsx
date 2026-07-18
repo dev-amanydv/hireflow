@@ -5,11 +5,6 @@ import { toast } from "sonner";
 import { BACKEND_URL } from "~/lib/config";
 import { cn } from "~/lib/utils";
 
-/**
- * Shown only to the owner while they're looking at their own public interview page,
- * so it's obvious the recording is visible to anyone with the link — and one click
- * away from being private.
- */
 export function InterviewVisibilityBanner({
   interviewId,
   isPublic,

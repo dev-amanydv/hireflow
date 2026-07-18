@@ -63,17 +63,11 @@ type SidebarStatsStatus = "idle" | "loading" | "ready" | "error";
 interface SidebarStatsState {
     stats: ProfileStats | null,
     status: SidebarStatsStatus,
-    /** userId the current stats belong to, so a re-login can't show the last user's numbers. */
     loadedFor: string | null,
     load: (userId: string) => void,
     reset: () => void,
 }
 
-/**
- * Backs the sidebar footer. Lives in a store rather than the component because the
- * sidebar mounts twice below `lg` (the desktop rail stays mounted behind `hidden` while
- * the mobile sheet renders its own copy) — `loadedFor` collapses that into one request.
- */
 export const useSidebarStats = create<SidebarStatsState>()((set, get) => ({
     stats: null,
     status: "idle",

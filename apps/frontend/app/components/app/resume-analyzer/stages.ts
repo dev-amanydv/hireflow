@@ -8,12 +8,6 @@ export interface Stage {
   state: StageState;
 }
 
-/**
- * The deterministic rule pass is sub-second and always runs before the judge, so once the
- * row is ANALYZING we let it read as done after this long. It's the one estimated step —
- * every other transition is anchored to a real status from the API, and nothing is ever
- * marked done once the estimate runs out (the judge step simply keeps spinning).
- */
 const RULES_ESTIMATE_MS = 4000;
 
 const LABELS = {
@@ -33,18 +27,12 @@ function statesFor(status: string, elapsed: number): Record<keyof typeof LABELS,
   if (status === "PARSED") {
     return { read: "done", rules: "active", judge: "pending", score: "pending" };
   }
-  // ANALYZING
   if (elapsed < RULES_ESTIMATE_MS) {
     return { read: "done", rules: "active", judge: "pending", score: "pending" };
   }
   return { read: "done", rules: "done", judge: "active", score: "pending" };
 }
 
-/**
- * Restarts its clock whenever the row enters ANALYZING — including on a fresh mount for a
- * run that started before the user opened the page. The estimate is deliberately cheap;
- * it only ever gates the rules step.
- */
 export function useAnalysisStages(status: string): Stage[] {
   const [elapsed, setElapsed] = useState(0);
   const startedAt = useRef<number | null>(null);

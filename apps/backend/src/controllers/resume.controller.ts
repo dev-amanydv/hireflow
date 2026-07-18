@@ -6,7 +6,6 @@ import { prisma } from "../../prisma/db";
 import { enqueueAnalysisUpload, enqueueAnalysisScore } from "../queues/queue";
 import { ownerScope } from "../middlewares/identity.middleware";
 
-/** Analyses a signed-out visitor may run before we ask them to make an account. */
 const GUEST_ANALYSIS_LIMIT = 5;
 
 export const uploadResumeAnalysis = async (req: Request, res: Response) => {

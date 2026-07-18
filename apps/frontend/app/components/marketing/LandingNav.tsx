@@ -7,14 +7,9 @@ const LINKS = [
   { label: "FAQ", href: "#faq" },
 ];
 
-const NAV_HEIGHT = 56; // h-14, the row the logo and links sit in
-const BLUR_HEIGHT = 168; // nav row at full strength + the fade-out tail below it
+const NAV_HEIGHT = 56;
+const BLUR_HEIGHT = 168;
 
-// Stacked backdrop-blur layers, all anchored at the top and each fading out
-// earlier than the one below it. Blur is applied per layer to the result of the
-// previous one, so it accumulates toward the top and trails off to nothing at
-// the bottom instead of ending on a hard edge. Stops are in px so every layer
-// stays fully opaque across NAV_HEIGHT and only starts fading past the nav row.
 const BLUR_LAYERS = [
   { blur: 0.5, solidTo: NAV_HEIGHT, fadeTo: 168 },
   { blur: 1, solidTo: NAV_HEIGHT, fadeTo: 152 },

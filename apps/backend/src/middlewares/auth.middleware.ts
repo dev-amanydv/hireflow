@@ -31,8 +31,6 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
     next()
 }
 
-// Attaches req.userId when a valid access token is present, but never rejects the
-// request. Used on public routes that render extra owner-only controls.
 export const optionalAuthMiddleware = (req: Request, _res: Response, next: NextFunction) => {
     const token = req.cookies?.access_token;
     if (token) {
@@ -40,7 +38,6 @@ export const optionalAuthMiddleware = (req: Request, _res: Response, next: NextF
             const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
             req.userId = decoded.userId;
         } catch {
-            // Anonymous viewer — fall through without a userId.
         }
     }
     next()

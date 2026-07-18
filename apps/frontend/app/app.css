@@ -120,7 +120,6 @@ input[type=number] {
   animation: ln-marquee 32s linear infinite;
 }
 
-/* Breathing halo on the stage that is currently running. */
 @keyframes ln-stage-pulse {
   0%,
   100% {
@@ -137,7 +136,6 @@ input[type=number] {
   animation: ln-stage-pulse 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* Sweeps once across the pending score slot: the report is assembling, not stalled. */
 @keyframes ln-scan {
   0% {
     transform: translateX(-100%);
@@ -165,7 +163,6 @@ input[type=number] {
   }
 }
 
-/* Blinking caret for the hero's self-typing interview captions. */
 @keyframes hf-blink {
   0%,
   49% {
@@ -198,19 +195,6 @@ input[type=number] {
     opacity: 0;
   }
 }
-
-/* ---------------------------------------------------------------------------
-   Hero dot grid + voice waveform.
-
-   Both are dense (64 dots, 22–36 bars) and run continuously, so both are pure
-   compositor animations parameterised by custom properties rather than per-
-   element JS keyframes. Because custom properties referenced inside keyframes
-   are re-resolved live, the hero can retarget every dot at once — by setting
-   --dot-amp on the grid container — without restarting a single animation.
-
-   As with .jd-motion below, each element's *static* inline style is its
-   reduced-motion resting pose, so `animation: none` resolves to a real frame.
---------------------------------------------------------------------------- */
 
 @keyframes hf-dot-breathe {
   0%,
@@ -261,21 +245,6 @@ input[type=number] {
   }
 }
 
-/* ---------------------------------------------------------------------------
-   Job discovery orbital scene.
-
-   Every continuous motion here is a compositor-driven CSS animation on one
-   shared 8s master loop, staggered per element with animation-delay. Nothing
-   in the scene ticks React state — driving positions from a JS interval capped
-   the motion at the tick rate and made the whole page stutter.
-
-   Each element's *static* style is its reduced-motion resting pose, so
-   `animation: none` below resolves the scene to a sensible finished frame.
---------------------------------------------------------------------------- */
-
-/* A job listing leaving its source and falling into the core. Position eases
-   the whole way (gravitational, not mechanical); opacity fades it out as the
-   core absorbs it. */
 @keyframes jd-packet {
   0% {
     offset-distance: 0%;
@@ -298,7 +267,6 @@ input[type=number] {
   }
 }
 
-/* Schema chips resolving onto a card as it crosses the normalization field. */
 @keyframes jd-chips {
   0%,
   20% {
@@ -312,8 +280,6 @@ input[type=number] {
   }
 }
 
-/* The upsert beat: a source re-sends a listing it already sent, the duplicate
-   catches up to the original and collapses into it instead of landing twice. */
 @keyframes jd-twin {
   0%,
   5% {
@@ -352,7 +318,6 @@ input[type=number] {
   }
 }
 
-/* Telemetry drifting along the ingest paths between packet arrivals. */
 @keyframes jd-particle {
   0% {
     offset-distance: 0%;
@@ -370,7 +335,6 @@ input[type=number] {
   }
 }
 
-/* Slow outward breath from the core ring. */
 @keyframes jd-pulse {
   0% {
     transform: scale(0.66);
@@ -382,7 +346,6 @@ input[type=number] {
   }
 }
 
-/* Source badge flaring as it releases a listing. */
 @keyframes jd-emit {
   0% {
     opacity: 0;
@@ -399,7 +362,6 @@ input[type=number] {
   }
 }
 
-/* Four core activity indicators, each lit for its quarter of the loop. */
 @keyframes jd-activity {
   0% {
     opacity: 0.35;
@@ -435,21 +397,13 @@ input[type=number] {
   animation-duration: 8s;
   animation-iteration-count: infinite;
   animation-timing-function: linear;
-  /* Staggered elements must hold their 0% pose through their delay rather than
-     flashing the reduced-motion resting pose they carry as a static style. */
   animation-fill-mode: backwards;
 }
 
-/* Layer promotion is opt-in, and only for the elements that actually traverse
-   space (the packet cards and telemetry particles). The pulses, activity dots
-   and flares animate opacity/scale on tiny boxes and do not earn a permanent
-   compositor layer each. Note `offset-distance` is deliberately absent: it is
-   not compositor-animatable, so hinting it buys nothing. */
 .jd-motion-gpu {
   will-change: transform, opacity;
 }
 
-/* Offscreen or backgrounded: stop the loop and hand the layers back. */
 .jd-scene[data-idle="true"] .jd-motion {
   animation-play-state: paused;
 }
@@ -472,9 +426,6 @@ body {
   @apply bg-background text-foreground;
 }
 
-/* The marketing landing runs an absolute-dark canvas in dark mode (Linear-style).
-   Scoped to the landing so the themed dashboard keeps its softer dark surface.
-   Only --background is overridden; cards/borders stay put and gain contrast. */
 .dark .landing-root {
   --background: oklch(0.13 0.006 275);
 }
@@ -589,8 +540,6 @@ body {
   --ink-muted: oklch(0.34 0.02 275);
   --ink-tertiary: oklch(0.52 0.02 275);
   --success: oklch(0.55 0.13 150);
-  /* Score ramp: chroma encodes strength. A strong resume is full lavender; a weak one
-     desaturates toward ink. No traffic lights — severity colour is spent on findings. */
   --score-strong: var(--primary);
   --score-mixed: color-mix(in oklab, var(--primary) 65%, var(--ink-muted));
   --score-weak: color-mix(in oklab, var(--primary) 32%, var(--ink-muted));
@@ -614,8 +563,6 @@ body {
   --skill-python: oklch(0.62 0.14 255);
   --skill-dsa: oklch(0.65 0.15 12);
   --skill-behavioral: oklch(0.6 0.14 315);
-  /* Soft brand halo for hero / CTA / node glows. Token, not a hardcoded rgba,
-     so it tracks the theme. */
   --glow-brand: color-mix(in oklab, var(--primary) 14%, transparent);
 }
 
@@ -648,7 +595,6 @@ body {
   --surface-4: oklch(0.27 0.014 275);
   --hairline-strong: oklch(0.34 0.012 275);
   --ink-muted: oklch(0.86 0.01 275);
-  /* 0.58 measured 4.19:1 on the card surface — under AA for normal text. */
   --ink-tertiary: oklch(0.62 0.014 275);
   --success: oklch(0.7 0.15 150);
   --score-strong: oklch(0.7 0.15 272);
@@ -731,19 +677,6 @@ body {
   }
 }
 
-/* ── Toasts ──────────────────────────────────────────────────────────────────
-   Sonner is rendered with `unstyled`, so every rule below is the whole design.
-
-   The surface is liquid glass: a translucent tint over a saturating backdrop
-   blur, a specular highlight along the top edge, and a soft bloom in the
-   accent colour bleeding out from behind the icon. `--toast-accent` is the one
-   knob each variant turns — icon, bloom and edge light all read from it.
-
-   Deliberately no ::before/::after on the toast: sonner owns both pseudos for
-   its swipe hit-area and stack spacing. The glass is layered background-images
-   instead. Left unlayered so it outranks the stylesheet sonner injects at
-   runtime. */
-
 [data-sonner-toaster].hf-toaster {
   --width: 400px;
   font-family: var(--font-sans);
@@ -768,13 +701,11 @@ body {
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   backdrop-filter: blur(24px) saturate(180%);
   background-image:
-    /* accent bloom, anchored behind the icon */
     radial-gradient(
       120% 130% at 6% 0%,
       color-mix(in oklab, var(--toast-accent) 16%, transparent) 0%,
       transparent 62%
     ),
-    /* raking light across the top-left, the way a real bevel catches it */
       linear-gradient(
         152deg,
         color-mix(in oklab, white 26%, transparent) 0%,
@@ -827,7 +758,6 @@ body {
   --toast-accent: var(--ink-tertiary);
 }
 
-/* Icon chip */
 [data-sonner-toast].hf-toast [data-icon] {
   display: grid;
   place-items: center;
@@ -858,7 +788,6 @@ body {
   animation: hf-toast-spin 0.9s linear infinite;
 }
 
-/* Copy */
 [data-sonner-toast].hf-toast [data-content] {
   display: flex;
   flex-direction: column;
@@ -883,13 +812,10 @@ body {
   color: var(--ink-tertiary);
 }
 
-/* --ink-tertiary is documented above as sub-AA on dark surfaces, and a toast can
-   land over anything. Lift it, staying a clear step under the title. */
 [data-sonner-toaster].hf-toaster.dark [data-sonner-toast].hf-toast [data-description] {
   color: oklch(0.76 0.014 275);
 }
 
-/* Action / cancel */
 [data-sonner-toast].hf-toast [data-button] {
   flex-shrink: 0;
   height: 1.75rem;
@@ -914,8 +840,6 @@ body {
   background: color-mix(in oklab, var(--foreground) 14%, transparent);
 }
 
-/* Close. Sonner renders it first in the DOM (it absolutely-positions it when
-   styled), so reorder it to the end of the row. */
 [data-sonner-toaster].hf-toaster [data-sonner-toast].hf-toast [data-close-button] {
   display: grid;
   place-items: center;
@@ -951,13 +875,10 @@ body {
   outline-offset: 2px;
 }
 
-/* Sonner fades the contents of collapsed background toasts itself, but only for
-   styled toasts — reinstate it so the stack doesn't show through. */
 [data-sonner-toast].hf-toast[data-expanded="false"][data-front="false"] > * {
   opacity: 0;
 }
 
-/* Blur is the whole effect; without it the tint alone reads as washed out. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   [data-sonner-toast].hf-toast {
     --toast-surface: var(--popover);

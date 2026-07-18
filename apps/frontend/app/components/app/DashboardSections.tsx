@@ -1269,7 +1269,6 @@ export function PracticeSkillDetail() {
           </section>
         </div>
 
-        {/* Right: sticky launch panel */}
         <div className="ln-lift ln-rise h-fit rounded-2xl border border-border bg-card p-5 lg:sticky lg:top-[4.5rem]">
           <span className="ln-eyebrow">Choose difficulty</span>
           <p className="mt-1 text-xs text-ink-subtle">
@@ -1543,9 +1542,6 @@ const SOURCE_LABELS: Record<Job["source"], string> = {
 
 const PAGE_SIZE = 20;
 
-// A stable jewel-tone accent per company, drawn from the same restrained oklch
-// family as the practice-skill accents — so the grid reads as a considered set,
-// and a given company keeps its color across renders and pages.
 const JOB_ACCENT = "oklch(0.84 0.04 278)";
 
 const JOB_ACCENTS = Array(8).fill(JOB_ACCENT) as readonly string[];
@@ -1643,7 +1639,6 @@ function JobCard({
         "hover:-translate-y-0.5 hover:border-[color-mix(in_oklab,var(--accent)_45%,var(--border))]",
       )}
     >
-      {/* Accent wash — atmosphere that only surfaces on hover. */}
       <span
         aria-hidden
         className="pointer-events-none absolute -right-8 -top-8 size-28 rounded-full opacity-0 blur-2xl transition-opacity duration-300 ease-out group-hover:opacity-100"
@@ -1897,7 +1892,6 @@ export function Jobs() {
     };
   }, [debouncedQuery, remoteOnly, type, source, page]);
 
-  // Saved jobs load once — they drive both the "Saved" view and each card's
   useEffect(() => {
     if (!user) {
       setSavedJobs([]);

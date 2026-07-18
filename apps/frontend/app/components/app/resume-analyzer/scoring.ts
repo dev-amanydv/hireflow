@@ -2,7 +2,6 @@ import type { Severity } from "./types";
 
 export type ScoreBand = "strong" | "mixed" | "weak";
 
-/** Thresholds are shared with the copy in ScoreMeter's tick marks — keep them in sync. */
 export const SCORE_THRESHOLDS = { strong: 80, mixed: 60 } as const;
 
 export function scoreBand(score: number): ScoreBand {
@@ -22,10 +21,6 @@ export function bandMeta(score: number | null) {
   return BAND_META[scoreBand(score)];
 }
 
-/**
- * Severity always pairs a colour with a label and a distinct glyph, so red/green colour
- * blindness costs no information.
- */
 export const SEVERITY_META: Record<
   Severity,
   { label: string; text: string; dot: string; glyph: string; order: number }

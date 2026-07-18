@@ -63,7 +63,6 @@ export const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
-/** Shared by nav links and the log-out row so the rail has one row vocabulary. */
 const ROW =
   "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] leading-5 outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-sidebar-ring";
 const ROW_IDLE =
@@ -96,7 +95,6 @@ function NavButton({
           <Icon
             className={cn(
               ICON,
-              // Lavender is the scarce accent: current selection, nothing decorative.
               isActive
                 ? "text-primary"
                 : "text-ink-tertiary group-hover:text-sidebar-foreground"
@@ -129,7 +127,6 @@ function StatsFooter() {
     );
   }
 
-  // A rail stat is not worth an error message — stay quiet and give the space back.
   if (status === "error" || !stats) return null;
 
   if (stats.totalInterviews === 0) {
