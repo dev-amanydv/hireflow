@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import { Brand } from "~/components/app/Brand";
 
 const COLUMNS: { title: string; links: string[] }[] = [
@@ -46,18 +47,18 @@ export default function Footer() {
             © {new Date().getFullYear()} Hireflow Labs. All rights reserved.
           </span>
           <div className="flex items-center gap-5">
-            <a
-              href="#features"
+            <Link
+              to="/privacy"
               className="transition-colors hover:text-foreground"
             >
               Privacy
-            </a>
-            <a
-              href="#features"
+            </Link>
+            <Link
+              to="/terms"
               className="transition-colors hover:text-foreground"
             >
               Terms
-            </a>
+            </Link>
           </div>
         </div>
       </div>
