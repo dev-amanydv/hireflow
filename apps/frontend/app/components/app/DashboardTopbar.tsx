@@ -41,7 +41,10 @@ export default function DashboardTopbar() {
               <Menu className="size-4" />
             </button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-64 p-0 sm:max-w-64">
+          <SheetContent
+            side="left"
+            className="w-[264px] border-sidebar-border bg-sidebar p-0 sm:max-w-[264px]"
+          >
             <SheetTitle className="sr-only">Navigation</SheetTitle>
             <DashboardSidebar
               onNavigate={() => setMobileOpen(false)}

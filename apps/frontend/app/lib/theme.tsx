@@ -9,10 +9,10 @@ import { cn } from "~/lib/utils";
 
 export type Theme = "light" | "dark";
 
-export const THEME_COOKIE = "QuickHire-theme";
+export const THEME_COOKIE = "Hireflow-theme";
 
 export function getThemeFromCookie(cookieHeader: string | null): Theme {
-  const match = cookieHeader?.match(/(?:^|;\s*)QuickHire-theme=(light|dark)/);
+  const match = cookieHeader?.match(/(?:^|;\s*)Hireflow-theme=(light|dark)/);
   return match?.[1] === "dark" ? "dark" : "light";
 }
 

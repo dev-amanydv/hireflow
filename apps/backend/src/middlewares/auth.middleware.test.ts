@@ -39,7 +39,7 @@ describe("authMiddleware", () => {
     expect(next).toHaveBeenCalledWith();
   });
 
-  test("expired token -> responds with TokenExpired payload instead of calling next", () => {
+  test("expired token -> throws 401 TokenExpired, next not called", () => {
     const token = jwt.sign({ userId: "user-1", email: "a@b.com" }, JWT_SECRET, {
       expiresIn: -10,
     });
@@ -47,43 +47,33 @@ describe("authMiddleware", () => {
     const res = fakeRes();
     const next = vi.fn() as NextFunction;
 
-    authMiddleware(req, res, next);
-
-    expect(res.json).toHaveBeenCalledWith({
-      success: false,
-      message: "TokenExpired",
-      data: null,
-    });
+    expect(() => authMiddleware(req, res, next)).toThrow(
+      expect.objectContaining({ statusCode: 401, message: "TokenExpired" }),
+    );
+    expect(res.json).not.toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();
   });
 
-  test("malformed/invalid-signature token -> responds with Invalid Token payload", () => {
+  test("malformed/invalid-signature token -> throws 401 InvalidToken", () => {
     const wrongToken = jwt.sign({ userId: "user-1" }, "some-other-secret");
     const req = fakeReq(wrongToken);
     const res = fakeRes();
     const next = vi.fn() as NextFunction;
 
-    authMiddleware(req, res, next);
-
-    expect(res.json).toHaveBeenCalledWith({
-      success: false,
-      message: "Invalid Token",
-      data: null,
-    });
+    expect(() => authMiddleware(req, res, next)).toThrow(
+      expect.objectContaining({ statusCode: 401, message: "InvalidToken" }),
+    );
+    expect(res.json).not.toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();
   });
 
-  test("garbage token string -> responds with Invalid Token payload (not a throw)", () => {
+  test("garbage token string -> throws 401 InvalidToken", () => {
     const req = fakeReq("not-a-jwt-at-all");
     const res = fakeRes();
     const next = vi.fn() as NextFunction;
 
-    authMiddleware(req, res, next);
-
-    expect(res.json).toHaveBeenCalledWith({
-      success: false,
-      message: "Invalid Token",
-      data: null,
-    });
+    expect(() => authMiddleware(req, res, next)).toThrow(
+      expect.objectContaining({ statusCode: 401, message: "InvalidToken" }),
+    );
   });
 });

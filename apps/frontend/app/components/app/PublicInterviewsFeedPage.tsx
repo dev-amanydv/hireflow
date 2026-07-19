@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
-import { Globe, Loader2 } from "lucide-react";
+import { Link } from "react-router";
+import { ArrowLeft, Globe, Loader2 } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import EmptyState from "./EmptyState";
 import { SectionHeader } from "./DashboardSections";
@@ -56,6 +57,14 @@ export function PublicInterviewsFeedPage() {
 
   return (
     <div className="flex flex-col gap-8">
+      <Link
+        to="/dashboard/overview"
+        className="inline-flex w-fit items-center gap-1.5 text-sm text-ink-subtle transition-colors hover:text-foreground"
+      >
+        <ArrowLeft className="size-4" />
+        Back to overview
+      </Link>
+
       <SectionHeader
         eyebrow="Community"
         title="Public interviews"

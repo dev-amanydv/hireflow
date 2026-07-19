@@ -2,7 +2,7 @@ import type { Route } from "./+types/insights";
 import { Insights } from "~/components/app/DashboardSections";
 
 export function meta({}: Route.MetaArgs) {
-  return [{ title: "Insights — QuickHire" }];
+  return [{ title: "Insights — Hireflow" }];
 }
 
 export default function DashboardInsightsRoute() {

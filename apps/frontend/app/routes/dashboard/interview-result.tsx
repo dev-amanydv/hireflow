@@ -33,7 +33,7 @@ import { BACKEND_URL } from "~/lib/config";
 import { cn } from "~/lib/utils";
 
 export function meta({}: Route.MetaArgs) {
-  return [{ title: "Report — QuickHire" }];
+  return [{ title: "Report — Hireflow" }];
 }
 
 type Evidence = { quote: string; note: string };

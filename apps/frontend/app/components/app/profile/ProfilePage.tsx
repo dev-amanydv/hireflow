@@ -259,7 +259,7 @@ export function ProfilePage() {
           )}
         </div>
       </div>
-
+      
       {!user ? (
         <PracticeSummary
           weeklyPractice={[]}

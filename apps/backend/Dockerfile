@@ -13,7 +13,8 @@ COPY apps/backend ./apps/backend
 WORKDIR /app/apps/backend
 RUN DATABASE_URL="postgresql://build:build@localhost:5432/build" bunx --bun prisma generate
 ENV NODE_ENV=production
+ENV PORT=8000
 RUN apk add --no-cache curl
 USER bun
-EXPOSE 8080
+EXPOSE 8000
 CMD ["bun", "run", "start"]

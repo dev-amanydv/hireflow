@@ -43,7 +43,7 @@ export default function Footer() {
       <div className="border-t border-border">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-5 py-6 text-[12px] text-ink-tertiary sm:flex-row sm:px-8">
           <span>
-            © {new Date().getFullYear()} QuickHire Labs. All rights reserved.
+            © {new Date().getFullYear()} Hireflow Labs. All rights reserved.
           </span>
           <div className="flex items-center gap-5">
             <a

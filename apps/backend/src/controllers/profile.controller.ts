@@ -301,7 +301,7 @@ export const getPublicInterview = async (req: Request, res: Response) => {
   const { username, interviewId } = req.params as { username: string; interviewId: string };
 
   const interview = await prisma.interview.findFirst({
-    where: { id: interviewId, isPublic: true, user: { username } },
+    where: { id: interviewId, user: { username } },
     select: {
       jobRole: true,
       skill: true,
@@ -311,11 +311,13 @@ export const getPublicInterview = async (req: Request, res: Response) => {
       recordingStatus: true,
       recordingDurationMs: true,
       recordingKey: true,
+      isPublic: true,
       userId: true,
       user: { select: { username: true, displayName: true, avatarKey: true } },
     },
   });
-  if (!interview) throw new AppError(404, "InterviewNotFound");
+  const isOwner = Boolean(req.userId) && interview?.userId === req.userId;
+  if (!interview || (!interview.isPublic && !isOwner)) throw new AppError(404, "InterviewNotFound");
 
   const [recordingUrl, avatarUrl, totalInterviews, timedInterviews] = await Promise.all([
     interview.recordingStatus === "READY" && interview.recordingKey
@@ -347,6 +349,8 @@ export const getPublicInterview = async (req: Request, res: Response) => {
       recordingStatus: interview.recordingStatus,
       durationMs: interview.recordingDurationMs,
       recordingUrl,
+      isPublic: interview.isPublic,
+      isOwner,
       owner: {
         username: interview.user.username,
         displayName: interview.user.displayName,

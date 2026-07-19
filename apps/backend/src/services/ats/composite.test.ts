@@ -113,6 +113,62 @@ describe("buildReport — judge available", () => {
   });
 });
 
+describe("buildReport — general review (no target role, no JD)", () => {
+  const generalJudge = () =>
+    availableJudge({ keywords: { matched: [], missing: [], coverage: 0 } });
+  const generalTarget = () => target({ role: null, jdText: null });
+
+  test("keywords category is omitted rather than scored 0", () => {
+    const report = buildReport(ruleCategories(), generalJudge(), generalTarget());
+    expect(report.categories.find((c) => c.category === "keywords")).toBeUndefined();
+    expect(report.categories).toHaveLength(5);
+    expect(report.keyword).toBeNull();
+  });
+
+  test("the keywords weight is redistributed instead of dragging the score down", () => {
+    const report = buildReport(ruleCategories(), generalJudge(), generalTarget());
+    const contentScore = Math.round((90 + 60 + 30) / 3);
+    const totalWeight =
+      WEIGHTS.parseability + WEIGHTS.contact + WEIGHTS.structure + WEIGHTS.impact + WEIGHTS.content;
+    const expected = Math.round(
+      (100 * WEIGHTS.parseability +
+        80 * WEIGHTS.contact +
+        60 * WEIGHTS.structure +
+        40 * WEIGHTS.impact +
+        contentScore * WEIGHTS.content) /
+        totalWeight,
+    );
+    expect(report.overallScore).toBe(expected);
+
+    const ifScoredAsZero = Math.round(
+      (100 * WEIGHTS.parseability +
+        80 * WEIGHTS.contact +
+        60 * WEIGHTS.structure +
+        40 * WEIGHTS.impact +
+        contentScore * WEIGHTS.content) /
+        (totalWeight + WEIGHTS.keywords),
+    );
+    expect(report.overallScore).toBeGreaterThan(ifScoredAsZero);
+  });
+
+  test("a genuine 0% keyword match is still scored, not dropped", () => {
+    const report = buildReport(
+      ruleCategories(),
+      availableJudge({ keywords: { matched: [], missing: ["Go", "Kafka"], coverage: 0 } }),
+      target(),
+    );
+    const keywordsCat = report.categories.find((c) => c.category === "keywords");
+    expect(keywordsCat?.score).toBe(0);
+    expect(keywordsCat?.weight).toBe(WEIGHTS.keywords);
+    expect(report.keyword).not.toBeNull();
+  });
+
+  test("target.role passes through as null", () => {
+    const report = buildReport(ruleCategories(), generalJudge(), generalTarget());
+    expect(report.target).toEqual({ role: null, experience: "mid", hasJd: false });
+  });
+});
+
 describe("buildReport — findings", () => {
   test("non-pass checks become findings; fail -> important, warn -> minor", () => {
     const categories = [

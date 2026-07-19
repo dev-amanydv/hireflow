@@ -4,7 +4,7 @@ export default function StatementBlock() {
       <p className="ln-display-md max-w-4xl">
         <span className="text-foreground">A new kind of interview prep. </span>
         <span className="text-ink-tertiary">
-          Purpose-built for engineers, QuickHire turns your real work into a
+          Purpose-built for engineers, Hireflow turns your real work into a
           tailored interview — so every question reflects what you've actually
           shipped.
         </span>

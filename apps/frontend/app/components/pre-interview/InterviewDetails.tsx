@@ -43,8 +43,8 @@ export default function InterviewDetails({
           Set up the session
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Upload the resume we'll use to tailor the interview. You can swap it out
-          anytime before you start.
+          Upload the resume we'll use to tailor the interview. You can swap it
+          out anytime before you start.
         </p>
       </div>
 
@@ -59,13 +59,17 @@ export default function InterviewDetails({
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="truncate text-sm font-semibold">{session!.resume.name}</span>
+                      <span className="truncate text-sm font-semibold">
+                        {session!.resume.name}
+                      </span>
                       <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-emerald-600">
                         <CheckCircle2 className="size-3.5" />
                         Uploaded
                       </span>
                     </div>
-                    <div className="mt-0.5 text-[11.5px] text-muted-foreground">{session!.resume.size}</div>
+                    <div className="mt-0.5 text-[11.5px] text-muted-foreground">
+                      {session!.resume.size}
+                    </div>
                   </div>
                   <button
                     type="button"
@@ -83,9 +87,9 @@ export default function InterviewDetails({
                 <InputFile
                   interviewId={interviewId}
                   sampleResume={{
-                    url: "/aman_yadav_resume.pdf",
-                    fileName: "Aman Yadav - Resume.pdf",
-                    label: "No resume on hand?",
+                    url: "/sample-resume.pdf",
+                    fileName: "Sample Resume.pdf",
+                    label: "Not have one? Use our sample resume.",
                   }}
                   onComplete={(file) => {
                     onResumeComplete({

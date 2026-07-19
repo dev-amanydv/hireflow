@@ -195,7 +195,12 @@ export function InputFile({
   uploadUrl = `${BACKEND_URL}/interview/pre/resume`,
   requireInterviewId = true,
   onUploaded,
+  onRemoved,
+  onUploadError,
+  forbiddenMessage,
   sampleResume,
+  className,
+  dropzoneClassName,
 }: {
   interviewId?: string;
   accept?: string;
@@ -206,7 +211,12 @@ export function InputFile({
   uploadUrl?: string;
   requireInterviewId?: boolean;
   onUploaded?: (data: unknown) => void;
+  onRemoved?: () => void;
+  onUploadError?: (info: { status?: number; message?: string }) => void;
+  forbiddenMessage?: string;
   sampleResume?: SampleResume;
+  className?: string;
+  dropzoneClassName?: string;
 }) {
   const [dragging, setDragging] = useState(false);
   const [file, setFile] = useState<UploadItem | null>(null);
@@ -247,10 +257,21 @@ export function InputFile({
       );
       onComplete?.({ name: selectedFile.name, size: formatSize(selectedFile.size), ext: extOf(selectedFile.name) });
       onUploaded?.(res.data?.data);
-    } catch {
+    } catch (err) {
+      const status = axios.isAxiosError(err) ? err.response?.status : undefined;
+      const message = axios.isAxiosError(err)
+        ? (err.response?.data as { message?: string } | undefined)?.message
+        : undefined;
+      const forbidden = status === 403;
+      onUploadError?.({ status, message });
       setFile((prev) =>
         prev && prev.id === id
-          ? { ...prev, status: "failed", error: "Upload failed", retryable: true }
+          ? {
+              ...prev,
+              status: "failed",
+              error: forbidden ? (forbiddenMessage ?? "Not allowed") : "Upload failed",
+              retryable: !forbidden,
+            }
           : prev
       );
     }
@@ -295,6 +316,7 @@ export function InputFile({
   const handleRemove = () => {
     rawFile.current = null;
     setFile(null);
+    onRemoved?.();
   };
   
   const handleRetry = async () => {
@@ -332,7 +354,7 @@ export function InputFile({
   };
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className={cn("flex flex-col gap-3", className)}>
       <div
         role="button"
         tabIndex={0}
@@ -351,7 +373,8 @@ export function InputFile({
           "flex cursor-pointer flex-col items-center gap-3 rounded-2xl border border-dashed px-6 py-8 text-center transition-colors outline-none",
           dragging
             ? "border-foreground bg-muted/60"
-            : "border-border bg-card hover:border-foreground/40 hover:bg-muted/40 focus-visible:border-foreground/40"
+            : "border-border bg-card hover:border-foreground/40 hover:bg-muted/40 focus-visible:border-foreground/40",
+          dropzoneClassName
         )}
       >
         <div className="flex size-11 items-center justify-center rounded-lg border bg-background">

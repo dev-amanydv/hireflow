@@ -39,7 +39,7 @@ export function PublicProfilePage({ username }: { username: string }) {
         <EmptyState
           icon={UserX}
           title="Profile not found"
-          description="This QuickHire profile doesn't exist, or the link is incorrect."
+          description="This Hireflow profile doesn't exist, or the link is incorrect."
         />
       </div>
     );

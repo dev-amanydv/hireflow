@@ -12,6 +12,7 @@ export default [
         route("interviews", "routes/dashboard/interviews.tsx"),
         route("interviews/:interviewId/result", "routes/dashboard/interview-result.tsx"),
         route("resume", "routes/dashboard/resume.tsx"),
+        route("resume/:id", "routes/dashboard/resume-detail.tsx"),
         route("insights", "routes/dashboard/insights.tsx"),
         route("profile", "routes/dashboard/profile.tsx"),
         route("settings", "routes/dashboard/settings.tsx"),

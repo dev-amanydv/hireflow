@@ -1,19 +1,14 @@
-# Production compose file for the Oracle Cloud Ampere A1 VM.
-#
-# Scope: apps/backend only. The frontend is deployed separately on Vercel, and
-# Postgres/Redis are offloaded to Neon and Redis Cloud (see the deploy plan) so
-# this box's CPU/RAM stay free for two more, unrelated backend services later.
-#
-# Resource budget (fill in from `Governance & Administration > Limits, Quotas
-# and Usage` in the OCI console for this tenancy before sizing the two future
-# backends — Oracle cut the Always-Free Ampere A1 allotment on 2026-06-15, so
-# don't assume 4 OCPU/24 GB):
-#   backend reserves: 1.0 CPU / 1.5 GB
-#   remaining for future backends: <tenancy total> - 1.0 CPU / 1.5 GB - nginx overhead
-#
-# Usage: docker compose -f compose.prod.yml up -d --build
 name: quick-hire-prod
 services:
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    env_file:
+      - ./apps/backend/.env
+    command: ["bunx", "--bun", "prisma", "migrate", "deploy"]
+    restart: "no"
+
   backend:
     restart: unless-stopped
     build:
@@ -23,6 +18,9 @@ services:
       - "8000"
     env_file:
       - ./apps/backend/.env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     deploy:
       resources:
         limits:

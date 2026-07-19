@@ -56,6 +56,7 @@ const jobIdSchema = z.object({ id: z.string().uuid() });
 
 export const listSavedJobs = async (req: Request, res: Response) => {
   const userId = req.userId;
+  if (!userId) throw new AppError(401, "Unauthorised");
   const saved = await prisma.savedJob.findMany({
     where: { userId },
     orderBy: { createdAt: "desc" },
@@ -75,6 +76,7 @@ export const saveJob = async (req: Request, res: Response) => {
   const parsed = jobIdSchema.safeParse(req.params);
   if (!parsed.success) throw new AppError(400, "InvalidJobId");
   const userId = req.userId;
+  if (!userId) throw new AppError(401, "Unauthorised");
   const jobId = parsed.data.id;
 
   const job = await prisma.job.findUnique({ where: { id: jobId } });
@@ -97,6 +99,7 @@ export const unsaveJob = async (req: Request, res: Response) => {
   const parsed = jobIdSchema.safeParse(req.params);
   if (!parsed.success) throw new AppError(400, "InvalidJobId");
   const userId = req.userId;
+  if (!userId) throw new AppError(401, "Unauthorised");
   const jobId = parsed.data.id;
 
   await prisma.savedJob.deleteMany({ where: { userId, jobId } });

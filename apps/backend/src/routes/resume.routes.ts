@@ -9,13 +9,14 @@ import {
 import { uploadMiddleware } from '../middlewares/upload.middleware';
 import { AsyncHandler } from '../utils/AsyncHandler';
 import { authMiddleware } from '../middlewares/auth.middleware';
+import { identityMiddleware } from '../middlewares/identity.middleware';
 
 const router = express.Router();
 
 router.get('/', authMiddleware, AsyncHandler(listAnalyses));
-router.post('/upload', authMiddleware, uploadMiddleware, AsyncHandler(uploadResumeAnalysis));
-router.post('/:id/target', authMiddleware, AsyncHandler(setAnalysisTarget));
-router.get('/:id/status', authMiddleware, AsyncHandler(getAnalysisStatus));
-router.get('/:id', authMiddleware, AsyncHandler(getAnalysis));
+router.post('/upload', identityMiddleware, uploadMiddleware, AsyncHandler(uploadResumeAnalysis));
+router.post('/:id/target', identityMiddleware, AsyncHandler(setAnalysisTarget));
+router.get('/:id/status', identityMiddleware, AsyncHandler(getAnalysisStatus));
+router.get('/:id', identityMiddleware, AsyncHandler(getAnalysis));
 
 export default router;

@@ -1,22 +1,16 @@
 import { useEffect } from "react";
-import { useLoaderData, useNavigate, useRouteLoaderData } from "react-router";
+import { useNavigate, useRouteLoaderData } from "react-router";
 import type { Route } from "./+types/start";
 import type { loader as rootLoader } from "~/root";
 import TopNav from "~/components/app/TopNav";
 import PreInterview from "~/components/pre-interview/PreInterview";
-import { ThemeProvider, getThemeFromCookie } from "~/lib/theme";
 import { useAuth } from "~/store/store";
 
 export function meta({}: Route.MetaArgs) {
-  return [{ title: "New interview — QuickHire" }];
-}
-
-export function loader({ request }: Route.LoaderArgs) {
-  return { theme: getThemeFromCookie(request.headers.get("cookie")) };
+  return [{ title: "New interview — Hireflow" }];
 }
 
 export default function Start() {
-  const { theme } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const user = useRouteLoaderData<typeof rootLoader>("root")?.user ?? null;
 
@@ -40,14 +34,11 @@ export default function Start() {
   }, [user, navigate]);
 
   return (
-    <ThemeProvider
-      initialTheme={theme}
-      className="min-h-screen bg-background text-foreground"
-    >
+    <div className="min-h-screen bg-background text-foreground">
       <TopNav />
       <main className="py-12 sm:py-16">
         <PreInterview />
       </main>
-    </ThemeProvider>
+    </div>
   );
 }

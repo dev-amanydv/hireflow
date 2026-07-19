@@ -5,6 +5,7 @@ import { ArrowLeft, FileQuestion } from "lucide-react";
 import EmptyState from "../EmptyState";
 import RecordingPlayer from "../RecordingPlayer";
 import { InterviewOwnerPanel, InterviewOwnerPanelSkeleton } from "./InterviewOwnerPanel";
+import { InterviewVisibilityBanner } from "./InterviewVisibilityBanner";
 import { BACKEND_URL } from "~/lib/config";
 import type { PublicInterviewData } from "./types";
 
@@ -46,7 +47,9 @@ export function PublicInterviewPage({
   useEffect(() => {
     let cancelled = false;
     axios
-      .get(`${BACKEND_URL}/profile/${username}/interview/${interviewId}`)
+      .get(`${BACKEND_URL}/profile/${username}/interview/${interviewId}`, {
+        withCredentials: true,
+      })
       .then((res) => {
         if (!cancelled) setData(res.data?.data ?? null);
       })
@@ -101,24 +104,36 @@ export function PublicInterviewPage({
           <InterviewOwnerPanelSkeleton />
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
-          <div className="flex flex-col gap-6">
-            <div>
-              <h1 className="ln-display-md text-foreground">{data.jobRole}</h1>
-              <p className="mt-1.5 text-sm text-ink-subtle">
-                {data.skill ? SKILL_LABEL[data.skill] ?? data.skill : "Behavioral"} ·{" "}
-                {LEVEL_LABEL[data.experience] ?? data.experience} · {formatDate(data.createdAt)}
-              </p>
-            </div>
-            <RecordingPlayer
+        <div className="flex flex-col gap-6">
+          {data.isOwner && (
+            <InterviewVisibilityBanner
               interviewId={interviewId}
-              status={data.recordingStatus}
-              durationMs={data.durationMs}
-              recordingUrl={data.recordingUrl}
-              allowDownload={false}
+              isPublic={data.isPublic}
+              onChange={(next) =>
+                setData((prev) => (prev ? { ...prev, isPublic: next } : prev))
+              }
             />
+          )}
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
+            <div className="flex flex-col gap-6">
+              <div>
+                <h1 className="ln-display-md text-foreground">{data.jobRole}</h1>
+                <p className="mt-1.5 text-sm text-ink-subtle">
+                  {data.skill ? SKILL_LABEL[data.skill] ?? data.skill : "Behavioral"} ·{" "}
+                  {LEVEL_LABEL[data.experience] ?? data.experience} · {formatDate(data.createdAt)}
+                </p>
+              </div>
+              <RecordingPlayer
+                interviewId={interviewId}
+                status={data.recordingStatus}
+                durationMs={data.durationMs}
+                recordingUrl={data.recordingUrl}
+                allowDownload={false}
+              />
+            </div>
+            <InterviewOwnerPanel owner={data.owner} />
           </div>
-          <InterviewOwnerPanel owner={data.owner} />
         </div>
       )}
     </div>

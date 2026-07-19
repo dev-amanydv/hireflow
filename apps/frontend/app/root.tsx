@@ -7,32 +7,44 @@ import {
   Scripts,
   ScrollRestoration,
   useLoaderData,
+  useRouteLoaderData,
 } from "react-router";
-import { Toaster } from "sonner"
 import type { Route } from "./+types/root";
 import "./app.css";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import { Toaster } from "./components/ui/sonner";
 import { TooltipProvider } from "./components/ui/tooltip";
 import AuthModals from "./components/auth/AuthModals";
+import "./lib/api";
 import { getUser } from "./lib/auth.server";
+import { ThemeProvider, getThemeFromCookie } from "./lib/theme";
 import { useAuth } from "./store/store";
 
 export function loader({ request }: Route.LoaderArgs) {
-  return { user: getUser(request) };
+  return {
+    user: getUser(request),
+    theme: getThemeFromCookie(request.headers.get("cookie")),
+  };
 }
 
-export const links: Route.LinksFunction = () => [];
+export const links: Route.LinksFunction = () => [
+  { rel: "icon", href: "/favicon.ico", sizes: "any" },
+  { rel: "icon", href: "/hireflow-icon.png", type: "image/png", sizes: "256x256" },
+  { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+];
 
 export const meta: Route.MetaFunction = () => [
-  { title: "QuickHire — The AI interviewer, built for the AI era" },
+  { title: "Hireflow — The AI interviewer, built for the AI era" },
   {
     name: "description",
     content:
-      "Practice interviews that feel real. QuickHire reads your resume, GitHub, and code to run adaptive engineering interviews and score them instantly.",
+      "Practice interviews that feel real. Hireflow reads your resume, GitHub, and code to run adaptive engineering interviews and score them instantly.",
   },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  const theme = useRouteLoaderData<typeof loader>("root")?.theme ?? "light";
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -42,11 +54,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
-        <Toaster className="z-50" position="top-center" />
         <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
           <TooltipProvider>
-            {children}
-            <AuthModals />
+            <ThemeProvider initialTheme={theme}>
+              <Toaster position="top-center" />
+              {children}
+              <AuthModals />
+            </ThemeProvider>
           </TooltipProvider>
         </GoogleOAuthProvider>
         <ScrollRestoration />
