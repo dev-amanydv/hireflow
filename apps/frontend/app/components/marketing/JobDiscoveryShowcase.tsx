@@ -680,9 +680,12 @@ export default function JobDiscoveryShowcase() {
     <section className="relative overflow-hidden py-20 sm:py-24">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-105 opacity-70"
+        className="pointer-events-none absolute inset-x-0 top-0 h-152 opacity-70"
         style={{
-          background: "radial-gradient(50% 80% at 50% 0%, var(--glow-brand), transparent 70%)",
+          background: [
+            "radial-gradient(52% 42% at 43% 36%, var(--glow-brand), color-mix(in oklab, var(--glow-brand) 40%, transparent) 45%, transparent 80%)",
+            "radial-gradient(34% 30% at 67% 30%, color-mix(in oklab, var(--glow-brand) 55%, transparent), transparent 78%)",
+          ].join(", "),
         }}
       />
       <div className="relative mx-auto max-w-6xl px-5 sm:px-8">

@@ -37,7 +37,6 @@
     "bullmq": "^5.79.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
-    "crawlee": "^3.17.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "ioredis": "^5.11.1",
@@ -49,7 +48,6 @@
     "octokit": "^5.0.5",
     "openai": "^6.45.0",
     "pdfjs-dist": "^6.0.227",
-    "playwright": "^1.60.0",
     "ws": "^8.21.0",
     "zod": "^4.4.3"
   }
