@@ -10,6 +10,7 @@ import profileRoutes from './routes/profile.route';
 import { errorHandler } from './middlewares/error.middleware';
 import { NotFound } from './utils/NotFound';
 import 'dotenv/config';
+import morgan from 'morgan'
 
 process.on('unhandledRejection', (reason) => console.error('[unhandledRejection]', reason));
 process.on('uncaughtException', (err) => console.error('[uncaughtException]', err));
@@ -18,6 +19,7 @@ const app = express();
 
 app.use(express.json());
 app.use(cookieParser());
+app.use(morgan('combined'))
 const corsOrigin = process.env.CORS_ORIGIN?.split(",") ?? "http://localhost:5173";
 app.use(cors({ origin: corsOrigin, credentials: true }))
 
