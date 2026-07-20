@@ -9,6 +9,7 @@ import {
   useLoaderData,
   useRouteLoaderData,
 } from "react-router";
+import axios from "axios";
 import type { Route } from "./+types/root";
 import "./app.css";
 import { GoogleOAuthProvider } from "@react-oauth/google";
@@ -18,6 +19,7 @@ import AuthModals from "./components/auth/AuthModals";
 import "./lib/api";
 import { getUser } from "./lib/auth.server";
 import { ThemeProvider, getThemeFromCookie } from "./lib/theme";
+import { BACKEND_URL } from "./lib/config";
 import { useAuth } from "./store/store";
 
 export function loader({ request }: Route.LoaderArgs) {
@@ -74,11 +76,22 @@ export default function App() {
   const { user } = useLoaderData<typeof loader>();
   const addUser = useAuth((s) => s.addUser);
   const removeUser = useAuth((s) => s.removeUser);
+  const hydrate = useAuth((s) => s.hydrate);
 
   useEffect(() => {
-    if (user) addUser(user);
-    else removeUser();
-  }, [user, addUser, removeUser]);
+    if (user) {
+      addUser(user);
+      hydrate();
+    } else {
+      axios
+        .get(`${BACKEND_URL}/auth/me`, { withCredentials: true })
+        .then((res) => {
+          if (res.data?.success) addUser(res.data.data);
+        })
+        .catch(() => removeUser())
+        .finally(() => hydrate());
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <Outlet />;
 }

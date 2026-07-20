@@ -18,8 +18,10 @@ interface AuthModalState {
 
 interface AuthState {
     user: User | null,
+    _hydrated: boolean,
     addUser: (value: User) => void,
     removeUser: () => void,
+    hydrate: () => void,
     authModal: AuthModalState,
     openAuthModal: (opts?: { mode?: AuthMode; onSuccess?: () => void }) => void,
     setAuthMode: (mode: AuthMode) => void,
@@ -38,11 +40,14 @@ export const usePageEyebrow = create<PageEyebrowState>()((set) => ({
 
 export const useAuth = create<AuthState>()((set) => ({
     user: null,
-    addUser: (value: User) => set({ user: value }),
+    _hydrated: false,
+    addUser: (value: User) => {
+        set({ user: value });},
     removeUser: () => {
         useSidebarStats.getState().reset();
         set({ user: null });
     },
+    hydrate: () => set({ _hydrated: true }),
     authModal: { open: false, mode: "signup", onSuccess: undefined },
     openAuthModal: (opts) =>
         set({

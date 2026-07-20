@@ -1,7 +1,6 @@
 import { useEffect } from "react";
-import { useNavigate, useRouteLoaderData } from "react-router";
+import { useNavigate } from "react-router";
 import type { Route } from "./+types/start";
-import type { loader as rootLoader } from "~/root";
 import TopNav from "~/components/app/TopNav";
 import PreInterview from "~/components/pre-interview/PreInterview";
 import { useAuth } from "~/store/store";
@@ -12,9 +11,11 @@ export function meta({}: Route.MetaArgs) {
 
 export default function Start() {
   const navigate = useNavigate();
-  const user = useRouteLoaderData<typeof rootLoader>("root")?.user ?? null;
+  const user = useAuth((s) => s.user);
+  const hydrated = useAuth((s) => s._hydrated);
 
   useEffect(() => {
+    if (!hydrated) return;
     if (user) return;
 
     const { openAuthModal } = useAuth.getState();
@@ -31,7 +32,7 @@ export default function Start() {
     });
 
     return () => unsub();
-  }, [user, navigate]);
+  }, [user, hydrated, navigate]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">

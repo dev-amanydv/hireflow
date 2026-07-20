@@ -189,6 +189,22 @@ export const handleSignin = async (req: Request, res: Response) => {
     }
 }
 
+export const handleMe = async (req: Request, res: Response) => {
+    const token = req.cookies?.access_token;
+    if (!token) {
+        return res.status(401).json({ success: false, message: "Unauthorised", data: null });
+    }
+    try {
+        const payload = jwt.verify(token, JWT_SECRET, { audience: 'User' }) as { userId: string; email: string };
+        return res.status(200).json({
+            success: true,
+            data: { id: payload.userId, email: payload.email }
+        });
+    } catch {
+        return res.status(401).json({ success: false, message: "TokenExpired", data: null });
+    }
+};
+
 export const handleGoogle = async (req: Request, res: Response) => {
     try {
         const { success, data } = googleSchema.safeParse(req.body);
