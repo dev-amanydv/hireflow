@@ -1,4 +1,4 @@
-name: quick-hire-prod
+name: hireflow-prod
 services:
   migrate:
     build:
@@ -9,7 +9,7 @@ services:
     command: ["bunx", "--bun", "prisma", "migrate", "deploy"]
     restart: "no"
 
-  backend:
+  hireflow-api:
     restart: unless-stopped
     build:
       context: .
@@ -32,17 +32,47 @@ services:
       timeout: 30s
       retries: 5
       start_period: 30s
+    networks:
+      - hireflow-network
 
-  nginx:
+  hireflow-agent:
     restart: unless-stopped
-    image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-      - /var/www/certbot:/var/www/certbot:ro
+    build:
+      context: ./apps/agent-worker-python
+      dockerfile: Dockerfile
+    env_file:
+      - ./apps/agent-worker-python/.env.local
+    environment:
+      INTERVIEW_BACKEND_URL: http://hireflow-api:8000/api/v1
+    expose:
+      - "8081"
     depends_on:
-      backend:
+      hireflow-api:
         condition: service_healthy
+    stop_grace_period: 15m
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 768M
+        reservations:
+          cpus: "0.25"
+          memory: 384M
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8081/', timeout=3)",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+    networks:
+      - hireflow-network
+
+networks:
+  hireflow-network:
+    name: hireflow-network
