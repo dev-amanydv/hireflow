@@ -1,4 +1,4 @@
-name: quick-hire-prod
+name: hireflow-prod
 services:
   migrate:
     build:
@@ -9,7 +9,7 @@ services:
     command: ["bunx", "--bun", "prisma", "migrate", "deploy"]
     restart: "no"
 
-  backend:
+  hireflow-api:
     restart: unless-stopped
     build:
       context: .
@@ -32,17 +32,9 @@ services:
       timeout: 30s
       retries: 5
       start_period: 30s
+    networks:
+      - hireflow-network
 
-  nginx:
-    restart: unless-stopped
-    image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-      - /var/www/certbot:/var/www/certbot:ro
-    depends_on:
-      backend:
-        condition: service_healthy
+networks:
+  hireflow-network:
+    name: hireflow-network
