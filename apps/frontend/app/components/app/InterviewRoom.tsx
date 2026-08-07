@@ -139,7 +139,7 @@ const STATUS_LABEL: Partial<Record<AgentState, string>> = {
   listening: "Listening",
   thinking: "Thinking",
   speaking: "Speaking",
-  failed: "Connection issue",
+  failed: "Starting interviewer",
 };
 
 function formatElapsed(totalSeconds: number) {
