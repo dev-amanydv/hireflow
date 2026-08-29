@@ -3,15 +3,21 @@ import type { AssembledSources } from "../utils/AssembleProfile";
 import z from "zod";
 import { zodTextFormat } from "openai/helpers/zod.mjs";
 import { prisma } from "../../prisma/db";
+import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
+import { Content } from "openai/resources/skills/content.mjs";
+import { ChatGroq } from "@langchain/groq"
 
-const baseUrl = process.env.AZURE_OPENAI_ENDPOINT;
-const apiKey = process.env.AZURE_SECRET_KEY;
-const model = process.env.OPENAI_TTT_MODEL;
+const geminiApiKey = process.env.GEMINI_API_KEY;
+const groqApiKey = process.env.GROQ_API_KEY;
 
-const openai = new OpenAI({
-    baseURL: `${baseUrl}/openai/v1/`,
-    apiKey: apiKey
+const geminiModel = new ChatGoogleGenerativeAI({
+  model: "gemini-3.5-flash-lite",
+  apiKey: geminiApiKey
 });
+const groqModel = new ChatGroq({
+    model: "openai/gpt-oss-120b",
+    apiKey: groqApiKey
+})
 
 export const summarySchema = z.object({
     name: z.string(),
@@ -247,24 +253,25 @@ export async function getResumeSummary(data: AssembledSources) {
         githubSources: ${data.githubSources},
         siteSources: ${data.siteSources}.
     `
-
+    const geminiWithStructure = geminiModel.withStructuredOutput(summarySchema)
+    const groqWithStructure = groqModel.withStructuredOutput(summarySchema)
+    const modelWithFallback = geminiWithStructure.withFallbacks({
+        fallbacks: [groqWithStructure]
+    })
     try {
-        const response = await openai.responses.create({
-            model: model,
-            reasoning: { effort: 'minimal' },
-            input: [
-                {
-                    role: 'system', content: system
-                },
-                {
-                    role: 'user', content: user
-                }
-            ],
-            text: {
-                format: zodTextFormat(summarySchema, 'userData')
+        const messages = [
+            {
+                role: 'system',
+                content: system
+            },
+            {
+                role: 'user',
+                content: user
             }
-        });
-        return response.output_text ? JSON.parse(response.output_text) : null
+        ]
+        const response = await modelWithFallback.invoke(messages)
+        console.log('Response: ', response)
+        return response ? response : null
     } catch (error) {
         console.log(error);
         return null

@@ -292,7 +292,11 @@ export const generateLivekitToken = async (req: Request, res: Response) => {
 
   const claim = await prisma.interview.updateMany({
     where: { id: interviewId, userId, status: "SCHEDULED" },
-    data: { status: "ONGOING", startAt: new Date(), recordingStatus: "PROCESSING" },
+    data: {
+      status: "ONGOING",
+      startAt: new Date(),
+      recordingStatus: "PROCESSING",
+    },
   });
   if (claim.count === 0) {
     const exists = await prisma.interview.findFirst({
@@ -347,7 +351,12 @@ export const generateLivekitToken = async (req: Request, res: Response) => {
     },
   );
 
-  at.addGrant({ roomJoin: true, room: roomName, canPublish: true, canSubscribe: true });
+  at.addGrant({
+    roomJoin: true,
+    room: roomName,
+    canPublish: true,
+    canSubscribe: true,
+  });
 
   at.roomConfig = new RoomConfiguration({
     agents: [
@@ -379,32 +388,50 @@ const messageSchema = z.object({
     }),
 });
 
-
 export const recordInterviewMessage = async (req: Request, res: Response) => {
   const interviewId = req.params.interviewId as string;
   const { success, data } = messageSchema.safeParse(req.body);
   if (!success) throw new AppError(400, "Invalid message");
   await prisma.message.create({
-    data: { interviewId, role: data.role, content: data.content, createdAt: data.createdAt },
+    data: {
+      interviewId,
+      role: data.role,
+      content: data.content,
+      createdAt: data.createdAt,
+    },
   });
 
-  res.status(201).json({ success: true, message: "Message recorded", data: null });
+  res
+    .status(201)
+    .json({ success: true, message: "Message recorded", data: null });
 };
-
 
 export const completeInterview = async (req: Request, res: Response) => {
   const interviewId = req.params.interviewId as string;
-
+  const { user_id } = req.body;
+  console.log("user_id: ", user_id, "  body: ", req.body)
+  const key = `users/${user_id}/${interviewId}/recording/interview.ogg`;
+  const durationMs = Number(req.body?.durationMs);
   await prisma.interview.update({
     where: { id: interviewId },
-    data: { status: "COMPLETED", endAt: new Date() },
+    data: {
+      status: "COMPLETED",
+      endAt: new Date(),
+      recordingStatus: "READY",
+      recordingKey: key,
+      recordingDurationMs: Number.isFinite(durationMs)
+        ? Math.round(durationMs)
+        : null,
+    },
   });
 
   await enqueueInterviewFeedback(interviewId).catch((err) =>
     console.error("Failed to enqueue interview feedback", err),
   );
 
-  res.status(200).json({ success: true, message: "Interview completed", data: null });
+  res
+    .status(200)
+    .json({ success: true, message: "Interview completed", data: null });
 };
 
 export const listInterviews = async (req: Request, res: Response) => {
@@ -452,7 +479,8 @@ export const listInterviews = async (req: Request, res: Response) => {
 
 export const listPublicInterviews = async (req: Request, res: Response) => {
   const limit = Math.min(Number(req.query.limit) || 12, 48);
-  const cursor = typeof req.query.cursor === "string" ? req.query.cursor : undefined;
+  const cursor =
+    typeof req.query.cursor === "string" ? req.query.cursor : undefined;
 
   const interviews = await prisma.interview.findMany({
     where: { isPublic: true, recordingStatus: "READY" },
@@ -492,7 +520,8 @@ export const listPublicInterviews = async (req: Request, res: Response) => {
       })),
   );
 
-  const nextCursor = interviews.length === limit ? interviews[interviews.length - 1]!.id : null;
+  const nextCursor =
+    interviews.length === limit ? interviews[interviews.length - 1]!.id : null;
 
   res.status(200).json({
     success: true,
@@ -619,11 +648,15 @@ export const uploadInterviewRecording = async (req: Request, res: Response) => {
     data: {
       recordingKey: key,
       recordingStatus: "READY",
-      recordingDurationMs: Number.isFinite(durationMs) ? Math.round(durationMs) : null,
+      recordingDurationMs: Number.isFinite(durationMs)
+        ? Math.round(durationMs)
+        : null,
     },
   });
 
-  res.status(201).json({ success: true, message: "Recording stored", data: null });
+  res
+    .status(201)
+    .json({ success: true, message: "Recording stored", data: null });
 };
 
 export const getInterviewRecording = async (req: Request, res: Response) => {
@@ -702,7 +735,9 @@ export const setInterviewVisibility = async (req: Request, res: Response) => {
 
   res.status(200).json({
     success: true,
-    message: data.isPublic ? "Interview is now public" : "Interview is now private",
+    message: data.isPublic
+      ? "Interview is now public"
+      : "Interview is now private",
     data: { isPublic: data.isPublic },
   });
 };

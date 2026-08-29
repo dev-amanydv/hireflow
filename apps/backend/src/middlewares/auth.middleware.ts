@@ -10,7 +10,6 @@ interface JwtPayload {
 }
 
 export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
-    console.log(req.cookies)
     const token = req.cookies.access_token;
     if (!token) throw new AppError(401, 'InvalidToken') ;
     let decoded: JwtPayload;
@@ -25,8 +24,6 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
         }
         throw new AppError(401, 'AuthenticationFailed');
     }
-
-    console.log(decoded);
     req.userId = decoded.userId
     next()
 }

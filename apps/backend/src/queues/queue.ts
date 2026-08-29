@@ -93,6 +93,7 @@ const id = (job: string, m: JobMeta, extra?: string) => {
 }
 
 export async function enqueueResumeParse(meta: JobMeta, filePath: string){
+    console.log("resumeParseQueue added...")
     return await resumeParseQueue.add('parse-pdf', { meta, filePath }, { jobId: id('parse-pdf', meta)})
 }
 

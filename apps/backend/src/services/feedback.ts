@@ -1,15 +1,18 @@
-import OpenAI from "openai";
 import z from "zod";
-import { zodTextFormat } from "openai/helpers/zod.mjs";
 import { getSkill, type Difficulty } from "../data/skillCatalog";
+import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
+import { ChatGroq } from "@langchain/groq";
 
-const baseUrl = process.env.AZURE_OPENAI_ENDPOINT;
-const apiKey = process.env.AZURE_SECRET_KEY;
-const model = process.env.OPENAI_TTT_MODEL;
+const geminiApiKey = process.env.GEMINI_API_KEY;
+const groqApiKey = process.env.GROQ_API_KEY;
 
-const openai = new OpenAI({
-  baseURL: `${baseUrl}/openai/v1/`,
-  apiKey: apiKey,
+const geminiModel = new ChatGoogleGenerativeAI({
+  model: "gemini-3.5-flash-lite",
+  apiKey: geminiApiKey,
+});
+const groqModel = new ChatGroq({
+  model: "openai/gpt-oss-120b",
+  apiKey: groqApiKey,
 });
 
 export const DIMENSIONS = [
@@ -163,19 +166,25 @@ Target level: ${EXPERIENCE_LABELS[experience]}
 Interview transcript:
 ${conversation || "(no transcript was recorded)"}`;
 
+  const geminiWithStructure = geminiModel.withStructuredOutput(feedbackSchema);
+  const groqWithStructure = groqModel.withStructuredOutput(feedbackSchema);
+  const modelWithFallback = geminiWithStructure.withFallbacks({
+    fallbacks: [groqWithStructure],
+  });
   try {
-    const response = await openai.responses.create({
-      model: model,
-      reasoning: { effort: "medium" },
-      input: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-      text: {
-        format: zodTextFormat(feedbackSchema, "interviewFeedback"),
+    const messages = [
+      {
+        role: "system",
+        content: system,
       },
-    });
-    return response.output_text ? JSON.parse(response.output_text) : null;
+      {
+        role: "user",
+        content: user,
+      },
+    ];
+    const response = await modelWithFallback.invoke(messages);
+    console.log("Response: ", response);
+    return response ? response : null;
   } catch (error) {
     console.log(error);
     return null;

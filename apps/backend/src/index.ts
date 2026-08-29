@@ -19,7 +19,7 @@ const app = express();
 
 app.use(express.json());
 app.use(cookieParser());
-app.use(morgan('combined'))
+// app.use(morgan('combined'))
 const corsOrigin = process.env.CORS_ORIGIN?.split(",") ?? "http://localhost:5173";
 app.use(cors({ origin: corsOrigin, credentials: true }))
 
@@ -64,6 +64,6 @@ app.listen(port, async () => {
         const { scheduleJobsIngest } = await import('./queues/queue');
         await scheduleJobsIngest();
     } catch (err) {
-        console.error('deferred worker startup failed', err);
+        console.error('worker startup failed', err);
     }
 })
