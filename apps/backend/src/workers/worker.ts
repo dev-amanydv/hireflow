@@ -1,5 +1,5 @@
 import { Worker } from "bullmq";
-import { connection } from "../queues/connection";
+import { createWorkerConnection } from "../queues/connection";
 import { prisma } from "../../prisma/db";
 import { uploadToBucket } from "../utils/upload";
 import fs from "fs";
@@ -29,8 +29,20 @@ import {
 } from "../services/feedback";
 import type { Difficulty } from "../data/skillCatalog";
 
+function wireWorkerEvents(worker: Worker, name: string) {
+  worker.on("ready", () => console.log(`[worker:${name}] ready to process jobs`));
+  worker.on("stalled", (jobId) =>
+    console.warn(`[worker:${name}] job ${jobId} stalled and will be retried`),
+  );
+  worker.on("error", (err) =>
+    console.error(`[worker:${name}] error:`, err.message),
+  );
+  worker.on("closed", () => console.log(`[worker:${name}] closed`));
+  return worker;
+}
+
 export function startResumeParserWorker() {
-  return new Worker(
+  const worker = new Worker(
     "resume-parse",
     async (job) => {
       const { meta } = job.data as { meta: JobMeta };
@@ -95,13 +107,14 @@ export function startResumeParserWorker() {
       }
     },
     {
-      connection: connection,
+      connection: createWorkerConnection("resume-parse"),
     },
   );
+  return wireWorkerEvents(worker, "resume-parse");
 }
 
 export function startJobsIngestWorker() {
-  return new Worker(
+  const worker = new Worker(
     "jobs-ingest",
     async () => {
       console.log("============JOBS_INGEST_STARTED============");
@@ -109,14 +122,15 @@ export function startJobsIngestWorker() {
     },
     {
       concurrency: 1,
-      connection: connection,
+      connection: createWorkerConnection("jobs-ingest"),
       limiter: { max: 10, duration: 1_000 },
     },
   );
+  return wireWorkerEvents(worker, "jobs-ingest");
 }
 
 export function startSourceFetchWorker() {
-  return new Worker(
+  const worker = new Worker(
     "source-fetch",
     async (job) => {
       const { meta, url } = job.data;
@@ -125,10 +139,11 @@ export function startSourceFetchWorker() {
     },
     {
       concurrency: 3,
-      connection: connection,
+      connection: createWorkerConnection("source-fetch"),
       limiter: { max: 10, duration: 1_000 },
     },
   );
+  return wireWorkerEvents(worker, "source-fetch");
 }
 
 export function startResumeUploadWorker() {
@@ -166,7 +181,7 @@ export function startResumeUploadWorker() {
       console.log("UPDATED RESUME STATUS TO COMPLETE")
       return { resumeId, s3Key, interviewId };
     },
-    { connection },
+    { connection: createWorkerConnection("resume-upload") },
   );
 
   worker.on("completed", async (job, returnValue) => {
@@ -192,7 +207,7 @@ export function startResumeUploadWorker() {
     console.log(`${job?.id} has failed with ${err.message}!`);
   });
 
-  return worker;
+  return wireWorkerEvents(worker, "resume-upload");
 }
 
 export function startResumeAnalysisUploadWorker() {
@@ -227,7 +242,7 @@ export function startResumeAnalysisUploadWorker() {
       });
       return { meta, filePath };
     },
-    { connection },
+    { connection: createWorkerConnection("resume-analysis-upload") },
   );
 
   w.on(
@@ -248,11 +263,11 @@ export function startResumeAnalysisUploadWorker() {
     console.log(`analysis-upload ${job?.id} failed: ${err.message}`);
   });
 
-  return w;
+  return wireWorkerEvents(w, "resume-analysis-upload");
 }
 
 export function startResumeAnalysisParserWorker() {
-  return new Worker(
+  const w = new Worker(
     "resume-analysis-parse",
     async (job) => {
       const { meta } = job.data as { meta: AnalysisMeta };
@@ -304,8 +319,9 @@ export function startResumeAnalysisParserWorker() {
         return;
       }
     },
-    { connection },
+    { connection: createWorkerConnection("resume-analysis-parse") },
   );
+  return wireWorkerEvents(w, "resume-analysis-parse");
 }
 
 export function startInterviewFeedbackWorker() {
@@ -361,14 +377,14 @@ export function startInterviewFeedbackWorker() {
         });
       });
     },
-    { connection },
+    { connection: createWorkerConnection("interview-feedback") },
   );
 
   w.on("failed", (job, err) => {
     console.log(`interview-feedback ${job?.id} failed: ${err.message}`);
   });
 
-  return w;
+  return wireWorkerEvents(w, "interview-feedback");
 }
 export function startProfileResumeWorker() {
   const w = new Worker(
@@ -418,14 +434,14 @@ export function startProfileResumeWorker() {
         await fs.promises.unlink(filePath).catch(() => {});
       }
     },
-    { connection },
+    { connection: createWorkerConnection("profile-resume") },
   );
 
   w.on("failed", (job, err) => {
     console.log(`profile-resume ${job?.id} failed: ${err.message}`);
   });
 
-  return w;
+  return wireWorkerEvents(w, "profile-resume");
 }
 
 export function startResumeAnalysisScoreWorker() {
@@ -467,7 +483,7 @@ export function startResumeAnalysisScoreWorker() {
         },
       });
     },
-    { connection },
+    { connection: createWorkerConnection("resume-analysis-score") },
   );
 
   w.on("failed", async (job, err) => {
@@ -483,5 +499,5 @@ export function startResumeAnalysisScoreWorker() {
     console.log(`analysis-score ${job?.id} failed: ${err.message}`);
   });
 
-  return w;
+  return wireWorkerEvents(w, "resume-analysis-score");
 }
