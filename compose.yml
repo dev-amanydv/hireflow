@@ -1,72 +1,97 @@
-name: quick-hire
+name: hireflow-prod
 services:
-  frontend:
-    build: 
+  migrate:
+    build:
       context: .
-      dockerfile: apps/frontend/Dockerfile
-    expose:
-      - "5173"
+      dockerfile: apps/backend/Dockerfile
+    env_file:
+      - ./apps/backend/.env
+    command: ["bunx", "--bun", "prisma", "migrate", "deploy"]
+    restart: "no"
+  
+  redis:
+    image: redis:7-alpine
+    container_name: local-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
     restart: unless-stopped
-  backend:
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1.5G
+
+  hireflow-api:
     restart: unless-stopped
-    build: 
+    build:
       context: .
       dockerfile: apps/backend/Dockerfile
     expose:
       - "8000"
+    env_file:
+      - ./apps/backend/.env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1.5G
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/v1/health || exit 1"] #TODO: install curl in backend
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/v1/health || exit 1"]
       interval: 1m30s
       timeout: 30s
       retries: 5
       start_period: 30s
-    depends_on:
-      db:
-        condition: service_healthy
-  nginx:
-    restart: unless-stopped
-    image: nginx:alpine
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      backend:
-        condition: service_healthy
-      frontend:
-        condition: service_started
-        
+    networks:
+      - hireflow-network
 
-  db:
+  hireflow-agent:
     restart: unless-stopped
-    image: postgres:18-alpine
+    build:
+      context: ./apps/agent-worker-python
+      dockerfile: Dockerfile
+    env_file:
+      - ./apps/agent-worker-python/.env.local
     environment:
-      - POSTGRES_USER=amanydv
-      - POSTGRES_PASSWORD=amanydv
-      - POSTGRES_DB=quickhire
-    ports: 
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql
+      INTERVIEW_BACKEND_URL: http://hireflow-api:8000/api/v1
+    expose:
+      - "8081"
+    depends_on:
+      hireflow-api:
+        condition: service_healthy
+    stop_grace_period: 15m
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 768M
+        reservations:
+          cpus: "0.25"
+          memory: 384M
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U amanydv -d quickhire"]
-      interval: 10s
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8081/', timeout=3)",
+        ]
+      interval: 30s
       timeout: 5s
-      retries: 5
-      start_period: 10s
-  
-  redis:
-    image: redis:7-alpine
-    container_name: quick-hire-redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
+      retries: 3
+      start_period: 45s
+    networks:
+      - hireflow-network
 
+networks:
+  hireflow-network:
+    name: hireflow-network
 
 volumes:
-  pgdata:
-  redis-data:
-
-    
+  redis_data:

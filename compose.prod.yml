@@ -76,4 +76,6 @@ services:
 networks:
   hireflow-network:
     name: hireflow-network
+  shared-backend:
+    external: true
 
