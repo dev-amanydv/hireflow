@@ -1,10 +1,7 @@
-import OpenAI from "openai";
+
 import type { AssembledSources } from "../utils/AssembleProfile";
 import z from "zod";
-import { zodTextFormat } from "openai/helpers/zod.mjs";
-import { prisma } from "../../prisma/db";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
-import { Content } from "openai/resources/skills/content.mjs";
 import { ChatGroq } from "@langchain/groq"
 
 const geminiApiKey = process.env.GEMINI_API_KEY;

@@ -1,5 +1,4 @@
 
-import { AzureChatOpenAI } from "@langchain/openai";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { z } from "zod";
@@ -9,8 +8,22 @@ import type {
   KeywordMatch,
   ParsedSummary,
 } from "./types";
+import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
+import { ChatGroq } from "@langchain/groq";
 
 export const JUDGE_MODEL_LABEL = "azure/gpt-5-mini (langchain)";
+const geminiApiKey = process.env.GEMINI_API_KEY;
+const groqApiKey = process.env.GROQ_API_KEY;
+
+
+const geminiModel = new ChatGoogleGenerativeAI({
+  model: "gemini-3.5-flash-lite",
+  apiKey: geminiApiKey,
+});
+const groqModel = new ChatGroq({
+  model: "openai/gpt-oss-120b",
+  apiKey: groqApiKey,
+});
 
 const judgeSchema = z.object({
   content: z.object({
@@ -43,19 +56,6 @@ export interface JudgeResult {
   content: z.infer<typeof judgeSchema>["content"] | null;
   keywords: KeywordMatch | null;
   findings: Finding[];
-}
-
-function getModel() {
-  return new AzureChatOpenAI({
-    model: process.env.OPENAI_TTT_MODEL ?? "gpt-5-mini",
-    azureOpenAIApiKey: process.env.AZURE_SECRET_KEY,
-    azureOpenAIApiDeploymentName: process.env.OPENAI_TTT_MODEL,
-    azureOpenAIEndpoint: process.env.AZURE_OPENAI_ENDPOINT,
-    azureOpenAIApiVersion: process.env.AZURE_OPENAI_API_VERSION ?? "2025-04-01-preview",
-    maxRetries: 2,
-    maxTokens: 12000,
-    modelKwargs: { reasoning_effort: "medium" },
-  });
 }
 
 const SYSTEM = `You are a rigorous, fair technical recruiter and ATS expert. You evaluate a resume against a target role and (optionally) a specific job description.
@@ -131,7 +131,17 @@ export async function judgeResume(
         ? "No specific job description supplied — evaluate against typical expectations for the target role and level, and infer the keywords such a role demands."
         : "No target role or job description supplied — this is a general review. Judge the resume on its own merits for the candidate's apparent field and level, and score relevance as how coherently it presents that. There is no target to match against, so return EMPTY matched and missing keyword arrays.";
 
-    const model = getModel().withStructuredOutput(judgeSchema, { name: "resume_evaluation" });
+    const geminiWithStructure = geminiModel.withStructuredOutput(judgeSchema, {
+      name: "resume_evaluation",
+    });
+    const groqWithStructure = groqModel.withStructuredOutput(judgeSchema, {
+      name: "resume_evaluation",
+    });
+
+    const model = geminiWithStructure.withFallbacks({
+      fallbacks: [groqWithStructure]
+    })
+    
     const prompt = await ChatPromptTemplate.fromMessages([
       ["system", SYSTEM],
       ["human", HUMAN],
@@ -166,3 +176,4 @@ export async function judgeResume(
     return { available: false, content: null, keywords: null, findings: [] };
   }
 }
+

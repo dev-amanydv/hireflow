@@ -34,6 +34,7 @@ services:
       start_period: 30s
     networks:
       - hireflow-network
+      - shared-backend
 
   hireflow-agent:
     restart: unless-stopped
