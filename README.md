@@ -1,100 +1,69 @@
 # Quick Hire
+An AI-driven interview platform.
 
-An AI-driven interview platform. Candidates upload a resume and pick a target role
+![Hireflow](apps/frontend/public/tagline.png)
+ Candidates upload a resume and pick a target role
 (e.g. *Backend Engineer*); the platform scrapes their public proof-of-work, runs a
 real-time **voice** interview powered by an OpenAI realtime model, scores the
 transcript, and gives back a video recording plus a detailed breakdown of mistakes and
 areas to improve. Interviews can be made public and shared with recruiters, who can
 search by role, watch interviews, and reach out to candidates.
 
-## How it works (candidate flow)
 
-1. **Upload resume + select role.** GitHub and LinkedIn URLs are extracted from the
-   resume automatically.
-2. **Scrape proof-of-work.** A [Crawlee](https://crawlee.dev/) scraper crawls the
-   candidate's GitHub and LinkedIn to build context about their real work. This, plus
-   the resume's skills and details, becomes context for the interviewer.
-3. **Live voice interview.** The browser opens a **WebRTC** peer connection straight to
-   OpenAI for low-latency audio. The model is prompted to conduct a role-specific
-   interview informed by the scraped context.
-4. **Scoring.** Once the interview ends, the full conversation stored in our DB is run
-   through scoring to produce the candidate's result.
-5. **Results.** The candidate receives the score, a video recording of the interview,
-   and a detailed analysis of mistakes and scope for improvement. They can optionally
-   make the interview **public**.
+## 📸 Screenshots
 
-## Recruiter flow
+| Dashboard Overview | AI Voice Interview Room |
+|:---:|:---:|
+| ![Dashboard Screenshot](apps/frontend/public/dashboard.png)| ![Interview Room](apps/frontend/public/room.png) |
 
-Recruiters visit the site, search specific job roles, watch candidates' public
-interviews, and connect with candidates they're interested in.
+| Resume ATS Analyzer | Public Interview Feed |
+|:---:|:---:|
+| ![Resume Analyzer](apps/frontend/public/ats.png) | ![Public Feed](apps/frontend/public/profile.png) |
+
+##  Core Features
+
+*   **Real-Time AI Voice Interviews:** Conduct lifelike mock interviews using a low-latency voice agent. Features dynamic visualizers, track controls, and transcript generation.
+*   **Smart ATS Resume Analyzer:** Upload resumes to receive deep, multi-stage AI analysis. The system parses text, scores against ATS rules, and provides actionable feedback.
+*   **Global Job Discovery:** Aggregates live job postings using built-in ingest pipelines from external providers (Adzuna, Arbeitnow, Remotive).
+*   **Comprehensive Performance Dashboards:** Track interview scores, review historical resume analyses, and manage saved jobs.
+*   **Public & Private Profiles:** Opt-in to share standout interview recordings and resume highlights on a public feed to attract recruiters.
+*   **Exportable Assets:** Generate and download PDF transcripts of your AI interview sessions.
 
 ## Architecture - the "side-band" design
 
 The hard part is doing real-time voice **without** trusting the client.
 
-### Why not connect the browser straight to OpenAI for everything?
+![Architecture](apps/frontend/public/architecture.png)
 
-The simple approach (browser ⇄ OpenAI over WebRTC, backend only mints the token) is fast
-and simple, but has two fatal problems:
+The frontend uses livekit-client to request a token from the main server to join a room hosted by LiveKit Cloud.
 
-- **The system prompt would have to live on the client** — trivially inspectable and
-  manipulable by the candidate.
-- **Our server is never part of the conversation**, so we can't reliably capture the
-  transcript for scoring.
+The main server utilizes @livekit-server to generate and send the token back to the client.
 
-```
-Architecture #1 (Bad)
+This returned token contains the allowed room permissions and a RoomAgentDispatch instruction (e.g., {agentName: "my-agent"}), signaling LiveKit to pull in the correct agent interviewer.
 
-  Browser ── get_token ──────────▶ Backend
-  Browser ◀── ephemeral token ──── Backend
-  Browser ── webrtc (audio) ─────▶ OpenAI server
-                                   ▲
-                                   └── (no path back to our server)
+The frontend uses this token to open a WebRTC connection directly to the SFU (Selective Forwarding Unit), publishing the user's microphone audio and subscribing to the agent's voice.
 
-  Cons: system prompt must sit on the client; we can't get a full
-        transcript because our server is never in the loop.
-```
+LiveKit Cloud operates as the WebRTC media server that hosts the room and forwards audio between participants.
 
-### The chosen design: voice on WebRTC, control on the side-band
+LiveKit Cloud fully manages STUN/TURN protocols and ICE candidates, entirely replacing the need for hand-rolled WebRTC implementations.
 
-We split the connection into two channels with different trust levels:
+LiveKit Cloud then hands a job over to the Agent Worker.
 
-- **Browser ⇄ OpenAI (WebRTC):** carries **voice only**. Nothing sensitive crosses
-  this link, so client-side tampering buys the candidate nothing.
-- **Backend ⇄ OpenAI (server-to-server socket, OpenAI's "side-band"):** carries
-  everything trusted — injecting the **system prompt**, persisting the **user/AI
-  conversation** to the DB, and any other secure control. The candidate's browser never
-  sees or touches it.
+The Agent Worker joins the room and executes the voice pipeline, completely isolating the agent's instructions, STT (Speech-to-Text), LLM, TTS (Text-to-Speech), turn-taking, and noise cancellation away from the client browser.
 
-```
-            ┌──────────── voice only (WebRTC) ───────────┐
-            ▼                                             ▼
-        Browser                                      OpenAI server
-            │                                             ▲
-            │ 1. get ephemeral token                      │ side-band socket:
-            ▼                                             │  - system prompt
-        Backend ───────────────────────────────────────┘   - save transcript
-                  (server-to-server, trusted)               - secure control
-```
+Hireflow is structured as a monorepo containing a frontend web application, a Node/Express backend, and a Python-based agent worker. **Bun** is strictly utilized as the primary runtime and package manager across the JavaScript/TypeScript ecosystem.
 
-**Flow:** the backend mints an **ephemeral token** for the browser → the browser uses it
-to open the WebRTC voice link to OpenAI → in parallel, the backend holds the side-band
-socket to OpenAI to inject the system prompt and stream the conversation into the DB.
-After the interview, that saved transcript drives scoring.
+### Tech Stack Overview
 
-## Tech stack
-
-Turborepo monorepo managed with **Bun** workspaces (`apps/*`, `packages/*`).
-
-| Area        | Stack                                                                 |
-| ----------- | --------------------------------------------------------------------- |
-| Runtime/PM  | Bun `1.3.14`, Turborepo                                                |
-| Backend     | Express 5, Zod, Prisma 7 → PostgreSQL 18                               |
-| Frontend    | React 19, React Router 7 (framework/SSR mode), Tailwind v4, shadcn/Radix |
-| Realtime    | WebRTC (browser ⇄ OpenAI), OpenAI realtime voice model, side-band socket |
-| Scraping    | Crawlee (GitHub + LinkedIn)                                            |
-| Infra       | Docker Compose: nginx, frontend, backend, postgres                    |
-
+| Category | Technology | Details |
+| :--- | :--- | :--- |
+| **Frontend** | React Router (v7) / Remix | Server-side rendering, nested routing, and unified data loading. |
+| **UI Library** | shadcn/ui & Tailwind CSS | Highly customizable, accessible, headless UI components. |
+| **Backend** | Node.js & Express | RESTful API architecture handling business logic and file uploads. |
+| **Runtime / PM** | Bun | Enforced runtime for ultra-fast package installation and execution. |
+| **Database** | PostgreSQL & Prisma ORM | Relational data modeling with strictly typed database client. |
+| **Asynchronous** | BullMQ / Redis | Background queue processing for heavy ATS parsing and AI tasks. |
+| **AI / ML** | OpenAI API & Python Worker | Powers the core conversational intelligence and ATS scoring logic. |
 ### Backend (`apps/backend`)
 
 Express API under `/api/v1` (e.g. `POST /api/v1/pre-interview`). Bodies validated with
