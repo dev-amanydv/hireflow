@@ -87,8 +87,8 @@ export default function InterviewDetails({
                 <InputFile
                   interviewId={interviewId}
                   sampleResume={{
-                    url: "/sample-resume.pdf",
-                    fileName: "Sample Resume.pdf",
+                    url: "/aman_yadav_resume.pdf",
+                    fileName: "Aman Yadav Resume.pdf",
                     label: "Not have one? Use our sample resume.",
                   }}
                   onComplete={(file) => {
